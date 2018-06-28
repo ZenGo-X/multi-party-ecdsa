@@ -1,0 +1,8 @@
+[package]
+name = "multi_party_ecdsa"
+version = "0.1.0"
+authors = [
+    "Gary <gary@kzencorp.com>"
+]
+
+[dependencies]
