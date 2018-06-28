@@ -14,13 +14,6 @@
     @license GPL-3.0+ <https://github.com/KZen-networks/multi-party-ecdsa/blob/master/LICENSE>
 */
 
-extern crate secp256k1;
-
-pub mod elliptic;
-pub use elliptic::point::Point as Point;
-
-pub mod arithmetic;
-pub use arithmetic::big_gmp::BigInteger as BigInteger;
-
-pub mod party_1;
-pub mod party_2;
+extern crate gmp;
+extern crate hex;
+pub mod big_gmp;
