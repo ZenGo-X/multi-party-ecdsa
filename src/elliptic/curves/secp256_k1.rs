@@ -14,6 +14,8 @@
     @license GPL-3.0+ <https://github.com/KZen-networks/multi-party-ecdsa/blob/master/LICENSE>
 */
 
+// Secp256k1 elliptic curve utility functions (se: https://en.bitcoin.it/wiki/Secp256k1).
+//
 // In Multi-party ECDSA, we need to manipulate low level elliptic curve members as Point
 // in order to perform operation on them. As the library secp256k1 expose only SecretKey and
 // PublicKey, we extend those with simple codecs.
@@ -24,10 +26,10 @@
 use ::BigInteger as BigInt;
 use ::Point;
 
-use arithmetic::big_gmp::to_bytes;
+use arithmetic::traits::Converter;
 use super::rand::thread_rng;
 use super::secp256k1::{ Secp256k1, SecretKey, PublicKey };
-use secp256k1::constants::{GENERATOR_X, GENERATOR_Y, CURVE_ORDER};
+use super::secp256k1::constants::{ GENERATOR_X, GENERATOR_Y, CURVE_ORDER };
 use std::slice;
 
 pub trait Secp256k1Codec {
@@ -62,7 +64,7 @@ impl SecretKeyCodec for SecretKey {
     }
 
     fn from_big_uint(s: &Secp256k1, n: &BigInt) -> SecretKey {
-        SecretKey::from_slice(s, &to_bytes(n)).unwrap()
+        SecretKey::from_slice(s, &BigInt::to_vec(n)).unwrap()
     }
 
     fn to_big_uint(&self) -> BigInt {
@@ -132,8 +134,8 @@ impl PublicKeyCodec for PublicKey {
     ///
     fn to_key_slice(p : &Point) -> Vec<u8> {
         let mut v = vec![ PublicKey::HEADER_MARKER as u8 ];
-        v.extend(to_bytes(&p.x));
-        v.extend(to_bytes(&p.y));
+        v.extend(BigInt::to_vec(&p.x));
+        v.extend(BigInt::to_vec(&p.y));
 
         v
     }
@@ -144,9 +146,8 @@ mod tests {
     use super::{ Secp256k1Codec, SecretKeyCodec, PublicKeyCodec };
 
     use elliptic::curves::rand::thread_rng;
-
-    use secp256k1::{ PublicKey, SecretKey, Secp256k1};
-    use secp256k1::constants::{GENERATOR_X, GENERATOR_Y, CURVE_ORDER};
+    use elliptic::curves::secp256k1::{ PublicKey, SecretKey, Secp256k1};
+    use elliptic::curves::secp256k1::constants::{GENERATOR_X, GENERATOR_Y, CURVE_ORDER};
 
     use ::BigInteger as BigInt;
 

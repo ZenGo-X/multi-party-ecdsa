@@ -14,11 +14,12 @@
     @license GPL-3.0+ <https://github.com/KZen-networks/multi-party-ecdsa/blob/master/LICENSE>
 */
 
-pub mod elliptic;
-pub use elliptic::point::Point as Point;
+pub trait Converter {
+    fn to_vec(n: &Self) -> Vec<u8>;
+}
 
-pub mod arithmetic;
-pub use arithmetic::big_gmp::BigInteger as BigInteger;
-
-pub mod party_1;
-pub mod party_2;
+pub trait Modulo {
+    fn mod_pow(base: &Self, exponent: &Self, modulus: &Self) -> Self;
+    fn mod_mul(a: &Self, b: &Self, modulus: &Self) -> Self;
+    fn mod_sub(a: &Self, b: &Self, modulus: &Self) -> Self;
+}
