@@ -20,6 +20,8 @@ use super::rand::{OsRng, Rng};
 
 use std::borrow::Borrow;
 
+pub type BigInteger = Mpz;
+
 impl Converter for Mpz {
     fn to_vec(value: &Mpz) -> Vec<u8> {
         let bytes: Vec<u8> = value.borrow().into();
@@ -75,9 +77,6 @@ impl Samplable for Mpz {
         Self::from(&*buf) >> (bytes * 8 - bit_size)
     }
 }
-
-
-pub type BigInteger = Mpz;
 
 #[cfg(test)]
 mod tests {

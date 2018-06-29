@@ -27,17 +27,19 @@ use ::BigInteger as BigInt;
 use ::Point;
 
 use arithmetic::traits::Converter;
+
 use super::rand::thread_rng;
 use super::secp256k1::{ Secp256k1, SecretKey, PublicKey };
 use super::secp256k1::constants::{ GENERATOR_X, GENERATOR_Y, CURVE_ORDER };
+use super::traits::{ PublicKeyCodec, SecretKeyCodec, CurveConstCodec };
+
 use std::slice;
 
-pub trait Secp256k1Codec {
-    fn get_base_point() -> Point;
-    fn get_q() -> BigInt;
-}
+pub type EC = Secp256k1;
+pub type SK = SecretKey;
+pub type PK = PublicKey;
 
-impl Secp256k1Codec for Secp256k1 {
+impl CurveConstCodec for Secp256k1 {
     fn get_base_point() -> Point {
         Point {
             x: BigInt::from(GENERATOR_X.as_ref()),
@@ -50,15 +52,7 @@ impl Secp256k1Codec for Secp256k1 {
     }
 }
 
-/// Secret Key Codec: BigInt <> SecretKey
-pub trait SecretKeyCodec {
-    fn new_random(s: &Secp256k1) -> SecretKey;
-    fn from_big_uint(s: &Secp256k1, n: &BigInt) -> SecretKey;
-
-    fn to_big_uint(&self) -> BigInt;
-}
-
-impl SecretKeyCodec for SecretKey {
+impl SecretKeyCodec<Secp256k1> for SecretKey {
     fn new_random(s: &Secp256k1) -> SecretKey {
         SecretKey::new(&s, &mut thread_rng())
     }
@@ -76,20 +70,7 @@ impl SecretKeyCodec for SecretKey {
     }
 }
 
-/// Public Key Codec: Point <> PublicKey
-pub trait PublicKeyCodec {
-    const KEY_SIZE: usize;
-    const HEADER_MARKER: usize;
-
-    fn randomize(&mut self, s : &Secp256k1) -> SecretKey;
-    fn to_point(&self) -> Point;
-
-    fn from_key_slice(key: &[u8]) -> Point;
-    fn to_key(s : &Secp256k1, p: &Point) -> PublicKey;
-    fn to_key_slice(p: &Point) -> Vec<u8>;
-}
-
-impl PublicKeyCodec for PublicKey {
+impl PublicKeyCodec<Secp256k1, SecretKey> for PublicKey {
     const KEY_SIZE: usize = 65;
     const HEADER_MARKER: usize = 4;
 
@@ -136,14 +117,13 @@ impl PublicKeyCodec for PublicKey {
         let mut v = vec![ PublicKey::HEADER_MARKER as u8 ];
         v.extend(BigInt::to_vec(&p.x));
         v.extend(BigInt::to_vec(&p.y));
-
         v
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{ Secp256k1Codec, SecretKeyCodec, PublicKeyCodec };
+    use super::{ CurveConstCodec, SecretKeyCodec, PublicKeyCodec };
 
     use elliptic::curves::rand::thread_rng;
     use elliptic::curves::secp256k1::{ PublicKey, SecretKey, Secp256k1};
