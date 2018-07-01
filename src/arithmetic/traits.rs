@@ -14,18 +14,19 @@
     @license GPL-3.0+ <https://github.com/KZen-networks/multi-party-ecdsa/blob/master/LICENSE>
 */
 
-pub mod elliptic;
-pub use elliptic::point::Point as Point;
+pub trait Converter {
+    fn to_vec(n: &Self) -> Vec<u8>;
+}
 
-// TODO: When we will have more than one type of elliptic curve, add as features
-pub use elliptic::curves::secp256_k1::EC as EC;
-pub use elliptic::curves::secp256_k1::SK as SK;
-pub use elliptic::curves::secp256_k1::PK as PK;
+pub trait Modulo {
+    fn mod_pow(base: &Self, exponent: &Self, modulus: &Self) -> Self;
+    fn mod_mul(a: &Self, b: &Self, modulus: &Self) -> Self;
+    fn mod_sub(a: &Self, b: &Self, modulus: &Self) -> Self;
+}
 
-pub mod arithmetic;
-// TODO: When we will have more than one type of big num library, add as features
-pub use arithmetic::big_gmp::BigInteger as BigInteger;
+pub trait Samplable {
+    fn sample_below(upper: &Self) -> Self;
+    fn sample_range(lower: &Self, upper: &Self) -> Self;
+    fn sample(bitsize: usize) -> Self;
+}
 
-pub mod cryptographic_primitives;
-
-pub mod protocols;
