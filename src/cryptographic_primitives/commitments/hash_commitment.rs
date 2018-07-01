@@ -17,7 +17,6 @@ use ::BigInteger as BigInt;
 
 use super::traits::Commitment;
 use super::ring::digest::{Context, SHA256};
-use std::borrow::Borrow;
 
 pub struct HashCommitment;
 
