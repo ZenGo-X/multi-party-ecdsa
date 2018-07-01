@@ -13,3 +13,10 @@
 
     @license GPL-3.0+ <https://github.com/KZen-networks/multi-party-ecdsa/blob/master/LICENSE>
 */
+
+use ::BigInteger as BigInt;
+
+pub trait Commitment {
+    fn create_commitment_with_user_defined_randomness(
+        message: &BigInt, blinding_factor: &BigInt) -> BigInt;
+}

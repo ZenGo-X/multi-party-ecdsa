@@ -4,7 +4,7 @@ use super::traits::Hash;
 use super::ring::digest::{Context, SHA256};
 use std::borrow::Borrow;
 
-pub struct HSha256 {}
+pub struct HSha256;
 
 impl Hash for HSha256 {
     fn create_hash(big_ints: Vec<&BigInt>) -> BigInt {
