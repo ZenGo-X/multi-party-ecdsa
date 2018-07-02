@@ -21,5 +21,5 @@ pub trait Commitment {
         message: &BigInt, blinding_factor: &BigInt) -> BigInt;
 
     fn create_commitment(
-        message: &BigInt, security_bits: &usize) -> (BigInt, BigInt);
+        message: &BigInt) -> (BigInt, BigInt);
 }
