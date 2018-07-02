@@ -21,7 +21,7 @@ use ::EC;
 use ::PK;
 use ::SK;
 
-const R_BYTES_SIZE : usize = 32;
+const SECURITY_BITS : usize = 256;
 
 use elliptic::curves::traits::*;
 
@@ -53,7 +53,7 @@ impl FirstMsgCommitments {
         let mut pk = PK::to_key(&ec_context, &EC::get_base_point());
         let sk = pk.randomize(&ec_context).to_big_uint();
 
-        let pk_commitment_blind_factor = BigInt::sample(R_BYTES_SIZE);
+        let pk_commitment_blind_factor = BigInt::sample(SECURITY_BITS);
         let pk_commitment = HashCommitment::create_commitment_with_user_defined_randomness(
             &pk.to_point().x, &pk_commitment_blind_factor);
 
@@ -69,7 +69,7 @@ impl FirstMsgCommitments {
                 &challenge, &sk, &EC::get_q()),
             &EC::get_q());
 
-        let zk_pok_blind_factor = BigInt::sample(R_BYTES_SIZE);
+        let zk_pok_blind_factor = BigInt::sample(SECURITY_BITS);
         let zk_pok_commitment = HashCommitment::create_commitment_with_user_defined_randomness(
             &pk_t_rand_commitment.to_point().x, &zk_pok_blind_factor);
 
