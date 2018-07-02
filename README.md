@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.com/KZen-networks/multi-party-ecdsa.svg?branch=master)](https://travis-ci.com/KZen-networks/multi-party-ecdsa)
+
 KZen Multi-party ECDSA
 =====================================
 
