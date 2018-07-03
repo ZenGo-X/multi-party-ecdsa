@@ -51,8 +51,6 @@ impl ProveDLog for DLogProof {
         let challenge = HSha256::create_hash(
             vec![&pk_t_rand_commitment.to_point().x, &EC::get_base_point().x, &pk.to_point().x]);
 
-        println!("Challenge: {:?}", challenge);
-
         let challenge_response = BigInt::mod_sub(
             &sk_t_rand_commitment, &BigInt::mod_mul(
                 &challenge, &sk, &EC::get_q()),
@@ -79,12 +77,9 @@ impl ProveDLog for DLogProof {
         pk_verifier.mul_assign(
             ec_context, &SK::from_big_uint(ec_context, &proof.challenge_response));
 
-        pk_verifier.combine(ec_context, &pk_challenge);
+        let pk_verifier = pk_verifier.combine(ec_context, &pk_challenge);
 
-        println!("pk_verifier: {:?}", pk_verifier);
-        println!("pk_t_rand_commitment: {:?}", proof.pk_t_rand_commitment);
-
-        if pk_verifier == proof.pk_t_rand_commitment {
+        if pk_verifier.unwrap() == proof.pk_t_rand_commitment {
             Ok(())
         } else {
             Err(ProofError)
