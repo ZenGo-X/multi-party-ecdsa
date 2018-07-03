@@ -15,7 +15,7 @@ This library can be used to create MultiSig and ThresholdSig crypto wallet.
 
 License
 -------
-Multi-party ECDSA is released under the terms of the GPL-3.0 license. See [LICENCE](LICENCE) for more information.
+Multi-party ECDSA is released under the terms of the GPL-3.0 license. See [LICENSE](LICENSE) for more information.
 
 
 Development Process
