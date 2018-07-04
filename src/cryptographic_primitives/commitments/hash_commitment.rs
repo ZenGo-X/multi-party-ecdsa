@@ -13,7 +13,7 @@
 
     @license GPL-3.0+ <https://github.com/KZen-networks/multi-party-ecdsa/blob/master/LICENSE>
 */
-use ::BigInteger as BigInt;
+use ::BigInt;
 
 use super::traits::Commitment;
 use super::ring::digest::{Context, SHA256};
@@ -37,7 +37,7 @@ impl Commitment for HashCommitment {
 
 #[cfg(test)]
 mod tests {
-    use ::BigInteger as BigInt;
+    use ::BigInt;
     use super::Commitment;
     use super::HashCommitment;
 

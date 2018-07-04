@@ -14,7 +14,7 @@
     @license GPL-3.0+ <https://github.com/KZen-networks/multi-party-ecdsa/blob/master/LICENSE>
 */
 
-use ::BigInteger as BigInt;
+use ::BigInt;
 
 pub trait Hash {
     fn create_hash(big_ints: Vec<&BigInt>) -> BigInt;

@@ -29,7 +29,7 @@ pub struct FirstMsgCommitment {
 impl FirstMsgCommitment {
     pub fn create(ec_context: &EC) -> DLogProof {
         let mut pk = PK::to_key(&ec_context, &EC::get_base_point());
-        let sk = pk.randomize(&ec_context).to_big_uint();
+        let sk = pk.randomize(&ec_context);
 
         DLogProof::prove(&ec_context, &pk, &sk)
     }
