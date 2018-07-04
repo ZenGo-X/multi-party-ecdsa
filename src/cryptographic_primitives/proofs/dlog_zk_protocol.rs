@@ -16,7 +16,6 @@
 
 use ::BigInteger as BigInt;
 
-use ::Point;
 use ::EC;
 use ::PK;
 use ::SK;
@@ -71,15 +70,20 @@ impl ProveDLog for DLogProof {
                 &proof.pk.to_point().x]);
 
         let mut pk_challenge = proof.pk.clone();
-        pk_challenge.mul_assign(ec_context, &SK::from_big_uint(ec_context, &challenge));
+        assert!(pk_challenge.mul_assign(
+            ec_context, &SK::from_big_uint(ec_context, &challenge)).is_ok());
+
 
         let mut pk_verifier = PK::to_key(ec_context, &EC::get_base_point());
-        pk_verifier.mul_assign(
-            ec_context, &SK::from_big_uint(ec_context, &proof.challenge_response));
+        assert!(pk_verifier.mul_assign(
+            ec_context, &SK::from_big_uint(ec_context, &proof.challenge_response)).is_ok());
 
-        let pk_verifier = pk_verifier.combine(ec_context, &pk_challenge);
+        let pk_verifier = match pk_verifier.combine(ec_context, &pk_challenge) {
+            Ok(pk_verifier) => pk_verifier,
+            _error => return Err(ProofError),
+        };
 
-        if pk_verifier.unwrap() == proof.pk_t_rand_commitment {
+        if pk_verifier == proof.pk_t_rand_commitment {
             Ok(())
         } else {
             Err(ProofError)
