@@ -46,7 +46,7 @@ impl Modulo for Mpz {
         if a_m >= b_m {
             (a_m - b_m).mod_floor(modulus)
         } else {
-            (a + (b + modulus)).mod_floor(modulus)
+            (a + (-b + modulus)).mod_floor(modulus)
         }
     }
 }
