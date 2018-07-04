@@ -20,7 +20,7 @@ use super::rand::{OsRng, Rng};
 
 use std::borrow::Borrow;
 
-pub type BigInteger = Mpz;
+pub type BigInt = Mpz;
 
 impl Converter for Mpz {
     fn to_vec(value: &Mpz) -> Vec<u8> {
@@ -46,7 +46,7 @@ impl Modulo for Mpz {
         if a_m >= b_m {
             (a_m - b_m).mod_floor(modulus)
         } else {
-            (a + (b + modulus)).mod_floor(modulus)
+            (a + (-b + modulus)).mod_floor(modulus)
         }
     }
 }

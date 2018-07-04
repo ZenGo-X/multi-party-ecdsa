@@ -15,7 +15,7 @@
 */
 
 use ::Point;
-use ::BigInteger as BigInt;
+use ::BigInt;
 
 pub trait CurveConstCodec {
     fn get_base_point() -> Point;
@@ -25,9 +25,9 @@ pub trait CurveConstCodec {
 /// Secret Key Codec: BigInt <> SecretKey
 pub trait SecretKeyCodec<EC> {
     fn new_random(s: &EC) -> Self;
-    fn from_big_uint(s: &EC, n: &BigInt) -> Self;
+    fn from_big_int(s: &EC, n: &BigInt) -> Self;
 
-    fn to_big_uint(&self) -> BigInt;
+    fn to_big_int(&self) -> BigInt;
 }
 
 /// Public Key Codec: Point <> PublicKey
