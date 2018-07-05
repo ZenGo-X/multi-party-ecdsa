@@ -21,3 +21,7 @@ Multi-party ECDSA is released under the terms of the GPL-3.0 license. See [LICEN
 Development Process
 -------------------
 The contribution workflow is described in [CONTRIBUTING.md](CONTRIBUTING.md).
+
+Contact
+-------------------
+For any questions, feel free to [email us](mailto:github@kzencorp.com).
