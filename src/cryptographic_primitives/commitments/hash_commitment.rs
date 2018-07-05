@@ -18,9 +18,9 @@ use ::BigInteger as BigInt;
 use super::traits::Commitment;
 use super::ring::digest::{Context, SHA256};
 use arithmetic::traits::Samplable;
-
+use super::{SECURITY_BITS};
 pub struct HashCommitment;
-const SECURITY_BITS : usize = 256;
+
 
 //TODO:  using the function with BigInt's as input instead of string's makes it impossible to commit to empty message or use empty randomness
 impl Commitment for HashCommitment {
@@ -58,23 +58,19 @@ mod tests {
     use super::Commitment;
     use super::HashCommitment;
     use arithmetic::traits::Samplable;
-    const SECURITY_BITS : usize = 256;
+    use super::{SECURITY_BITS};
 
     #[test]
     fn test_bit_length_create_commitment() {
         let message = BigInt::sample(SECURITY_BITS);
         let (commitment, blind_factor) = HashCommitment::create_commitment(&message);
         //test commitment length  - works because SHA256 output length the same as sec_bits
-        println!("blind_factor: {:?}", blind_factor.to_str_radix(16));
         assert_eq!(commitment.to_str_radix(16).len(),SECURITY_BITS/4);
         assert_eq!(blind_factor.to_str_radix(16).len(),SECURITY_BITS/4);
-
-
     }
 
     #[test]
     fn test_bit_length_create_commitment_with_user_defined_randomness() {
-
         let message = BigInt::sample(SECURITY_BITS);
         let (commitment, blind_factor) = HashCommitment::create_commitment(&message);
         let commitment2 = HashCommitment::create_commitment_with_user_defined_randomness(
