@@ -72,7 +72,7 @@ mod tests {
     #[test]
     fn test_bit_length_create_commitment_with_user_defined_randomness() {
         let message = BigInt::sample(SECURITY_BITS);
-        let (commitment, blind_factor) = HashCommitment::create_commitment(&message);
+        let (_commitment, blind_factor) = HashCommitment::create_commitment(&message);
         let commitment2 = HashCommitment::create_commitment_with_user_defined_randomness(
             &message, &blind_factor);
         assert_eq!(commitment2.to_str_radix(16).len(),SECURITY_BITS/4);

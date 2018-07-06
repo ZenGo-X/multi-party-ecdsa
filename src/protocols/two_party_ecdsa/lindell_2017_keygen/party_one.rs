@@ -55,7 +55,7 @@ impl FirstMsgCommitments {
         let pk_commitment = HashCommitment::create_commitment_with_user_defined_randomness(
             &pk.to_point().x, &pk_commitment_blind_factor);
 
-        let zk_pok_blind_factor = BigInt::sample(R_BYTES_SIZE);
+        let zk_pok_blind_factor = BigInt::sample(SECURITY_BITS);
         let zk_pok_commitment = HashCommitment::create_commitment_with_user_defined_randomness(
             &d_log_proof.pk_t_rand_commitment.to_point().x, &zk_pok_blind_factor);
 
