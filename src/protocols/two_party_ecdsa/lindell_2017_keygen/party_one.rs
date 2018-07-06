@@ -19,7 +19,7 @@ use ::BigInt;
 use ::EC;
 use ::PK;
 
-const R_BYTES_SIZE : usize = 32;
+const SECURITY_BITS : usize = 256;
 
 use elliptic::curves::traits::*;
 
@@ -51,7 +51,7 @@ impl FirstMsgCommitments {
 
         let d_log_proof = DLogProof::prove(&ec_context, &pk, &sk);
 
-        let pk_commitment_blind_factor = BigInt::sample(R_BYTES_SIZE);
+        let pk_commitment_blind_factor = BigInt::sample(SECURITY_BITS);
         let pk_commitment = HashCommitment::create_commitment_with_user_defined_randomness(
             &pk.to_point().x, &pk_commitment_blind_factor);
 
