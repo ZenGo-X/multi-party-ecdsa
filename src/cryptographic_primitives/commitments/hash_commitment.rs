@@ -66,7 +66,7 @@ mod tests {
         let (commitment, blind_factor) = HashCommitment::create_commitment(&message);
         //test commitment length  - works because SHA256 output length the same as sec_bits
         assert_eq!(commitment.to_str_radix(16).len(),SECURITY_BITS/4);
-        assert_eq!(blind_factor.to_str_radix(16).len(),SECURITY_BITS/4);
+        assert!(blind_factor > BigInt::from(0));
     }
 
     #[test]
