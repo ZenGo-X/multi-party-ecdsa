@@ -136,7 +136,7 @@ mod tests {
         let b = Mpz::from(5);
         let modulo = Mpz::from(3);
         let res = Mpz::from(2);
-        assert_eq!(res,Mpz::mod_sub(&a,&b,&modulo));
+        assert_eq!(res,Mpz::mod_sub(&a, &b,&modulo));
     }
     //test mod_sub: a-b mod n where a-b <0
     #[test]
@@ -145,7 +145,7 @@ mod tests {
         let b = Mpz::from(10);
         let modulo = Mpz::from(3);
         let res = Mpz::from(1);
-        assert_eq!(res,Mpz::mod_sub(&a,&b,&modulo));
+        assert_eq!(res,Mpz::mod_sub(&a, &b, &modulo));
     }
 
     #[test]
@@ -154,7 +154,7 @@ mod tests {
         let b = Mpz::from(5);
         let modulo = Mpz::from(3);
         let res = Mpz::from(2);
-        assert_eq!(res,Mpz::mod_mul(&a,&b,&modulo));
+        assert_eq!(res,Mpz::mod_mul(&a, &b, &modulo));
     }
 
     #[test]
@@ -163,6 +163,6 @@ mod tests {
         let b = Mpz::from(3);
         let modulo = Mpz::from(3);
         let res = Mpz::from(2);
-        assert_eq!(res,Mpz::mod_pow(&a,&b,&modulo));
+        assert_eq!(res,Mpz::mod_pow(&a, &b, &modulo));
     }
 }
