@@ -1,4 +1,4 @@
-use ::BigInteger as BigInt;
+use ::BigInt;
 
 use super::traits::Hash;
 use super::ring::digest::{Context, SHA256};
@@ -21,7 +21,7 @@ impl Hash for HSha256 {
 
 #[cfg(test)]
 mod tests {
-    use ::BigInteger as BigInt;
+    use ::BigInt;
     use super::Hash;
     use super::HSha256;
 

@@ -24,7 +24,7 @@ pub use elliptic::curves::secp256_k1::PK as PK;
 
 pub mod arithmetic;
 // TODO: When we will have more than one type of big num library, add as features
-pub use arithmetic::big_gmp::BigInteger as BigInteger;
+pub use arithmetic::big_gmp::BigInt as BigInt;
 
 pub mod cryptographic_primitives;
 

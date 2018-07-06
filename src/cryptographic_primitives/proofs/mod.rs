@@ -14,28 +14,22 @@
     @license GPL-3.0+ <https://github.com/KZen-networks/multi-party-ecdsa/blob/master/LICENSE>
 */
 
-use ::BigInt;
+use std::fmt;
+use std::error::Error;
 
-/// A simple Point defined by x and y
-#[derive(PartialEq)]
+pub mod dlog_zk_protocol;
+
 #[derive(Debug)]
-pub struct Point  {
-    pub x: BigInt,
-    pub y: BigInt
+pub struct ProofError;
+
+impl fmt::Display for ProofError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "ProofError")
+    }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::Point;
-    use super::BigInt;
-
-    #[test]
-    fn equality_test() {
-        let p1 = Point { x: BigInt::one(), y: BigInt::zero() };
-        let p2 = Point { x: BigInt::one(), y: BigInt::zero()};
-        assert_eq!(p1, p2);
-
-        let p3 = Point { x: BigInt::zero(), y: BigInt::one() };
-        assert_ne!(p1, p3);
+impl Error for ProofError {
+    fn description(&self) -> &str {
+        "Error while verifying"
     }
 }
