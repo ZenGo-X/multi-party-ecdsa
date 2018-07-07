@@ -82,6 +82,7 @@ impl Samplable for Mpz {
 mod tests {
     use super::Samplable;
     use super::Mpz;
+    use super::Modulo;
 
     #[test]
     #[should_panic]
@@ -127,5 +128,41 @@ mod tests {
             let r = Mpz::sample(len);
             assert_eq!(len, r.bit_length());
         }
+    }
+    //test mod_sub: a-b mod n where a-b >0
+    #[test]
+    fn test_mod_sub_modulo() {
+        let a = Mpz::from(10);
+        let b = Mpz::from(5);
+        let modulo = Mpz::from(3);
+        let res = Mpz::from(2);
+        assert_eq!(res,Mpz::mod_sub(&a, &b,&modulo));
+    }
+    //test mod_sub: a-b mod n where a-b <0
+    #[test]
+    fn test_mod_sub_negative_modulo() {
+        let a = Mpz::from(5);
+        let b = Mpz::from(10);
+        let modulo = Mpz::from(3);
+        let res = Mpz::from(1);
+        assert_eq!(res,Mpz::mod_sub(&a, &b, &modulo));
+    }
+
+    #[test]
+    fn test_mod_mul() {
+        let a = Mpz::from(4);
+        let b = Mpz::from(5);
+        let modulo = Mpz::from(3);
+        let res = Mpz::from(2);
+        assert_eq!(res,Mpz::mod_mul(&a, &b, &modulo));
+    }
+
+    #[test]
+    fn test_mod_pow() {
+        let a = Mpz::from(2);
+        let b = Mpz::from(3);
+        let modulo = Mpz::from(3);
+        let res = Mpz::from(2);
+        assert_eq!(res,Mpz::mod_pow(&a, &b, &modulo));
     }
 }
