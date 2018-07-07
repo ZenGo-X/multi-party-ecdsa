@@ -62,11 +62,25 @@ mod tests {
 
     #[test]
     fn test_bit_length_create_commitment() {
-        let message = BigInt::sample(SECURITY_BITS);
-        let (commitment, blind_factor) = HashCommitment::create_commitment(&message);
+        let hex_len = SECURITY_BITS;
+        let mut ctr_commit_len = 0;
+        let mut ctr_blind_len = 0;
+        let sample_size = 100;
+        for _ in 1..sample_size {
+            let message = BigInt::sample(SECURITY_BITS);
+            let (commitment, blind_factor) = HashCommitment::create_commitment(&message);
+            if commitment.to_str_radix(2).len() == hex_len {ctr_commit_len = ctr_commit_len + 1;}
+            if blind_factor.to_str_radix(2).len() == hex_len {ctr_blind_len = ctr_blind_len + 1;}
+        }
         //test commitment length  - works because SHA256 output length the same as sec_bits
-        assert_eq!(commitment.to_str_radix(16).len(),SECURITY_BITS/4);
-        assert!(blind_factor > BigInt::from(0));
+        // we test that the probability distribuition is according to what is expected. ideally = 0.5
+        let ctr_commit_len = ctr_commit_len as f32;
+        let ctr_blind_len = ctr_blind_len as f32;
+        let sample_size = sample_size as f32;
+        println!("commit len = {:?}", ctr_commit_len /sample_size);
+        println!("blind len = {:?}", ctr_blind_len /sample_size);
+        assert!(ctr_commit_len /sample_size  > 0.4);
+        assert!(ctr_blind_len /sample_size  > 0.4);
     }
 
     #[test]
