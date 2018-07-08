@@ -11,7 +11,7 @@ Any contributor must sign the Contributor Agreement (CA).
 
 ### How to sign the Contributor Agreement (CA)?
 
-Please send an email to gary@kzencorp.com containing your github username, the CA will be send to you by email.
+Please send an email to [github@kzencorp.com](mailto:github@kzencorp.com) containing your github username, the CA will be send to you by email.
 After signature you will be added to the team as a contributor.
 
 Communication Channels
