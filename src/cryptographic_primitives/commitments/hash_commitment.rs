@@ -77,20 +77,26 @@ mod tests {
         let ctr_commit_len = ctr_commit_len as f32;
         let ctr_blind_len = ctr_blind_len as f32;
         let sample_size = sample_size as f32;
-        println!("commit len = {:?}", ctr_commit_len /sample_size);
-        println!("blind len = {:?}", ctr_blind_len /sample_size);
-        assert!(ctr_commit_len /sample_size  > 0.4);
-        assert!(ctr_blind_len /sample_size  > 0.4);
+        assert!(ctr_commit_len /sample_size  > 0.3);
+        assert!(ctr_blind_len /sample_size  > 0.3);
     }
 
     #[test]
     fn test_bit_length_create_commitment_with_user_defined_randomness() {
-        let message = BigInt::sample(SECURITY_BITS);
-        let (_commitment, blind_factor) = HashCommitment::create_commitment(&message);
-        let commitment2 = HashCommitment::create_commitment_with_user_defined_randomness(
-            &message, &blind_factor);
-        assert_eq!(commitment2.to_str_radix(16).len(),SECURITY_BITS/4);
+        let hex_len = SECURITY_BITS;
+        let mut ctr_commit_len = 0;
+        let sample_size = 100;
+        for _ in 1..sample_size {
+            let message = BigInt::sample(SECURITY_BITS);
+            let (_commitment, blind_factor) = HashCommitment::create_commitment(&message);
+            let commitment2 = HashCommitment::create_commitment_with_user_defined_randomness(&message, &blind_factor);
+            if commitment2.to_str_radix(2).len() == hex_len { ctr_commit_len = ctr_commit_len + 1; }
+        }
+        let ctr_commit_len = ctr_commit_len as f32;
+        let sample_size = sample_size as f32;
+        assert!(ctr_commit_len / sample_size > 0.3);
     }
+
     #[test]
     fn test_random_num_generation_create_commitment_with_user_defined_randomness() {
         let message = BigInt::sample(SECURITY_BITS);
