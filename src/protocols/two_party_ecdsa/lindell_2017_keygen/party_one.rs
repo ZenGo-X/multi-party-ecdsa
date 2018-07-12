@@ -14,22 +14,22 @@
     @license GPL-3.0+ <https://github.com/KZen-networks/multi-party-ecdsa/blob/master/LICENSE>
 */
 
-use ::BigInt;
+use cryptography_utils::BigInt;
 
-use ::EC;
-use ::PK;
+use cryptography_utils::EC;
+use cryptography_utils::PK;
 
 const SECURITY_BITS : usize = 256;
 
-use elliptic::curves::traits::*;
+use cryptography_utils::elliptic::curves::traits::*;
 
-use arithmetic::traits::Samplable;
+use cryptography_utils::arithmetic::traits::Samplable;
 
-use cryptographic_primitives::proofs::dlog_zk_protocol::*;
-use cryptographic_primitives::proofs::ProofError;
+use cryptography_utils::cryptographic_primitives::proofs::dlog_zk_protocol::*;
+use cryptography_utils::cryptographic_primitives::proofs::ProofError;
 
-use cryptographic_primitives::commitments::hash_commitment::HashCommitment;
-use cryptographic_primitives::commitments::traits::Commitment;
+use cryptography_utils::cryptographic_primitives::commitments::hash_commitment::HashCommitment;
+use cryptography_utils::cryptographic_primitives::commitments::traits::Commitment;
 
 // TODO: remove the next line when unit test will be done
 #[allow(dead_code)]

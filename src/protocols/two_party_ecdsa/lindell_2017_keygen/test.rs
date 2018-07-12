@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use ::EC;
+    use cryptography_utils::EC;
 
     use protocols::two_party_ecdsa::lindell_2017_keygen::*;
 
