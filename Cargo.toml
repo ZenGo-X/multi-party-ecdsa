@@ -1,12 +1,11 @@
 [package]
-name = "multi_party_ecdsa"
+name = "multi-party-ecdsa"
 version = "0.1.0"
 authors = [
     "Gary <gary@kzencorp.com>"
 ]
 
 [lib]
-name = "multi_party_ecdsa"
 crate-type = ["dylib"]
 
 [dependencies]
