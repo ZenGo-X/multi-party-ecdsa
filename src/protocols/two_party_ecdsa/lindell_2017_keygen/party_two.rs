@@ -14,12 +14,12 @@
     @license GPL-3.0+ <https://github.com/KZen-networks/multi-party-ecdsa/blob/master/LICENSE>
 */
 
-use ::EC;
-use ::PK;
+use cryptography_utils::EC;
+use cryptography_utils::PK;
 
-use elliptic::curves::traits::*;
+use cryptography_utils::elliptic::curves::traits::*;
 
-use cryptographic_primitives::proofs::dlog_zk_protocol::*;
+use cryptography_utils::cryptographic_primitives::proofs::dlog_zk_protocol::*;
 
 #[derive(Debug)]
 pub struct FirstMsgCommitment {
