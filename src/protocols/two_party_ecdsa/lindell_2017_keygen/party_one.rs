@@ -18,6 +18,7 @@ use cryptography_utils::BigInt;
 
 use cryptography_utils::EC;
 use cryptography_utils::PK;
+use cryptography_utils::SK;
 
 const SECURITY_BITS : usize = 256;
 
@@ -35,9 +36,10 @@ use cryptography_utils::cryptographic_primitives::commitments::traits::Commitmen
 #[allow(dead_code)]
 #[derive(Debug)]
 pub struct FirstMsg{
-
+    pub public_share: PK,
+    secret_share : SK,
     pub pk_commitment : BigInt,
-    pk_commitment_blind_factor : BigInt,
+     pk_commitment_blind_factor : BigInt,
 
     pub zk_pok_commitment : BigInt,
     zk_pok_blind_factor : BigInt,
@@ -61,6 +63,8 @@ impl FirstMsg {
             &d_log_proof.pk_t_rand_commitment.to_point().x, &zk_pok_blind_factor);
 
         FirstMsg{
+            public_share: pk,
+            secret_share: sk,
             pk_commitment,
             pk_commitment_blind_factor,
 
@@ -75,8 +79,10 @@ impl FirstMsg {
 #[derive(Debug)]
 pub struct SecondMsg {
     pub d_log_proof_result : Result<(), ProofError>,
-    pub pk_commitment_blind_factor,
-    pub zk_pok_blind_factor
+    pub pk_commitment_blind_factor: BigInt,
+    pub zk_pok_blind_factor: BigInt,
+    pub public_share: PK,
+    pub d_log_proof: DLogProof
 }
 
 impl SecondMsg {
@@ -84,7 +90,9 @@ impl SecondMsg {
         SecondMsg {
             d_log_proof_result: DLogProof::verify(ec_context, proof),
             pk_commitment_blind_factor: first_message.pk_commitment_blind_factor,
-            zk_pok_blind_factor: first_message.zk_pok_blind_factor
+            zk_pok_blind_factor: first_message.zk_pok_blind_factor,
+            public_share: first_message.public_share,
+            d_log_proof : first_message.d_log_proof
         }
     }
 }

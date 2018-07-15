@@ -7,24 +7,12 @@ mod tests {
     #[test]
     fn test_d_log_proof_party_two_party_one() {
         let ec_context = EC::new();
-
-        let party_two_d_log_proof = party_two::FirstMsg::create(&ec_context);
-
-        let second_msg_party_two_proof_verification =
-            party_one::SecondMsg::verify_and_decommit(&ec_context, &party_two_d_log_proof);
-
-        assert!(second_msg_party_two_proof_verification.d_log_proof_result.is_ok());
+        let party_one_first_message = party_one::FirstMsg::create_commitments(&ec_context);
+        let party_two_first_message = party_two::FirstMsg::create(&ec_context);
+        let party_one_second_message = party_one::SecondMsg::verify_and_decommit(&ec_context, &party_one_first_message,&party_two_first_message);
+        assert!(party_one_second_message.d_log_proof_result.is_ok());
+        let party_two_second_message  = party_two::SecondMsg::verify_commitments_and_dlog_proof(&ec_context, &party_one_first_message, &party_one_second_message);
+        assert!(party_two_second_message.d_log_proof_result.is_ok());
     }
 
-    [test]
-    fn test_com_zk() {
-        let ec_context = EC::new();
-
-        let commits_first_message = party_one::FirstMsgCommitments::create(&ec_context);
-
-        let second_msg_party_two_proof_verification =
-            party_one::SecondMsgClientProofVerification::verify(&ec_context, &party_two_d_log_proof);
-
-        assert!(second_msg_party_two_proof_verification.d_log_proof_result.is_ok());
-    }
 }
