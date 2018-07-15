@@ -14,6 +14,7 @@
     @license GPL-3.0+ <https://github.com/KZen-networks/multi-party-ecdsa/blob/master/LICENSE>
 */
 
+use paillier::*;
 use cryptography_utils::BigInt;
 
 use cryptography_utils::EC;
@@ -34,8 +35,7 @@ use cryptography_utils::cryptographic_primitives::commitments::traits::Commitmen
 // TODO: remove the next line when unit test will be done
 #[allow(dead_code)]
 #[derive(Debug)]
-pub struct FirstMsg{
-
+pub struct FirstMsgCommitments {
     pub pk_commitment : BigInt,
     pk_commitment_blind_factor : BigInt,
 
@@ -45,8 +45,9 @@ pub struct FirstMsg{
     d_log_proof : DLogProof
 }
 
-impl FirstMsg {
-    pub fn create_commitments(ec_context: &EC) -> FirstMsg {
+impl FirstMsgCommitments {
+    pub fn create(ec_context: &EC) -> FirstMsgCommitments {
+
         let mut pk = PK::to_key(&ec_context, &EC::get_base_point());
         let sk = pk.randomize(&ec_context);
 
@@ -60,7 +61,7 @@ impl FirstMsg {
         let zk_pok_commitment = HashCommitment::create_commitment_with_user_defined_randomness(
             &d_log_proof.pk_t_rand_commitment.to_point().x, &zk_pok_blind_factor);
 
-        FirstMsg{
+        FirstMsgCommitments {
             pk_commitment,
             pk_commitment_blind_factor,
 
@@ -73,18 +74,14 @@ impl FirstMsg {
 }
 
 #[derive(Debug)]
-pub struct SecondMsg {
-    pub d_log_proof_result : Result<(), ProofError>,
-    pub pk_commitment_blind_factor,
-    pub zk_pok_blind_factor
+pub struct SecondMsgClientProofVerification {
+    pub d_log_proof_result : Result<(), ProofError>
 }
 
-impl SecondMsg {
-    pub fn verify_and_decommit(ec_context: &EC, first_message: &FirstMsg , proof: &DLogProof) -> SecondMsg {
-        SecondMsg {
-            d_log_proof_result: DLogProof::verify(ec_context, proof),
-            pk_commitment_blind_factor: first_message.pk_commitment_blind_factor,
-            zk_pok_blind_factor: first_message.zk_pok_blind_factor
+impl SecondMsgClientProofVerification {
+    pub fn verify(ec_context: &EC, proof: &DLogProof) -> SecondMsgClientProofVerification {
+        SecondMsgClientProofVerification {
+            d_log_proof_result: DLogProof::verify(ec_context, proof)
         }
     }
 }
