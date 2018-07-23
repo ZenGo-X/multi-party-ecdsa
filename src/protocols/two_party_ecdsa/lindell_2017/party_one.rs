@@ -22,6 +22,7 @@ use cryptography_utils::SK;
 
 const SECURITY_BITS : usize = 256;
 
+
 use cryptography_utils::elliptic::curves::traits::*;
 
 use cryptography_utils::arithmetic::traits::*;
@@ -53,7 +54,9 @@ pub struct KeyGenFirstMsg{
 impl KeyGenFirstMsg {
     pub fn create_commitments(ec_context: &EC) -> KeyGenFirstMsg {
         let mut pk = PK::to_key(&ec_context, &EC::get_base_point());
-        let sk = pk.randomize(&ec_context);
+        //in Lindell's protocol range proof works only for x1<q/3
+        let sk = SK::from_big_int(ec_context, &BigInt::sample_below(&EC::get_q().div_floor(&BigInt::from(3))));
+        pk.mul_assign(ec_context, &sk);
 
         let d_log_proof = DLogProof::prove(&ec_context, &pk, &sk);
 
@@ -100,29 +103,38 @@ impl KeyGenSecondMsg {
     }
 }
 
-
-#[derive(Debug)]
-pub struct PaillierKeyPair {
-    pub ek : EncryptionKey,
-    dk: DecryptionKey
-}
-
-impl PaillierKeyPair {
-    pub fn generate() -> PaillierKeyPair {
-        let (ek, dk) = Paillier::keypair().keys();
-        PaillierKeyPair {ek,dk}
-    }
-}
-
-pub fn compute_pubkey(ec_context: &EC, local_share: &KeyGenFirstMsg, other_share : &party_two::KeyGenFirstMsg) -> PK{
+pub fn compute_pubkey(ec_context: &EC, local_share: &KeyGenFirstMsg, other_share: &party_two::KeyGenFirstMsg) -> PK {
     let mut pubkey = other_share.public_share.clone();
     pubkey.mul_assign(ec_context, &local_share.secret_share);
     return pubkey;
 }
 
 
-pub fn paillier_encrypted_share(ek: &EncryptionKey, keygen: &KeyGenFirstMsg) -> RawCiphertext{
-    Paillier::encrypt(ek, &RawPlaintext(keygen.secret_share.to_big_int()))
+#[derive(Debug)]
+pub struct PaillierKeyPair {
+    pub ek : EncryptionKey,
+    dk: DecryptionKey,
+    pub encrypted_share: BigInt,
+    randomness: BigInt
+}
+
+impl PaillierKeyPair {
+    pub fn generate_keypair_and_encrypted_share( keygen: &KeyGenFirstMsg) -> PaillierKeyPair {
+        let (ek, dk) = Paillier::keypair().keys();
+        let randomness = Randomness::sample(&ek);
+        let encrypted_share = Paillier::encrypt_with_chosen_randomness(&ek, RawPlaintext::from(keygen.secret_share.to_big_int()),&randomness ).0.into_owned();
+        PaillierKeyPair { ek, dk,  encrypted_share, randomness: randomness.0}
+    }
+
+    pub fn generate_range_proof( paillier_context: &PaillierKeyPair, keygen: &KeyGenFirstMsg) -> (EncryptedPairs, ChallengeBits, Proof){
+        let (encrypted_pairs, challenge, proof) = Paillier::prover(&paillier_context.ek, &EC::get_q(), &keygen.secret_share.to_big_int(), &paillier_context.randomness ) ;
+        (encrypted_pairs, challenge, proof)
+    }
+
+    pub fn generate_proof_correct_key(paillier_context: &PaillierKeyPair, challenge: &Challenge ) ->  Result<CorrectKeyProof, CorrectKeyProofError>{
+        Paillier::prove(&paillier_context.dk, challenge)
+    }
+
 }
 
 
@@ -133,6 +145,7 @@ pub struct Signature{
 }
 
 impl Signature {
+
     pub fn compute(ec_context: &EC, keypair: &PaillierKeyPair, partial_sig: &party_two::PartialSig, ephemeral_local_share: &KeyGenFirstMsg, ephemeral_other_share: &party_two::KeyGenFirstMsg) -> Signature {
         //compute R = k2* R1
         let mut R = ephemeral_other_share.public_share.clone();
@@ -140,7 +153,7 @@ impl Signature {
         let rx = R.to_point().x.mod_floor(&EC::get_q());
 
         let k1_inv = &ephemeral_local_share.secret_share.to_big_int().invert(&EC::get_q()).unwrap();
-        let s_tag = Paillier::decrypt(&keypair.dk, &partial_sig.c3);
+        let s_tag = Paillier::decrypt( &keypair.dk, &RawCiphertext::from(&partial_sig.c3));
         let s_tag_tag = BigInt::mod_mul(&k1_inv, &s_tag.0, &EC::get_q()) ;
         let s = cmp::min(s_tag_tag.clone(), &EC::get_q().clone()-s_tag_tag.clone());
 
