@@ -6,11 +6,32 @@ authors = [
     "Morten Dahl <mortendahlcs@gmail.com>",
     "Omer <omer.shlomovits@gmail.com>"
 ]
+keywords = [
+    "ecdsa",
+    "multi-party-ecdsa",
+    "signature",
+    "rust",
+    "secret-shares",
+    "blockchain",
+    "cryptography",
+    "cryptocurrency"]
+
+homepage = "https://github.com/KZen-networks/multi-party-ecdsa"
+repository = "https://github.com/KZen-networks/multi-party-ecdsa"
+license = "GPL-3.0-or-later"
+categories = ["cryptography"]
 
 [lib]
-crate-type = ["dylib"]
+crate-type = ["lib"]
 
 [dependencies]
 cryptography-utils = { git = "https://github.com/KZen-networks/cryptography-utils" }
 paillier = { git = "https://github.com/mortendahl/rust-paillier", branch = "dev" }
 
+[dev-dependencies]
+bencher = "0.1"
+
+[[bench]]
+name = "keygen"
+path = "benches/two_party_ecdsa/lindell_2017/keygen.rs"
+harness = false
