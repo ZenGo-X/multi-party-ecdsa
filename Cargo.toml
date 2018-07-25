@@ -12,5 +12,5 @@ crate-type = ["dylib"]
 
 [dependencies]
 cryptography-utils = { git = "https://github.com/KZen-networks/cryptography-utils" }
-paillier = { path = "../../rust_paillier/rust-paillier" }
-#paillier = { git = "https://github.com/mortendahl/rust-paillier", branch = "dev" }
+paillier = { git = "https://github.com/mortendahl/rust-paillier", branch = "dev" }
+
