@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate bencher;
-extern crate multi_party_ecdsa;
 extern crate cryptography_utils;
+extern crate multi_party_ecdsa;
 
 mod bench {
     use bencher::*;
@@ -11,7 +11,8 @@ mod bench {
     pub fn bench_full_keygen_party_one_two(b: &mut Bencher) {
         b.iter(|| {
             let ec_context = EC::new();
-            let party_one_first_message = party_one::KeyGenFirstMsg::create_commitments(&ec_context);
+            let party_one_first_message =
+                party_one::KeyGenFirstMsg::create_commitments(&ec_context);
             let party_two_first_message = party_two::KeyGenFirstMsg::create(&ec_context);
 
             let party_one_second_message = party_one::KeyGenSecondMsg::verify_and_decommit(
@@ -28,9 +29,10 @@ mod bench {
                 );
 
             // init paillier keypair:
-            let paillier_key_pair = party_one::PaillierKeyPair::generate_keypair_and_encrypted_share(
-                &party_one_first_message,
-            );
+            let paillier_key_pair =
+                party_one::PaillierKeyPair::generate_keypair_and_encrypted_share(
+                    &party_one_first_message,
+                );
 
             let party_two_paillier = party_two::PaillierPublic {
                 ek: paillier_key_pair.ek.clone(),
@@ -40,8 +42,10 @@ mod bench {
             // zk proof of correct paillier key
             let (challenge, verification_aid) =
                 party_two::PaillierPublic::generate_correct_key_challenge(&party_two_paillier);
-            let proof_result =
-                party_one::PaillierKeyPair::generate_proof_correct_key(&paillier_key_pair, &challenge);
+            let proof_result = party_one::PaillierKeyPair::generate_proof_correct_key(
+                &paillier_key_pair,
+                &challenge,
+            );
 
             let _result = party_two::PaillierPublic::verify_correct_key(
                 &proof_result.unwrap(),
@@ -49,22 +53,21 @@ mod bench {
             );
 
             // zk range proof
-            let (encrypted_pairs, challenge, proof) = party_one::PaillierKeyPair::generate_range_proof(
-                &paillier_key_pair,
-                &party_one_first_message,
-            );
+            let (encrypted_pairs, challenge, proof) =
+                party_one::PaillierKeyPair::generate_range_proof(
+                    &paillier_key_pair,
+                    &party_one_first_message,
+                );
             party_two::PaillierPublic::verify_range_proof(
                 &party_two_paillier,
                 &challenge,
                 &encrypted_pairs,
-                &proof
+                &proof,
             );
         });
     }
 
-
-    benchmark_group!(keygen,
-        self::bench_full_keygen_party_one_two);
+    benchmark_group!(keygen, self::bench_full_keygen_party_one_two);
 }
 
 benchmark_main!(bench::keygen);
