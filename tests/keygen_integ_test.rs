@@ -15,21 +15,13 @@ fn test_two_party_keygen() {
         &ec_context,
         &party_one_first_message,
         &party_two_first_message.d_log_proof,
-    );
+    ).expect("failed to verify and decommit");
 
-    party_one_second_message
-        .d_log_proof_result
-        .expect("Incorrect party #1 DLog proof");
-
-    let party_two_second_message = party_two::KeyGenSecondMsg::verify_commitments_and_dlog_proof(
+    let _party_two_second_message = party_two::KeyGenSecondMsg::verify_commitments_and_dlog_proof(
         &ec_context,
         &party_one_first_message,
         &party_one_second_message,
-    );
-
-    party_two_second_message
-        .d_log_proof_result
-        .expect("Incorrect party #2 DLog proof");
+    ).expect("failed to verify commitments and DLog proof");
 
     // init paillier keypair:
     let paillier_key_pair =

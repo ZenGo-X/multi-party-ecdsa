@@ -25,19 +25,13 @@ fn test_two_party_sign() {
         &ec_context,
         &party_one_first_message,
         &party_two_first_message.d_log_proof,
-    );
-    party_one_second_message
-        .d_log_proof_result
-        .expect("Incorrect party #1 DLog proof");
+    ).expect("party1 DLog proof failed");
 
-    let party_two_proof_result = party_two::KeyGenSecondMsg::verify_commitments_and_dlog_proof(
+    let _party_two_proof_result = party_two::KeyGenSecondMsg::verify_commitments_and_dlog_proof(
         &ec_context,
         &party_one_first_message,
         &party_one_second_message,
-    );
-    party_two_proof_result
-        .d_log_proof_result
-        .expect("Incorrect party #2 DLog proof");
+    ).expect("party2 DLog proof failed");
 
     let message = BigInt::from(1234);
     let partial_sig = party_two::PartialSig::compute(

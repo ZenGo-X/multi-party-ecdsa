@@ -45,16 +45,14 @@ impl KeyGenFirstMsg {
     }
 }
 #[derive(Debug)]
-pub struct KeyGenSecondMsg {
-    pub d_log_proof_result: Result<(), ProofError>,
-}
+pub struct KeyGenSecondMsg {}
 
 impl KeyGenSecondMsg {
     pub fn verify_commitments_and_dlog_proof(
         ec_context: &EC,
         party_one_first_messsage: &party_one::KeyGenFirstMsg,
         party_one_second_messsage: &party_one::KeyGenSecondMsg,
-    ) -> KeyGenSecondMsg {
+    ) -> Result<KeyGenSecondMsg, ProofError> {
         let mut flag = true;
         match party_one_first_messsage.pk_commitment
             == HashCommitment::create_commitment_with_user_defined_randomness(
@@ -77,12 +75,8 @@ impl KeyGenSecondMsg {
             true => flag = flag,
         };
         assert!(flag);
-        KeyGenSecondMsg {
-            d_log_proof_result: DLogProof::verify(
-                ec_context,
-                &party_one_second_messsage.d_log_proof,
-            ),
-        }
+        DLogProof::verify(ec_context, &party_one_second_messsage.d_log_proof)?;
+        Ok(KeyGenSecondMsg {})
     }
 }
 
