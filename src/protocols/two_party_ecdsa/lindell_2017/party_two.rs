@@ -37,7 +37,7 @@ impl KeyGenFirstMsg {
         let mut pk = PK::to_key(&ec_context, &EC::get_base_point());
         let sk = SK::from_big_int(
             ec_context,
-            &BigInt::sample_below(&EC::get_q().div_floor(&BigInt::from(3))),
+            &BigInt::sample_below(&EC::get_q()),
         );
         assert!(pk.mul_assign(ec_context, &sk).is_ok());
         KeyGenFirstMsg {
