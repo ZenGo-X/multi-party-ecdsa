@@ -35,10 +35,7 @@ pub struct KeyGenFirstMsg {
 impl KeyGenFirstMsg {
     pub fn create(ec_context: &EC) -> KeyGenFirstMsg {
         let mut pk = PK::to_key(&ec_context, &EC::get_base_point());
-        let sk = SK::from_big_int(
-            ec_context,
-            &BigInt::sample_below(&EC::get_q()),
-        );
+        let sk = SK::from_big_int(ec_context, &BigInt::sample_below(&EC::get_q()));
         assert!(pk.mul_assign(ec_context, &sk).is_ok());
         KeyGenFirstMsg {
             d_log_proof: DLogProof::prove(&ec_context, &pk, &sk),
