@@ -15,7 +15,9 @@ mod tests {
             &party_one_first_message,
             &party_two_first_message.d_log_proof,
         );
-        assert!(party_one_second_message.d_log_proof_result.is_ok());
+        party_one_second_message
+            .d_log_proof_result
+            .expect("Party one DLog proved");
 
         let party_two_second_message =
             party_two::KeyGenSecondMsg::verify_commitments_and_dlog_proof(
@@ -23,6 +25,8 @@ mod tests {
                 &party_one_first_message,
                 &party_one_second_message,
             );
-        assert!(party_two_second_message.d_log_proof_result.is_ok());
+        party_two_second_message
+            .d_log_proof_result
+            .expect("Party two DLog proved");
     }
 }

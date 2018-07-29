@@ -59,7 +59,7 @@ impl KeyGenFirstMsg {
             ec_context,
             &BigInt::sample_below(&EC::get_q().div_floor(&BigInt::from(3))),
         );
-        assert!(pk.mul_assign(ec_context, &sk).is_ok());
+        pk.mul_assign(ec_context, &sk).expect("Assignment expected");
 
         let d_log_proof = DLogProof::prove(&ec_context, &pk, &sk);
 
@@ -120,11 +120,10 @@ pub fn compute_pubkey(
     other_share: &party_two::KeyGenFirstMsg,
 ) -> PK {
     let mut pubkey = other_share.public_share.clone();
-    assert!(
-        pubkey
-            .mul_assign(ec_context, &local_share.secret_share)
-            .is_ok()
-    );
+    pubkey
+        .mul_assign(ec_context, &local_share.secret_share)
+        .expect("Assignment expected");
+
     return pubkey;
 }
 
@@ -194,10 +193,8 @@ impl Signature {
     ) -> Signature {
         //compute r = k2* R1
         let mut r = ephemeral_other_share.public_share.clone();
-        assert!(
-            r.mul_assign(ec_context, &ephemeral_local_share.secret_share)
-                .is_ok()
-        );
+        r.mul_assign(ec_context, &ephemeral_local_share.secret_share)
+            .expect("Assignment expected");
 
         let rx = r.to_point().x.mod_floor(&EC::get_q());
         let k1_inv = &ephemeral_local_share
@@ -229,18 +226,15 @@ pub fn verify(
     let u2 = BigInt::mod_mul(&signature.r, &b, &EC::get_q());
     // can be faster using shamir trick
     let mut point1 = PK::to_key(ec_context, &EC::get_base_point());
-    assert!(
-        point1
-            .mul_assign(ec_context, &SK::from_big_int(ec_context, &u1))
-            .is_ok()
-    );
+
+    point1
+        .mul_assign(ec_context, &SK::from_big_int(ec_context, &u1))
+        .expect("Assignment expected");
 
     let mut point2 = *pubkey;
-    assert!(
-        point2
-            .mul_assign(ec_context, &SK::from_big_int(ec_context, &u2))
-            .is_ok()
-    );
+    point2
+        .mul_assign(ec_context, &SK::from_big_int(ec_context, &u2))
+        .expect("Assignment expected");
 
     if signature.r == point1.combine(ec_context, &point2).unwrap().to_point().x {
         Ok(())

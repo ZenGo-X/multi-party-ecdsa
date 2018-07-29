@@ -16,14 +16,20 @@ fn test_two_party_keygen() {
         &party_one_first_message,
         &party_two_first_message.d_log_proof,
     );
-    assert!(party_one_second_message.d_log_proof_result.is_ok());
+
+    party_one_second_message
+        .d_log_proof_result
+        .expect("Party one DLog proved.");
 
     let party_two_second_message = party_two::KeyGenSecondMsg::verify_commitments_and_dlog_proof(
         &ec_context,
         &party_one_first_message,
         &party_one_second_message,
     );
-    assert!(party_two_second_message.d_log_proof_result.is_ok());
+
+    party_two_second_message
+        .d_log_proof_result
+        .expect("Party two DLog proved.");
 
     // init paillier keypair:
     let paillier_key_pair =
@@ -39,21 +45,21 @@ fn test_two_party_keygen() {
         party_two::PaillierPublic::generate_correct_key_challenge(&party_two_paillier);
     let proof_result =
         party_one::PaillierKeyPair::generate_proof_correct_key(&paillier_key_pair, &challenge);
-    assert!(proof_result.is_ok());
 
-    let result =
-        party_two::PaillierPublic::verify_correct_key(&proof_result.unwrap(), &verification_aid);
-    assert!(result.is_ok());
+    let valid_proof = proof_result.expect("Party one proves correct key.");
+    party_two::PaillierPublic::verify_correct_key(&valid_proof, &verification_aid)
+        .expect("Party two key is correct.");
 
     // zk range proof
     let (encrypted_pairs, challenge, proof) = party_one::PaillierKeyPair::generate_range_proof(
         &paillier_key_pair,
         &party_one_first_message,
     );
+
     assert!(party_two::PaillierPublic::verify_range_proof(
         &party_two_paillier,
         &challenge,
         &encrypted_pairs,
-        &proof
+        &proof,
     ));
 }

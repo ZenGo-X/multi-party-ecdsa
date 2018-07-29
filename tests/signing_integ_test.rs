@@ -26,14 +26,18 @@ fn test_two_party_sign() {
         &party_one_first_message,
         &party_two_first_message.d_log_proof,
     );
-    assert!(party_one_second_message.d_log_proof_result.is_ok());
+    party_one_second_message
+        .d_log_proof_result
+        .expect("Party one DLog proved.");
 
     let party_two_proof_result = party_two::KeyGenSecondMsg::verify_commitments_and_dlog_proof(
         &ec_context,
         &party_one_first_message,
         &party_one_second_message,
     );
-    assert!(party_two_proof_result.d_log_proof_result.is_ok());
+    party_two_proof_result
+        .d_log_proof_result
+        .expect("Party two DLog proved.");
 
     let message = BigInt::from(1234);
     let partial_sig = party_two::PartialSig::compute(
@@ -59,5 +63,5 @@ fn test_two_party_sign() {
         &party_one_private_share_gen,
         &party_two_private_share_gen,
     );
-    assert!(party_one::verify(&ec_context, &signature, &pubkey, &message).is_ok())
+    party_one::verify(&ec_context, &signature, &pubkey, &message).expect("Correct signature")
 }
