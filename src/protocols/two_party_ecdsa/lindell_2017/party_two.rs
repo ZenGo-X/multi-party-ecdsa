@@ -36,7 +36,8 @@ impl KeyGenFirstMsg {
     pub fn create(ec_context: &EC) -> KeyGenFirstMsg {
         let mut pk = PK::to_key(&ec_context, &EC::get_base_point());
         let sk = SK::from_big_int(ec_context, &BigInt::sample_below(&EC::get_q()));
-        pk.mul_assign(ec_context, &sk).expect("Failed to multiply and assign");
+        pk.mul_assign(ec_context, &sk)
+            .expect("Failed to multiply and assign");
         KeyGenFirstMsg {
             d_log_proof: DLogProof::prove(&ec_context, &pk, &sk),
             public_share: pk,
