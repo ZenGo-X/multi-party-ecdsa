@@ -91,7 +91,6 @@ impl KeyGenFirstMsg {
 
 #[derive(Debug)]
 pub struct KeyGenSecondMsg {
-    pub d_log_proof_result: Result<(), ProofError>,
     pub pk_commitment_blind_factor: BigInt,
     pub zk_pok_blind_factor: BigInt,
     pub public_share: PK,
@@ -103,14 +102,14 @@ impl KeyGenSecondMsg {
         ec_context: &EC,
         first_message: &KeyGenFirstMsg,
         proof: &DLogProof,
-    ) -> KeyGenSecondMsg {
-        KeyGenSecondMsg {
-            d_log_proof_result: DLogProof::verify(ec_context, proof),
+    ) -> Result<KeyGenSecondMsg, ProofError> {
+        DLogProof::verify(ec_context, proof)?;
+        Ok(KeyGenSecondMsg {
             pk_commitment_blind_factor: first_message.pk_commitment_blind_factor.clone(),
             zk_pok_blind_factor: first_message.zk_pok_blind_factor.clone(),
             public_share: first_message.public_share.clone(),
             d_log_proof: first_message.d_log_proof.clone(),
-        }
+        })
     }
 }
 
