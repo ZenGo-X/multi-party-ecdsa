@@ -28,7 +28,7 @@ fn test_two_party_sign() {
     );
     party_one_second_message
         .d_log_proof_result
-        .expect("Party one DLog proved.");
+        .expect("Incorrect party #1 DLog proof");
 
     let party_two_proof_result = party_two::KeyGenSecondMsg::verify_commitments_and_dlog_proof(
         &ec_context,
@@ -37,7 +37,7 @@ fn test_two_party_sign() {
     );
     party_two_proof_result
         .d_log_proof_result
-        .expect("Party two DLog proved.");
+        .expect("Incorrect party #2 DLog proof");
 
     let message = BigInt::from(1234);
     let partial_sig = party_two::PartialSig::compute(

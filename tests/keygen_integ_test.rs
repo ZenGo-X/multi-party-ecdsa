@@ -19,7 +19,7 @@ fn test_two_party_keygen() {
 
     party_one_second_message
         .d_log_proof_result
-        .expect("Party one DLog proved.");
+        .expect("Incorrect party #1 DLog proof");
 
     let party_two_second_message = party_two::KeyGenSecondMsg::verify_commitments_and_dlog_proof(
         &ec_context,
@@ -29,7 +29,7 @@ fn test_two_party_keygen() {
 
     party_two_second_message
         .d_log_proof_result
-        .expect("Party two DLog proved.");
+        .expect("Incorrect party #2 DLog proof");
 
     // init paillier keypair:
     let paillier_key_pair =
@@ -46,9 +46,9 @@ fn test_two_party_keygen() {
     let proof_result =
         party_one::PaillierKeyPair::generate_proof_correct_key(&paillier_key_pair, &challenge);
 
-    let valid_proof = proof_result.expect("Party one proves correct key.");
+    let valid_proof = proof_result.expect("Incorrect party #1 correct key proof");
     party_two::PaillierPublic::verify_correct_key(&valid_proof, &verification_aid)
-        .expect("Party two key is correct.");
+        .expect("Incorrect party #2 correct key verification");
 
     // zk range proof
     let (encrypted_pairs, challenge, proof) = party_one::PaillierKeyPair::generate_range_proof(

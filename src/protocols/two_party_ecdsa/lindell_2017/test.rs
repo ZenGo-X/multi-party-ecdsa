@@ -17,7 +17,7 @@ mod tests {
         );
         party_one_second_message
             .d_log_proof_result
-            .expect("Party one DLog proved");
+            .expect("Incorrect party #1 DLog proof");
 
         let party_two_second_message =
             party_two::KeyGenSecondMsg::verify_commitments_and_dlog_proof(
@@ -27,6 +27,6 @@ mod tests {
             );
         party_two_second_message
             .d_log_proof_result
-            .expect("Party two DLog proved");
+            .expect("Incorrect party #2 DLog proof");
     }
 }
