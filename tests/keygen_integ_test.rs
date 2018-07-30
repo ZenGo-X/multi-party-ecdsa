@@ -37,21 +37,21 @@ fn test_two_party_keygen() {
         party_two::PaillierPublic::generate_correct_key_challenge(&party_two_paillier);
     let proof_result =
         party_one::PaillierKeyPair::generate_proof_correct_key(&paillier_key_pair, &challenge);
-    assert!(proof_result.is_ok());
 
-    let result =
-        party_two::PaillierPublic::verify_correct_key(&proof_result.unwrap(), &verification_aid);
-    assert!(result.is_ok());
+    let valid_proof = proof_result.expect("Incorrect party #1 correct key proof");
+    party_two::PaillierPublic::verify_correct_key(&valid_proof, &verification_aid)
+        .expect("Incorrect party #2 correct key verification");
 
     // zk range proof
     let (encrypted_pairs, challenge, proof) = party_one::PaillierKeyPair::generate_range_proof(
         &paillier_key_pair,
         &party_one_first_message,
     );
+
     assert!(party_two::PaillierPublic::verify_range_proof(
         &party_two_paillier,
         &challenge,
         &encrypted_pairs,
-        &proof
+        &proof,
     ));
 }

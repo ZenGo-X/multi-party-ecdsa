@@ -57,5 +57,5 @@ fn test_two_party_sign() {
         &party_one_private_share_gen,
         &party_two_private_share_gen,
     );
-    assert!(party_one::verify(&ec_context, &signature, &pubkey, &message).is_ok())
+    party_one::verify(&ec_context, &signature, &pubkey, &message).expect("Invalid signature")
 }
