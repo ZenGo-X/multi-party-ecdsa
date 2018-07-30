@@ -121,7 +121,7 @@ pub fn compute_pubkey(
     let mut pubkey = other_share.public_share.clone();
     pubkey
         .mul_assign(ec_context, &local_share.secret_share)
-        .expect("Assignment expected");
+        .expect("Failed to multiply and assign");
 
     return pubkey;
 }
@@ -193,7 +193,7 @@ impl Signature {
         //compute r = k2* R1
         let mut r = ephemeral_other_share.public_share.clone();
         r.mul_assign(ec_context, &ephemeral_local_share.secret_share)
-            .expect("Assignment expected");
+            .expect("Failed to multiply and assign");
 
         let rx = r.to_point().x.mod_floor(&EC::get_q());
         let k1_inv = &ephemeral_local_share
@@ -228,12 +228,12 @@ pub fn verify(
 
     point1
         .mul_assign(ec_context, &SK::from_big_int(ec_context, &u1))
-        .expect("Assignment expected");
+        .expect("Failed to multiply and assign");
 
     let mut point2 = *pubkey;
     point2
         .mul_assign(ec_context, &SK::from_big_int(ec_context, &u2))
-        .expect("Assignment expected");
+        .expect("Failed to multiply and assign");
 
     if signature.r == point1.combine(ec_context, &point2).unwrap().to_point().x {
         Ok(())

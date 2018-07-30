@@ -36,7 +36,7 @@ impl KeyGenFirstMsg {
     pub fn create(ec_context: &EC) -> KeyGenFirstMsg {
         let mut pk = PK::to_key(&ec_context, &EC::get_base_point());
         let sk = SK::from_big_int(ec_context, &BigInt::sample_below(&EC::get_q()));
-        pk.mul_assign(ec_context, &sk).expect("Assignment expected");
+        pk.mul_assign(ec_context, &sk).expect("Failed to multiply and assign");
         KeyGenFirstMsg {
             d_log_proof: DLogProof::prove(&ec_context, &pk, &sk),
             public_share: pk,
@@ -136,7 +136,7 @@ impl PartialSig {
         //compute r = k2* R1
         let mut r = ephemeral_other_share.public_share.clone();
         r.mul_assign(ec_context, &ephemeral_local_share.secret_share)
-            .expect("Assignment expected");
+            .expect("Failed to multiply and assign");
 
         let rx = r.to_point().x.mod_floor(&EC::get_q());
         let rho = BigInt::sample_below(&EC::get_q().pow(2));
