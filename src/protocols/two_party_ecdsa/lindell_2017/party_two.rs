@@ -13,7 +13,6 @@
 
     @license GPL-3.0+ <https://github.com/KZen-networks/multi-party-ecdsa/blob/master/LICENSE>
 */
-use super::party_one;
 use cryptography_utils::arithmetic::traits::*;
 use cryptography_utils::cryptographic_primitives::commitments::hash_commitment::HashCommitment;
 use cryptography_utils::cryptographic_primitives::commitments::traits::Commitment;
@@ -25,71 +24,59 @@ use cryptography_utils::EC;
 use cryptography_utils::PK;
 use cryptography_utils::SK;
 use paillier::*;
-#[derive(Debug)]
-pub struct KeyGenFirstMsg {
-    pub d_log_proof: DLogProof,
-    pub public_share: PK,
-    secret_share: SK,
-}
 
-impl KeyGenFirstMsg {
-    pub fn create(ec_context: &EC) -> KeyGenFirstMsg {
+use super::*;
+
+impl PartyTwoKeyGenFirstMsg {
+    pub fn create(ec_context: &EC) -> PartyTwoKeyGenFirstMsg {
         let mut pk = PK::to_key(&ec_context, &EC::get_base_point());
         let sk = SK::from_big_int(ec_context, &BigInt::sample_below(&EC::get_q()));
         pk.mul_assign(ec_context, &sk)
             .expect("Failed to multiply and assign");
-        KeyGenFirstMsg {
+        PartyTwoKeyGenFirstMsg {
             d_log_proof: DLogProof::prove(&ec_context, &pk, &sk),
             public_share: pk,
             secret_share: sk,
         }
     }
 }
-#[derive(Debug)]
-pub struct KeyGenSecondMsg {}
 
-impl KeyGenSecondMsg {
+impl PartyTwoKeyGenSecondMsg {
     pub fn verify_commitments_and_dlog_proof(
         ec_context: &EC,
-        party_one_first_messsage: &party_one::KeyGenFirstMsg,
-        party_one_second_messsage: &party_one::KeyGenSecondMsg,
-    ) -> Result<KeyGenSecondMsg, ProofError> {
+        party_one_first_message: &PartyOneKeyGenFirstMsg,
+        party_one_second_message: &PartyOneKeyGenSecondMsg,
+    ) -> Result<PartyTwoKeyGenSecondMsg, ProofError> {
         let mut flag = true;
-        match party_one_first_messsage.pk_commitment
+        match party_one_first_message.pk_commitment
             == HashCommitment::create_commitment_with_user_defined_randomness(
-                &party_one_second_messsage.public_share.to_point().x,
-                &party_one_second_messsage.pk_commitment_blind_factor,
+                &party_one_second_message.public_share.to_point().x,
+                &party_one_second_message.pk_commitment_blind_factor,
             ) {
             false => flag = false,
             true => flag = flag,
         };
-        match party_one_first_messsage.zk_pok_commitment
+        match party_one_first_message.zk_pok_commitment
             == HashCommitment::create_commitment_with_user_defined_randomness(
-                &party_one_second_messsage
+                &party_one_second_message
                     .d_log_proof
                     .pk_t_rand_commitment
                     .to_point()
                     .x,
-                &party_one_second_messsage.zk_pok_blind_factor,
+                &party_one_second_message.zk_pok_blind_factor,
             ) {
             false => flag = false,
             true => flag = flag,
         };
         assert!(flag);
-        DLogProof::verify(ec_context, &party_one_second_messsage.d_log_proof)?;
-        Ok(KeyGenSecondMsg {})
+        DLogProof::verify(ec_context, &party_one_second_message.d_log_proof)?;
+        Ok(PartyTwoKeyGenSecondMsg {})
     }
 }
 
-#[derive(Debug)]
-pub struct PaillierPublic {
-    pub ek: EncryptionKey,
-    pub encrypted_secret_share: BigInt,
-}
-
-impl PaillierPublic {
+impl PartyTwoPaillierPublic {
     pub fn verify_range_proof(
-        paillier_context: &PaillierPublic,
+        paillier_context: &PartyTwoPaillierPublic,
         challenge: &ChallengeBits,
         encrypted_pairs: &EncryptedPairs,
         proof: &Proof,
@@ -104,7 +91,7 @@ impl PaillierPublic {
         ).is_ok()
     }
     pub fn generate_correct_key_challenge(
-        paillier_context: &PaillierPublic,
+        paillier_context: &PartyTwoPaillierPublic,
     ) -> (Challenge, VerificationAid) {
         let (challenge, verification_aid) = Paillier::challenge(&paillier_context.ek);
         (challenge, verification_aid)
@@ -118,22 +105,16 @@ impl PaillierPublic {
     }
 }
 
-/// 4(b)
-#[derive(Debug)]
-pub struct PartialSig {
-    pub c3: BigInt,
-}
-
-impl PartialSig {
+impl PartyTwoPartialSig {
     pub fn compute(
         ec_context: &EC,
         ek: &EncryptionKey,
         encrypted_secret_share: &BigInt,
-        local_share: &KeyGenFirstMsg,
-        ephemeral_local_share: &KeyGenFirstMsg,
-        ephemeral_other_share: &party_one::KeyGenFirstMsg,
+        local_share: &PartyTwoKeyGenFirstMsg,
+        ephemeral_local_share: &PartyTwoKeyGenFirstMsg,
+        ephemeral_other_share: &PartyOneKeyGenFirstMsg,
         message: &BigInt,
-    ) -> PartialSig {
+    ) -> PartyTwoPartialSig {
         //compute r = k2* R1
         let mut r = ephemeral_other_share.public_share.clone();
         r.mul_assign(ec_context, &ephemeral_local_share.secret_share)
@@ -159,7 +140,7 @@ impl PartialSig {
             RawPlaintext::from(v),
         );
         //c3:
-        PartialSig {
+        PartyTwoPartialSig {
             c3: Paillier::add(ek, c2, c1).0.into_owned(),
         }
     }
