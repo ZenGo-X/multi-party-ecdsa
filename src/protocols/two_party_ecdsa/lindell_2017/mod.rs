@@ -30,7 +30,7 @@ use paillier::*;
 //****************** Begin: Party One structs ******************//
 #[derive(Debug)]
 pub struct PartyOneKeyGenFirstMsg {
-    pub public_share: PK,
+    public_share: PK,
     secret_share: SK,
     pub pk_commitment: BigInt,
     pk_commitment_blind_factor: BigInt,

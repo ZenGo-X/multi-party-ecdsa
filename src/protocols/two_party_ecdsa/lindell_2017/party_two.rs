@@ -112,7 +112,7 @@ impl PartyTwoPartialSig {
         encrypted_secret_share: &BigInt,
         local_share: &PartyTwoKeyGenFirstMsg,
         ephemeral_local_share: &PartyTwoKeyGenFirstMsg,
-        ephemeral_other_share: &PartyOneKeyGenFirstMsg,
+        ephemeral_other_share: &PartyOneKeyGenSecondMsg,
         message: &BigInt,
     ) -> PartyTwoPartialSig {
         //compute r = k2* R1
