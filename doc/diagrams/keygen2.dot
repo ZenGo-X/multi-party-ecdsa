@@ -1,0 +1,27 @@
+// Lindell 2party ECDSA keygen party 2
+digraph {
+	start [shape=doublecircle]
+	stop [shape=doublecircle]
+	A
+	B
+	C
+	D
+	E
+	start -> A [label="begin session"]
+	"check1" [shape=diamond]
+    "check2" [shape=diamond]
+    "check3" [shape=diamond]
+	A -> B [label="create, ID"]
+	B -> "check1" [label="verify_commitments_and_dlog_proof, ID"]
+	"check1" -> C [label="yes,ID"]
+	"check1" -> stop [label=no]
+	C -> D [label="generate_correct_key_challenge,ID"]
+	D -> "check2" [label="verify_correct_key, ID"]
+	"check2" -> E [label="yes,ID"]
+	"check2" -> stop [label=no]
+	E -> "check3" [label="verify_range_proof, ID"]
+	"check3" -> F [label="yes,ID"]
+	"check3" -> stop [label=no]
+	F -> stop [label="write_to_local_storage,ID"]
+
+}
