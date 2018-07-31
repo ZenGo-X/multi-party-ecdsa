@@ -29,29 +29,14 @@ use cryptography_utils::arithmetic::traits::*;
 use cryptography_utils::cryptographic_primitives::proofs::dlog_zk_protocol::*;
 use cryptography_utils::cryptographic_primitives::proofs::ProofError;
 
-use super::party_two;
+use super::*;
 use cryptography_utils::cryptographic_primitives::commitments::hash_commitment::HashCommitment;
 use cryptography_utils::cryptographic_primitives::commitments::traits::Commitment;
 use paillier::*;
 use std::cmp;
 
-// TODO: remove the next line when unit test will be done
-#[allow(dead_code)]
-#[derive(Debug)]
-pub struct KeyGenFirstMsg {
-    pub public_share: PK,
-    secret_share: SK,
-    pub pk_commitment: BigInt,
-    pk_commitment_blind_factor: BigInt,
-
-    pub zk_pok_commitment: BigInt,
-    zk_pok_blind_factor: BigInt,
-
-    d_log_proof: DLogProof,
-}
-
-impl KeyGenFirstMsg {
-    pub fn create_commitments(ec_context: &EC) -> KeyGenFirstMsg {
+impl PartyOneKeyGenFirstMsg {
+    pub fn create_commitments(ec_context: &EC) -> PartyOneKeyGenFirstMsg {
         let mut pk = PK::to_key(&ec_context, &EC::get_base_point());
 
         //in Lindell's protocol range proof works only for x1<q/3
@@ -75,7 +60,7 @@ impl KeyGenFirstMsg {
             &zk_pok_blind_factor,
         );
 
-        KeyGenFirstMsg {
+        PartyOneKeyGenFirstMsg {
             public_share: pk,
             secret_share: sk,
             pk_commitment,
@@ -89,22 +74,14 @@ impl KeyGenFirstMsg {
     }
 }
 
-#[derive(Debug)]
-pub struct KeyGenSecondMsg {
-    pub pk_commitment_blind_factor: BigInt,
-    pub zk_pok_blind_factor: BigInt,
-    pub public_share: PK,
-    pub d_log_proof: DLogProof,
-}
-
-impl KeyGenSecondMsg {
+impl PartyOneKeyGenSecondMsg {
     pub fn verify_and_decommit(
         ec_context: &EC,
-        first_message: &KeyGenFirstMsg,
+        first_message: &PartyOneKeyGenFirstMsg,
         proof: &DLogProof,
-    ) -> Result<KeyGenSecondMsg, ProofError> {
+    ) -> Result<PartyOneKeyGenSecondMsg, ProofError> {
         DLogProof::verify(ec_context, proof)?;
-        Ok(KeyGenSecondMsg {
+        Ok(PartyOneKeyGenSecondMsg {
             pk_commitment_blind_factor: first_message.pk_commitment_blind_factor.clone(),
             zk_pok_blind_factor: first_message.zk_pok_blind_factor.clone(),
             public_share: first_message.public_share.clone(),
@@ -115,8 +92,8 @@ impl KeyGenSecondMsg {
 
 pub fn compute_pubkey(
     ec_context: &EC,
-    local_share: &KeyGenFirstMsg,
-    other_share: &party_two::KeyGenFirstMsg,
+    local_share: &PartyOneKeyGenFirstMsg,
+    other_share: &PartyTwoKeyGenFirstMsg,
 ) -> PK {
     let mut pubkey = other_share.public_share.clone();
     pubkey
@@ -126,16 +103,10 @@ pub fn compute_pubkey(
     return pubkey;
 }
 
-#[derive(Debug)]
-pub struct PaillierKeyPair {
-    pub ek: EncryptionKey,
-    dk: DecryptionKey,
-    pub encrypted_share: BigInt,
-    randomness: BigInt,
-}
-
-impl PaillierKeyPair {
-    pub fn generate_keypair_and_encrypted_share(keygen: &KeyGenFirstMsg) -> PaillierKeyPair {
+impl PartyOnePaillierKeyPair {
+    pub fn generate_keypair_and_encrypted_share(
+        keygen: &PartyOneKeyGenFirstMsg,
+    ) -> PartyOnePaillierKeyPair {
         let (ek, dk) = Paillier::keypair().keys();
         let randomness = Randomness::sample(&ek);
 
@@ -146,7 +117,7 @@ impl PaillierKeyPair {
         ).0
         .into_owned();
 
-        PaillierKeyPair {
+        PartyOnePaillierKeyPair {
             ek,
             dk,
             encrypted_share,
@@ -155,8 +126,8 @@ impl PaillierKeyPair {
     }
 
     pub fn generate_range_proof(
-        paillier_context: &PaillierKeyPair,
-        keygen: &KeyGenFirstMsg,
+        paillier_context: &PartyOnePaillierKeyPair,
+        keygen: &PartyOneKeyGenFirstMsg,
     ) -> (EncryptedPairs, ChallengeBits, Proof) {
         let (encrypted_pairs, challenge, proof) = Paillier::prover(
             &paillier_context.ek,
@@ -169,27 +140,21 @@ impl PaillierKeyPair {
     }
 
     pub fn generate_proof_correct_key(
-        paillier_context: &PaillierKeyPair,
+        paillier_context: &PartyOnePaillierKeyPair,
         challenge: &Challenge,
     ) -> Result<CorrectKeyProof, CorrectKeyProofError> {
         Paillier::prove(&paillier_context.dk, challenge)
     }
 }
 
-#[derive(Debug)]
-pub struct Signature {
-    pub s: BigInt,
-    pub r: BigInt,
-}
-
-impl Signature {
+impl PartyOneSignature {
     pub fn compute(
         ec_context: &EC,
-        keypair: &PaillierKeyPair,
-        partial_sig: &party_two::PartialSig,
-        ephemeral_local_share: &KeyGenFirstMsg,
-        ephemeral_other_share: &party_two::KeyGenFirstMsg,
-    ) -> Signature {
+        keypair: &PartyOnePaillierKeyPair,
+        partial_sig: &PartyTwoPartialSig,
+        ephemeral_local_share: &PartyOneKeyGenFirstMsg,
+        ephemeral_other_share: &PartyTwoKeyGenFirstMsg,
+    ) -> PartyOneSignature {
         //compute r = k2* R1
         let mut r = ephemeral_other_share.public_share.clone();
         r.mul_assign(ec_context, &ephemeral_local_share.secret_share)
@@ -205,13 +170,13 @@ impl Signature {
         let s_tag_tag = BigInt::mod_mul(&k1_inv, &s_tag.0, &EC::get_q());
         let s = cmp::min(s_tag_tag.clone(), &EC::get_q().clone() - s_tag_tag.clone());
 
-        Signature { s, r: rx }
+        PartyOneSignature { s, r: rx }
     }
 }
 
 pub fn verify(
     ec_context: &EC,
-    signature: &Signature,
+    signature: &PartyOneSignature,
     pubkey: &PK,
     message: &BigInt,
 ) -> Result<(), ProofError> {
