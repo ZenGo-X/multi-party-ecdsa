@@ -14,47 +14,64 @@
     @license GPL-3.0+ <https://github.com/KZen-networks/multi-party-ecdsa/blob/master/LICENSE>
 */
 
-use cryptography_utils::BigInt;
+use paillier::*;
+use std::cmp;
 
-use cryptography_utils::RawPoint;
+const SECURITY_BITS: usize = 256;
+
+use cryptography_utils::arithmetic::serde::serde_bigint;
+use cryptography_utils::arithmetic::traits::*;
+
+use cryptography_utils::elliptic::curves::serde::{serde_public_key, serde_secret_key};
+use cryptography_utils::elliptic::curves::traits::*;
+
+use cryptography_utils::cryptographic_primitives::commitments::hash_commitment::HashCommitment;
+use cryptography_utils::cryptographic_primitives::commitments::traits::Commitment;
+use cryptography_utils::cryptographic_primitives::proofs::dlog_zk_protocol::*;
+use cryptography_utils::cryptographic_primitives::proofs::ProofError;
+
+use cryptography_utils::BigInt;
 use cryptography_utils::EC;
 use cryptography_utils::PK;
 use cryptography_utils::SK;
 
-const SECURITY_BITS: usize = 256;
-
-use cryptography_utils::elliptic::curves::traits::*;
-
-use cryptography_utils::arithmetic::traits::*;
-
-use cryptography_utils::cryptographic_primitives::proofs::dlog_zk_protocol::*;
-use cryptography_utils::cryptographic_primitives::proofs::ProofError;
-
 use super::party_two;
-use cryptography_utils::cryptographic_primitives::commitments::hash_commitment::HashCommitment;
-use cryptography_utils::cryptographic_primitives::commitments::traits::Commitment;
-use paillier::*;
-use std::cmp;
 
 //****************** Begin: Party One structs ******************//
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct KeyGenFirstMsg {
+    #[serde(with = "serde_public_key")]
     public_share: PK,
+
+    #[serde(with = "serde_secret_key")]
     secret_share: SK,
+
+    #[serde(with = "serde_bigint")]
     pub pk_commitment: BigInt,
+
+    #[serde(with = "serde_bigint")]
     pk_commitment_blind_factor: BigInt,
 
+    #[serde(with = "serde_bigint")]
     pub zk_pok_commitment: BigInt,
+
+    #[serde(with = "serde_bigint")]
     zk_pok_blind_factor: BigInt,
 
     d_log_proof: DLogProof,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct KeyGenSecondMsg {
+    #[serde(with = "serde_bigint")]
     pub pk_commitment_blind_factor: BigInt,
+
+    #[serde(with = "serde_bigint")]
     pub zk_pok_blind_factor: BigInt,
+
+    #[serde(with = "serde_public_key")]
     pub public_share: PK,
+
     pub d_log_proof: DLogProof,
 }
 
@@ -62,81 +79,30 @@ pub struct KeyGenSecondMsg {
 pub struct PaillierKeyPair {
     pub ek: EncryptionKey,
     dk: DecryptionKey,
+
     pub encrypted_share: BigInt,
     randomness: BigInt,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Signature {
+    #[serde(with = "serde_bigint")]
     pub s: BigInt,
+
+    #[serde(with = "serde_bigint")]
     pub r: BigInt,
 }
 
 //****************** End: Party One structs ******************//
 
-//****************** Begin: Party One RAW structs ******************//
-
-#[derive(Serialize, Deserialize)]
-pub struct RawKeyGenFirstMsg {
-    pub public_share: RawPoint,
-    secret_share: String,
-    pub pk_commitment: String,
-    pk_commitment_blind_factor: String,
-
-    pub zk_pok_commitment: String,
-    zk_pok_blind_factor: String,
-
-    d_log_proof: RawDLogProof,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct RawKeyGenSecondMsg {
-    pub pk_commitment_blind_factor: String,
-    pub zk_pok_blind_factor: String,
-    pub public_share: RawPoint,
-    pub d_log_proof: RawDLogProof,
-}
-
-// TODO: add remaining struct
-
-impl From<KeyGenFirstMsg> for RawKeyGenFirstMsg {
-    fn from(po_keygen_first_message: KeyGenFirstMsg) -> Self {
-        RawKeyGenFirstMsg {
-            public_share: RawPoint::from(po_keygen_first_message.public_share.to_point()),
-            secret_share: po_keygen_first_message.secret_share.to_big_int().to_hex(),
-            pk_commitment: po_keygen_first_message.pk_commitment.to_hex(),
-            pk_commitment_blind_factor: po_keygen_first_message.pk_commitment_blind_factor.to_hex(),
-            zk_pok_commitment: po_keygen_first_message.zk_pok_commitment.to_hex(),
-            zk_pok_blind_factor: po_keygen_first_message.zk_pok_blind_factor.to_hex(),
-            d_log_proof: RawDLogProof::from(po_keygen_first_message.d_log_proof),
-        }
-    }
-}
-
-impl From<KeyGenSecondMsg> for RawKeyGenSecondMsg {
-    fn from(po_key_gen_second_message: KeyGenSecondMsg) -> Self {
-        RawKeyGenSecondMsg {
-            pk_commitment_blind_factor: po_key_gen_second_message
-                .pk_commitment_blind_factor
-                .to_hex(),
-            zk_pok_blind_factor: po_key_gen_second_message.zk_pok_blind_factor.to_hex(),
-            public_share: RawPoint::from(po_key_gen_second_message.public_share.to_point()),
-            d_log_proof: RawDLogProof::from(po_key_gen_second_message.d_log_proof),
-        }
-    }
-}
-
-//****************** End: Party One RAW structs ******************//
-
 impl KeyGenFirstMsg {
     pub fn create_commitments(ec_context: &EC) -> KeyGenFirstMsg {
-        let mut pk = PK::to_key(&ec_context, &EC::get_base_point());
+        let mut pk = PK::to_key(&PK::get_base_point());
 
         //in Lindell's protocol range proof works only for x1<q/3
-        let sk = SK::from_big_int(
-            ec_context,
-            &BigInt::sample_below(&EC::get_q().div_floor(&BigInt::from(3))),
-        );
+        let sk = SK::from_big_int(&BigInt::sample_below(
+            &SK::get_q().div_floor(&BigInt::from(3)),
+        ));
         pk.mul_assign(ec_context, &sk).expect("Assignment expected");
 
         let d_log_proof = DLogProof::prove(&ec_context, &pk, &sk);
@@ -222,7 +188,7 @@ impl PaillierKeyPair {
     ) -> (EncryptedPairs, ChallengeBits, Proof) {
         let (encrypted_pairs, challenge, proof) = Paillier::prover(
             &paillier_context.ek,
-            &EC::get_q(),
+            &SK::get_q(),
             &keygen.secret_share.to_big_int(),
             &paillier_context.randomness,
         );
@@ -251,15 +217,15 @@ impl Signature {
         r.mul_assign(ec_context, &ephemeral_local_share.secret_share)
             .expect("Failed to multiply and assign");
 
-        let rx = r.to_point().x.mod_floor(&EC::get_q());
+        let rx = r.to_point().x.mod_floor(&SK::get_q());
         let k1_inv = &ephemeral_local_share
             .secret_share
             .to_big_int()
-            .invert(&EC::get_q())
+            .invert(&SK::get_q())
             .unwrap();
         let s_tag = Paillier::decrypt(&keypair.dk, &RawCiphertext::from(&partial_sig.c3));
-        let s_tag_tag = BigInt::mod_mul(&k1_inv, &s_tag.0, &EC::get_q());
-        let s = cmp::min(s_tag_tag.clone(), &EC::get_q().clone() - s_tag_tag.clone());
+        let s_tag_tag = BigInt::mod_mul(&k1_inv, &s_tag.0, &SK::get_q());
+        let s = cmp::min(s_tag_tag.clone(), &SK::get_q().clone() - s_tag_tag.clone());
 
         Signature { s, r: rx }
     }
@@ -273,141 +239,27 @@ pub fn verify(
 ) -> Result<(), ProofError> {
     let b = signature
         .s
-        .invert(&EC::get_q())
+        .invert(&SK::get_q())
         .unwrap()
-        .mod_floor(&EC::get_q());
-    let a = message.mod_floor(&EC::get_q());
-    let u1 = BigInt::mod_mul(&a, &b, &EC::get_q());
-    let u2 = BigInt::mod_mul(&signature.r, &b, &EC::get_q());
+        .mod_floor(&SK::get_q());
+    let a = message.mod_floor(&SK::get_q());
+    let u1 = BigInt::mod_mul(&a, &b, &SK::get_q());
+    let u2 = BigInt::mod_mul(&signature.r, &b, &SK::get_q());
     // can be faster using shamir trick
-    let mut point1 = PK::to_key(ec_context, &EC::get_base_point());
+    let mut point1 = PK::to_key(&PK::get_base_point());
 
     point1
-        .mul_assign(ec_context, &SK::from_big_int(ec_context, &u1))
+        .mul_assign(ec_context, &SK::from_big_int(&u1))
         .expect("Failed to multiply and assign");
 
     let mut point2 = *pubkey;
     point2
-        .mul_assign(ec_context, &SK::from_big_int(ec_context, &u2))
+        .mul_assign(ec_context, &SK::from_big_int(&u2))
         .expect("Failed to multiply and assign");
 
     if signature.r == point1.combine(ec_context, &point2).unwrap().to_point().x {
         Ok(())
     } else {
         Err(ProofError)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use cryptography_utils::EC;
-    use cryptography_utils::PK;
-    use cryptography_utils::SK;
-    use serde_json;
-
-    #[test]
-    fn test_party_one_keygen_serialization_first_msg() {
-        let valid_key: [u8; PK::KEY_SIZE] = [
-            4, // header
-            // X
-            54, 57, 149, 239, 162, 148, 175, 246, 254, 239, 75, 154, 152, 10, 82, 234, 224, 85, 220,
-            40, 100, 57, 121, 30, 162, 94, 156, 135, 67, 74, 49, 179, // Y
-            57, 236, 53, 162, 124, 149, 144, 168, 77, 74, 30, 72, 211, 229, 110, 111, 55, 96, 193,
-            86, 227, 183, 152, 195, 155, 51, 247, 123, 113, 60, 228, 188,
-        ];
-
-        let s = EC::new();
-
-        let d_log_proof = DLogProof {
-            pk: PK::from_slice(&s, &valid_key).unwrap(),
-            pk_t_rand_commitment: PK::from_slice(&s, &valid_key).unwrap(),
-            challenge_response: BigInt::from(11),
-        };
-
-        let party_one_first_message = KeyGenFirstMsg {
-            public_share: PK::from_slice(&s, &valid_key).unwrap(),
-            secret_share: SK::from_big_int(&s, &BigInt::from(1)),
-            pk_commitment: BigInt::from(2),
-            pk_commitment_blind_factor: BigInt::from(3),
-            zk_pok_commitment: BigInt::from(4),
-            zk_pok_blind_factor: BigInt::from(5),
-            d_log_proof: d_log_proof,
-        };
-
-        let party_one_keygen_raw_first_message = RawKeyGenFirstMsg::from(party_one_first_message);
-
-        let res = serde_json::to_string(&party_one_keygen_raw_first_message)
-            .expect("Failed in serialization");
-
-        assert_eq!(
-            res,
-            "{\"public_share\":\
-             {\"x\":\"363995efa294aff6feef4b9a980a52eae055dc286439791ea25e9c87434a31b3\",\
-             \"y\":\"39ec35a27c9590a84d4a1e48d3e56e6f3760c156e3b798c39b33f77b713ce4bc\"},\
-             \"secret_share\":\"1\",\
-             \"pk_commitment\":\"2\",\
-             \"pk_commitment_blind_factor\":\"3\",\
-             \"zk_pok_commitment\":\"4\",\
-             \"zk_pok_blind_factor\":\"5\",\
-             \"d_log_proof\":\
-             {\"pk\":{\
-             \"x\":\"363995efa294aff6feef4b9a980a52eae055dc286439791ea25e9c87434a31b3\",\
-             \"y\":\"39ec35a27c9590a84d4a1e48d3e56e6f3760c156e3b798c39b33f77b713ce4bc\"},\
-             \"pk_t_rand_commitment\":{\
-             \"x\":\"363995efa294aff6feef4b9a980a52eae055dc286439791ea25e9c87434a31b3\",\
-             \"y\":\"39ec35a27c9590a84d4a1e48d3e56e6f3760c156e3b798c39b33f77b713ce4bc\"},\
-             \"challenge_response\":\"b\"}}"
-        );
-    }
-
-    #[test]
-    fn test_party_one_keygen_serialization_second_msg() {
-        let valid_key: [u8; PK::KEY_SIZE] = [
-            4, // header
-            // X
-            54, 57, 149, 239, 162, 148, 175, 246, 254, 239, 75, 154, 152, 10, 82, 234, 224, 85, 220,
-            40, 100, 57, 121, 30, 162, 94, 156, 135, 67, 74, 49, 179, // Y
-            57, 236, 53, 162, 124, 149, 144, 168, 77, 74, 30, 72, 211, 229, 110, 111, 55, 96, 193,
-            86, 227, 183, 152, 195, 155, 51, 247, 123, 113, 60, 228, 188,
-        ];
-
-        let s = EC::new();
-
-        let d_log_proof = DLogProof {
-            pk: PK::from_slice(&s, &valid_key).unwrap(),
-            pk_t_rand_commitment: PK::from_slice(&s, &valid_key).unwrap(),
-            challenge_response: BigInt::from(11),
-        };
-
-        let party_one_second_message = KeyGenSecondMsg {
-            public_share: PK::from_slice(&s, &valid_key).unwrap(),
-            pk_commitment_blind_factor: BigInt::from(3),
-            zk_pok_blind_factor: BigInt::from(5),
-            d_log_proof: d_log_proof,
-        };
-
-        let party_one_keygen_raw_second_message =
-            RawKeyGenSecondMsg::from(party_one_second_message);
-
-        let res = serde_json::to_string(&party_one_keygen_raw_second_message)
-            .expect("Failed in serialization");
-
-        assert_eq!(
-            res,
-            "{\"pk_commitment_blind_factor\":\"3\",\
-             \"zk_pok_blind_factor\":\"5\",\
-             \"public_share\":{\
-             \"x\":\"363995efa294aff6feef4b9a980a52eae055dc286439791ea25e9c87434a31b3\",\
-             \"y\":\"39ec35a27c9590a84d4a1e48d3e56e6f3760c156e3b798c39b33f77b713ce4bc\"},\
-             \"d_log_proof\":{\
-             \"pk\":{\
-             \"x\":\"363995efa294aff6feef4b9a980a52eae055dc286439791ea25e9c87434a31b3\",\
-             \"y\":\"39ec35a27c9590a84d4a1e48d3e56e6f3760c156e3b798c39b33f77b713ce4bc\"},\
-             \"pk_t_rand_commitment\":{\
-             \"x\":\"363995efa294aff6feef4b9a980a52eae055dc286439791ea25e9c87434a31b3\",\
-             \"y\":\"39ec35a27c9590a84d4a1e48d3e56e6f3760c156e3b798c39b33f77b713ce4bc\"},\
-             \"challenge_response\":\"b\"}}"
-        );
     }
 }
