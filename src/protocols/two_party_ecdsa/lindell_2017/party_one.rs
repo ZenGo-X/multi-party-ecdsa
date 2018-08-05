@@ -19,10 +19,8 @@ use std::cmp;
 
 const SECURITY_BITS: usize = 256;
 
-use cryptography_utils::arithmetic::serde::serde_bigint;
 use cryptography_utils::arithmetic::traits::*;
 
-use cryptography_utils::elliptic::curves::serde::{serde_public_key, serde_secret_key};
 use cryptography_utils::elliptic::curves::traits::*;
 
 use cryptography_utils::cryptographic_primitives::commitments::hash_commitment::HashCommitment;
@@ -36,65 +34,41 @@ use cryptography_utils::PK;
 use cryptography_utils::SK;
 
 use super::party_two;
+use super::structs::{Visibility, WBigInt, W, WPK, WSK};
 
 //****************** Begin: Party One structs ******************//
 #[derive(Debug, Serialize, Deserialize)]
 pub struct KeyGenFirstMsg {
-    #[serde(with = "serde_public_key")]
-    public_share: PK,
+    public_share: WPK,
+    secret_share: WSK,
 
-    #[serde(with = "serde_secret_key")]
-    secret_share: SK,
-
-    #[serde(with = "serde_bigint")]
-    pub pk_commitment: BigInt,
-
-    #[serde(with = "serde_bigint")]
-    pk_commitment_blind_factor: BigInt,
-
-    #[serde(with = "serde_bigint")]
-    pub zk_pok_commitment: BigInt,
-
-    #[serde(with = "serde_bigint")]
-    zk_pok_blind_factor: BigInt,
-
-    d_log_proof: DLogProof,
+    pub pk_commitment: WBigInt,
+    pk_commitment_blind_factor: WBigInt,
+    pub zk_pok_commitment: WBigInt,
+    zk_pok_blind_factor: WBigInt,
+    d_log_proof: W<DLogProof>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct KeyGenSecondMsg {
-    #[serde(with = "serde_bigint")]
-    pub pk_commitment_blind_factor: BigInt,
-
-    #[serde(with = "serde_bigint")]
-    pub zk_pok_blind_factor: BigInt,
-
-    #[serde(with = "serde_public_key")]
-    pub public_share: PK,
-
-    pub d_log_proof: DLogProof,
+    pub pk_commitment_blind_factor: WBigInt,
+    pub zk_pok_blind_factor: WBigInt,
+    pub public_share: WPK,
+    pub d_log_proof: W<DLogProof>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PaillierKeyPair {
-
-    pub ek: EncryptionKey,
-    dk: DecryptionKey,
-
-    #[serde(with = "serde_bigint")]
-    pub encrypted_share: BigInt,
-
-    #[serde(with = "serde_bigint")]
-    randomness: BigInt,
+    pub ek: W<EncryptionKey>,
+    dk: W<DecryptionKey>,
+    pub encrypted_share: WBigInt,
+    randomness: WBigInt,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Signature {
-    #[serde(with = "serde_bigint")]
-    pub s: BigInt,
-
-    #[serde(with = "serde_bigint")]
-    pub r: BigInt,
+    pub s: WBigInt,
+    pub r: WBigInt,
 }
 
 //****************** End: Party One structs ******************//
@@ -124,15 +98,38 @@ impl KeyGenFirstMsg {
         );
 
         KeyGenFirstMsg {
-            public_share: pk,
-            secret_share: sk,
-            pk_commitment,
-            pk_commitment_blind_factor,
+            public_share: WPK {
+                val: pk,
+                visibility: Visibility::Private,
+            },
+            secret_share: WSK {
+                val: sk,
+                visibility: Visibility::Private,
+            },
+            pk_commitment: WBigInt {
+                val: pk_commitment,
+                visibility: Visibility::Public,
+            },
 
-            zk_pok_commitment,
-            zk_pok_blind_factor,
+            pk_commitment_blind_factor: WBigInt {
+                val: pk_commitment_blind_factor,
+                visibility: Visibility::Private,
+            },
 
-            d_log_proof,
+            zk_pok_commitment: WBigInt {
+                val: zk_pok_commitment,
+                visibility: Visibility::Public,
+            },
+
+            zk_pok_blind_factor: WBigInt {
+                val: zk_pok_blind_factor,
+                visibility: Visibility::Private,
+            },
+
+            d_log_proof: W {
+                val: d_log_proof,
+                visibility: Visibility::Private,
+            },
         }
     }
 }
@@ -158,9 +155,9 @@ pub fn compute_pubkey(
     local_share: &KeyGenFirstMsg,
     other_share: &party_two::KeyGenFirstMsg,
 ) -> PK {
-    let mut pubkey = other_share.public_share.clone();
+    let mut pubkey = other_share.public_share.val.clone();
     pubkey
-        .mul_assign(ec_context, &local_share.secret_share)
+        .mul_assign(ec_context, &local_share.secret_share.val)
         .expect("Failed to multiply and assign");
 
     return pubkey;
@@ -173,16 +170,28 @@ impl PaillierKeyPair {
 
         let encrypted_share = Paillier::encrypt_with_chosen_randomness(
             &ek,
-            RawPlaintext::from(keygen.secret_share.to_big_int()),
+            RawPlaintext::from(keygen.secret_share.val.to_big_int()),
             &randomness,
         ).0
         .into_owned();
 
         PaillierKeyPair {
-            ek,
-            dk,
-            encrypted_share,
-            randomness: randomness.0,
+            ek: W {
+                val: ek,
+                visibility: Visibility::Public,
+            },
+            dk: W {
+                val: dk,
+                visibility: Visibility::Private,
+            },
+            encrypted_share: WBigInt {
+                val: encrypted_share,
+                visibility: Visibility::Public,
+            },
+            randomness: WBigInt {
+                val: randomness.0,
+                visibility: Visibility::Private,
+            },
         }
     }
 
@@ -191,10 +200,10 @@ impl PaillierKeyPair {
         keygen: &KeyGenFirstMsg,
     ) -> (EncryptedPairs, ChallengeBits, Proof) {
         let (encrypted_pairs, challenge, proof) = Paillier::prover(
-            &paillier_context.ek,
+            &paillier_context.ek.val,
             &SK::get_q(),
-            &keygen.secret_share.to_big_int(),
-            &paillier_context.randomness,
+            &keygen.secret_share.val.to_big_int(),
+            &paillier_context.randomness.val,
         );
 
         (encrypted_pairs, challenge, proof)
@@ -204,7 +213,7 @@ impl PaillierKeyPair {
         paillier_context: &PaillierKeyPair,
         challenge: &Challenge,
     ) -> Result<CorrectKeyProof, CorrectKeyProofError> {
-        Paillier::prove(&paillier_context.dk, challenge)
+        Paillier::prove(&paillier_context.dk.val, challenge)
     }
 }
 
@@ -217,21 +226,31 @@ impl Signature {
         ephemeral_other_share: &party_two::KeyGenFirstMsg,
     ) -> Signature {
         //compute r = k2* R1
-        let mut r = ephemeral_other_share.public_share.clone();
-        r.mul_assign(ec_context, &ephemeral_local_share.secret_share)
+        let mut r = ephemeral_other_share.public_share.val.clone();
+        r.mul_assign(ec_context, &ephemeral_local_share.secret_share.val)
             .expect("Failed to multiply and assign");
 
         let rx = r.to_point().x.mod_floor(&SK::get_q());
         let k1_inv = &ephemeral_local_share
             .secret_share
+            .val
             .to_big_int()
             .invert(&SK::get_q())
             .unwrap();
-        let s_tag = Paillier::decrypt(&keypair.dk, &RawCiphertext::from(&partial_sig.c3));
+        let s_tag = Paillier::decrypt(&keypair.dk.val, &RawCiphertext::from(&partial_sig.c3.val));
         let s_tag_tag = BigInt::mod_mul(&k1_inv, &s_tag.0, &SK::get_q());
         let s = cmp::min(s_tag_tag.clone(), &SK::get_q().clone() - s_tag_tag.clone());
 
-        Signature { s, r: rx }
+        Signature {
+            s: WBigInt {
+                val: s,
+                visibility: Visibility::Public,
+            },
+            r: WBigInt {
+                val: rx,
+                visibility: Visibility::Public,
+            },
+        }
     }
 }
 
@@ -243,12 +262,13 @@ pub fn verify(
 ) -> Result<(), ProofError> {
     let b = signature
         .s
+        .val
         .invert(&SK::get_q())
         .unwrap()
         .mod_floor(&SK::get_q());
     let a = message.mod_floor(&SK::get_q());
     let u1 = BigInt::mod_mul(&a, &b, &SK::get_q());
-    let u2 = BigInt::mod_mul(&signature.r, &b, &SK::get_q());
+    let u2 = BigInt::mod_mul(&signature.r.val, &b, &SK::get_q());
     // can be faster using shamir trick
     let mut point1 = PK::to_key(&PK::get_base_point());
 
@@ -261,7 +281,7 @@ pub fn verify(
         .mul_assign(ec_context, &SK::from_big_int(&u2))
         .expect("Failed to multiply and assign");
 
-    if signature.r == point1.combine(ec_context, &point2).unwrap().to_point().x {
+    if signature.r.val == point1.combine(ec_context, &point2).unwrap().to_point().x {
         Ok(())
     } else {
         Err(ProofError)

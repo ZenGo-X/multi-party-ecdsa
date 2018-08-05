@@ -13,7 +13,9 @@
 
     @license GPL-3.0+ <https://github.com/KZen-networks/multi-party-ecdsa/blob/master/LICENSE>
 */
+
 pub mod party_one;
 pub mod party_two;
+pub mod structs;
 
 mod test;

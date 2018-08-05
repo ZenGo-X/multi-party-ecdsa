@@ -13,7 +13,6 @@
 
     @license GPL-3.0+ <https://github.com/KZen-networks/multi-party-ecdsa/blob/master/LICENSE>
 */
-use cryptography_utils::arithmetic::serde::serde_bigint;
 use cryptography_utils::arithmetic::traits::*;
 
 use cryptography_utils::cryptographic_primitives::commitments::hash_commitment::HashCommitment;
@@ -21,7 +20,6 @@ use cryptography_utils::cryptographic_primitives::commitments::traits::Commitmen
 use cryptography_utils::cryptographic_primitives::proofs::dlog_zk_protocol::*;
 use cryptography_utils::cryptographic_primitives::proofs::ProofError;
 
-use cryptography_utils::elliptic::curves::serde::{serde_public_key, serde_secret_key};
 use cryptography_utils::elliptic::curves::traits::*;
 
 use cryptography_utils::BigInt;
@@ -32,18 +30,15 @@ use cryptography_utils::SK;
 use paillier::*;
 
 use super::party_one;
+use super::structs::{Visibility, WBigInt, W, WPK, WSK};
 
 //****************** Begin: Party Two structs ******************//
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct KeyGenFirstMsg {
-    pub d_log_proof: DLogProof,
-
-    #[serde(with = "serde_public_key")]
-    pub public_share: PK,
-
-    #[serde(with = "serde_secret_key")]
-    secret_share: SK,
+    pub d_log_proof: W<DLogProof>,
+    pub public_share: WPK,
+    secret_share: WSK,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -51,16 +46,13 @@ pub struct KeyGenSecondMsg {}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PaillierPublic {
-    pub ek: EncryptionKey,
-
-    #[serde(with = "serde_bigint")]
-    pub encrypted_secret_share: BigInt,
+    pub ek: W<EncryptionKey>,
+    pub encrypted_secret_share: WBigInt,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PartialSig {
-    #[serde(with = "serde_bigint")]
-    pub c3: BigInt,
+    pub c3: WBigInt,
 }
 
 //****************** End: Party Two structs ******************//
@@ -72,9 +64,20 @@ impl KeyGenFirstMsg {
         pk.mul_assign(ec_context, &sk)
             .expect("Failed to multiply and assign");
         KeyGenFirstMsg {
-            d_log_proof: DLogProof::prove(&ec_context, &pk, &sk),
-            public_share: pk,
-            secret_share: sk,
+            d_log_proof: W {
+                val: DLogProof::prove(&ec_context, &pk, &sk),
+                visibility: Visibility::Public,
+            },
+
+            public_share: WPK {
+                val: pk,
+                visibility: Visibility::Public,
+            },
+
+            secret_share: WSK {
+                val: sk,
+                visibility: Visibility::Private,
+            },
         }
     }
 }
@@ -86,28 +89,29 @@ impl KeyGenSecondMsg {
         party_one_second_message: &party_one::KeyGenSecondMsg,
     ) -> Result<KeyGenSecondMsg, ProofError> {
         let mut flag = true;
-        match party_one_first_message.pk_commitment
+        match party_one_first_message.pk_commitment.val
             == HashCommitment::create_commitment_with_user_defined_randomness(
-                &party_one_second_message.public_share.to_point().x,
-                &party_one_second_message.pk_commitment_blind_factor,
+                &party_one_second_message.public_share.val.to_point().x,
+                &party_one_second_message.pk_commitment_blind_factor.val,
             ) {
             false => flag = false,
             true => flag = flag,
         };
-        match party_one_first_message.zk_pok_commitment
+        match party_one_first_message.zk_pok_commitment.val
             == HashCommitment::create_commitment_with_user_defined_randomness(
                 &party_one_second_message
                     .d_log_proof
+                    .val
                     .pk_t_rand_commitment
                     .to_point()
                     .x,
-                &party_one_second_message.zk_pok_blind_factor,
+                &party_one_second_message.zk_pok_blind_factor.val,
             ) {
             false => flag = false,
             true => flag = flag,
         };
         assert!(flag);
-        DLogProof::verify(ec_context, &party_one_second_message.d_log_proof)?;
+        DLogProof::verify(ec_context, &party_one_second_message.d_log_proof.val)?;
         Ok(KeyGenSecondMsg {})
     }
 }
@@ -120,18 +124,18 @@ impl PaillierPublic {
         proof: &Proof,
     ) -> bool {
         Paillier::verifier(
-            &paillier_context.ek,
+            &paillier_context.ek.val,
             &challenge,
             &encrypted_pairs,
             &proof,
             &SK::get_q(),
-            RawCiphertext::from(&paillier_context.encrypted_secret_share),
+            RawCiphertext::from(&paillier_context.encrypted_secret_share.val),
         ).is_ok()
     }
     pub fn generate_correct_key_challenge(
         paillier_context: &PaillierPublic,
     ) -> (Challenge, VerificationAid) {
-        let (challenge, verification_aid) = Paillier::challenge(&paillier_context.ek);
+        let (challenge, verification_aid) = Paillier::challenge(&paillier_context.ek.val);
         (challenge, verification_aid)
     }
 
@@ -154,14 +158,15 @@ impl PartialSig {
         message: &BigInt,
     ) -> PartialSig {
         //compute r = k2* R1
-        let mut r = ephemeral_other_share.public_share.clone();
-        r.mul_assign(ec_context, &ephemeral_local_share.secret_share)
+        let mut r = ephemeral_other_share.public_share.val.clone();
+        r.mul_assign(ec_context, &ephemeral_local_share.secret_share.val)
             .expect("Failed to multiply and assign");
 
         let rx = r.to_point().x.mod_floor(&SK::get_q());
         let rho = BigInt::sample_below(&SK::get_q().pow(2));
         let k2_inv = &ephemeral_local_share
             .secret_share
+            .val
             .to_big_int()
             .invert(&SK::get_q())
             .unwrap();
@@ -169,7 +174,11 @@ impl PartialSig {
         let c1 = Paillier::encrypt(ek, RawPlaintext::from(partial_sig));
         let v = BigInt::mod_mul(
             &k2_inv,
-            &BigInt::mod_mul(&rx, &local_share.secret_share.to_big_int(), &SK::get_q()),
+            &BigInt::mod_mul(
+                &rx,
+                &local_share.secret_share.val.to_big_int(),
+                &SK::get_q(),
+            ),
             &SK::get_q(),
         );
         let c2 = Paillier::mul(
@@ -179,7 +188,10 @@ impl PartialSig {
         );
         //c3:
         PartialSig {
-            c3: Paillier::add(ek, c2, c1).0.into_owned(),
+            c3: WBigInt {
+                val: Paillier::add(ek, c2, c1).0.into_owned(),
+                visibility: Visibility::Public,
+            },
         }
     }
 }

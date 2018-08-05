@@ -24,7 +24,7 @@ fn test_two_party_sign() {
     let party_one_second_message = party_one::KeyGenSecondMsg::verify_and_decommit(
         &ec_context,
         &party_one_first_message,
-        &party_two_first_message.d_log_proof,
+        &party_two_first_message.d_log_proof.val,
     ).expect("party1 DLog proof failed");
 
     let _party_two_proof_result = party_two::KeyGenSecondMsg::verify_commitments_and_dlog_proof(
@@ -36,8 +36,8 @@ fn test_two_party_sign() {
     let message = BigInt::from(1234);
     let partial_sig = party_two::PartialSig::compute(
         &ec_context,
-        &keypair.ek,
-        &keypair.encrypted_share,
+        &keypair.ek.val,
+        &keypair.encrypted_share.val,
         &party_two_private_share_gen,
         &party_two_first_message,
         &party_one_second_message,

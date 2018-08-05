@@ -13,7 +13,7 @@ mod tests {
         let party_one_second_message = party_one::KeyGenSecondMsg::verify_and_decommit(
             &ec_context,
             &party_one_first_message,
-            &party_two_first_message.d_log_proof,
+            &party_two_first_message.d_log_proof.val,
         ).expect("failed to verify and decommit");
 
         let _party_two_second_message =

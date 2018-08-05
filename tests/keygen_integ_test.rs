@@ -11,10 +11,11 @@ fn test_two_party_keygen() {
     // secret share generation
     let party_one_first_message = party_one::KeyGenFirstMsg::create_commitments(&ec_context);
     let party_two_first_message = party_two::KeyGenFirstMsg::create(&ec_context);
+
     let party_one_second_message = party_one::KeyGenSecondMsg::verify_and_decommit(
         &ec_context,
         &party_one_first_message,
-        &party_two_first_message.d_log_proof,
+        &party_two_first_message.d_log_proof.val,
     ).expect("failed to verify and decommit");
 
     let _party_two_second_message = party_two::KeyGenSecondMsg::verify_commitments_and_dlog_proof(
