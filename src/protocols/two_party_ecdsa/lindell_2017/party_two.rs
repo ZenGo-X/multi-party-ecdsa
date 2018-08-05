@@ -49,8 +49,11 @@ pub struct KeyGenFirstMsg {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct KeyGenSecondMsg {}
 
+#[derive(Debug, Serialize, Deserialize)]
 pub struct PaillierPublic {
     pub ek: EncryptionKey,
+
+    #[serde(with = "serde_bigint")]
     pub encrypted_secret_share: BigInt,
 }
 

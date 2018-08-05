@@ -75,12 +75,16 @@ pub struct KeyGenSecondMsg {
     pub d_log_proof: DLogProof,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct PaillierKeyPair {
+
     pub ek: EncryptionKey,
     dk: DecryptionKey,
 
+    #[serde(with = "serde_bigint")]
     pub encrypted_share: BigInt,
+
+    #[serde(with = "serde_bigint")]
     randomness: BigInt,
 }
 
