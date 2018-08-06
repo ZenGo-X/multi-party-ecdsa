@@ -85,33 +85,32 @@ impl KeyGenFirstMsg {
 impl KeyGenSecondMsg {
     pub fn verify_commitments_and_dlog_proof(
         ec_context: &EC,
-        party_one_first_message: &party_one::KeyGenFirstMsg,
-        party_one_second_message: &party_one::KeyGenSecondMsg,
+        party_one_pk_commitment: &WBigInt,
+        party_one_zk_pok_commitment: &WBigInt,
+        party_one_zk_pok_blind_factor: &WBigInt,
+        party_one_public_share: &WPK,
+        party_one_pk_commitment_blind_factor: &WBigInt,
+        party_one_d_log_proof: &W<DLogProof>,
     ) -> Result<KeyGenSecondMsg, ProofError> {
         let mut flag = true;
-        match party_one_first_message.pk_commitment.val
+        match party_one_pk_commitment.val
             == HashCommitment::create_commitment_with_user_defined_randomness(
-                &party_one_second_message.public_share.val.to_point().x,
-                &party_one_second_message.pk_commitment_blind_factor.val,
+                &party_one_public_share.val.to_point().x,
+                &party_one_pk_commitment_blind_factor.val,
             ) {
             false => flag = false,
             true => flag = flag,
         };
-        match party_one_first_message.zk_pok_commitment.val
+        match party_one_zk_pok_commitment.val
             == HashCommitment::create_commitment_with_user_defined_randomness(
-                &party_one_second_message
-                    .d_log_proof
-                    .val
-                    .pk_t_rand_commitment
-                    .to_point()
-                    .x,
-                &party_one_second_message.zk_pok_blind_factor.val,
+                &party_one_d_log_proof.val.pk_t_rand_commitment.to_point().x,
+                &party_one_zk_pok_blind_factor.val,
             ) {
             false => flag = false,
             true => flag = flag,
         };
         assert!(flag);
-        DLogProof::verify(ec_context, &party_one_second_message.d_log_proof.val)?;
+        DLogProof::verify(ec_context, &party_one_d_log_proof.val)?;
         Ok(KeyGenSecondMsg {})
     }
 }

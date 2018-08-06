@@ -27,11 +27,15 @@ fn test_two_party_sign() {
         &party_two_first_message.d_log_proof.val,
     ).expect("party1 DLog proof failed");
 
-    let _party_two_proof_result = party_two::KeyGenSecondMsg::verify_commitments_and_dlog_proof(
+    let _party_two_second_message = party_two::KeyGenSecondMsg::verify_commitments_and_dlog_proof(
         &ec_context,
-        &party_one_first_message,
-        &party_one_second_message,
-    ).expect("party2 DLog proof failed");
+        &party_one_first_message.pk_commitment,
+        &party_one_first_message.zk_pok_commitment,
+        &party_one_second_message.zk_pok_blind_factor,
+        &party_one_second_message.public_share,
+        &party_one_second_message.pk_commitment_blind_factor,
+        &party_one_second_message.d_log_proof,
+    ).expect("failed to verify commitments and DLog proof");
 
     let message = BigInt::from(1234);
     let partial_sig = party_two::PartialSig::compute(
