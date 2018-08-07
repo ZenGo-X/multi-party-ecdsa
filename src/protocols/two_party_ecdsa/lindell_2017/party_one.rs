@@ -142,10 +142,25 @@ impl KeyGenSecondMsg {
     ) -> Result<KeyGenSecondMsg, ProofError> {
         DLogProof::verify(ec_context, proof)?;
         Ok(KeyGenSecondMsg {
-            pk_commitment_blind_factor: first_message.pk_commitment_blind_factor.clone(),
-            zk_pok_blind_factor: first_message.zk_pok_blind_factor.clone(),
-            public_share: first_message.public_share.clone(),
-            d_log_proof: first_message.d_log_proof.clone(),
+            pk_commitment_blind_factor: WBigInt {
+                val: first_message.pk_commitment_blind_factor.val.clone(),
+                visibility: Visibility::Public,
+            },
+
+            zk_pok_blind_factor: WBigInt {
+                val: first_message.zk_pok_blind_factor.val.clone(),
+                visibility: Visibility::Public,
+            },
+
+            public_share: WPK {
+                val: first_message.public_share.val.clone(),
+                visibility: Visibility::Public,
+            },
+
+            d_log_proof: W {
+                val: first_message.d_log_proof.val.clone(),
+                visibility: Visibility::Public,
+            },
         })
     }
 }
