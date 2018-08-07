@@ -213,7 +213,7 @@ impl PaillierKeyPair {
     pub fn generate_range_proof(
         paillier_context: &PaillierKeyPair,
         keygen: &KeyGenFirstMsg,
-    ) -> (EncryptedPairs, ChallengeBits, Proof) {
+    ) -> (W<EncryptedPairs>, W<ChallengeBits>, W<Proof>) {
         let (encrypted_pairs, challenge, proof) = Paillier::prover(
             &paillier_context.ek.val,
             &SK::get_q(),
@@ -221,14 +221,30 @@ impl PaillierKeyPair {
             &paillier_context.randomness.val,
         );
 
-        (encrypted_pairs, challenge, proof)
+        (
+            W {
+                val: encrypted_pairs,
+                visibility: Visibility::Public,
+            },
+            W {
+                val: challenge,
+                visibility: Visibility::Public,
+            },
+            W {
+                val: proof,
+                visibility: Visibility::Public,
+            },
+        )
     }
 
     pub fn generate_proof_correct_key(
         paillier_context: &PaillierKeyPair,
         challenge: &Challenge,
-    ) -> Result<CorrectKeyProof, CorrectKeyProofError> {
-        Paillier::prove(&paillier_context.dk.val, challenge)
+    ) -> Result<W<CorrectKeyProof>, CorrectKeyProofError> {
+        Ok(W {
+            val: Paillier::prove(&paillier_context.dk.val, challenge).unwrap(),
+            visibility: Visibility::Public,
+        })
     }
 }
 

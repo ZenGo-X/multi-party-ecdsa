@@ -118,31 +118,40 @@ impl KeyGenSecondMsg {
 impl PaillierPublic {
     pub fn verify_range_proof(
         paillier_context: &PaillierPublic,
-        challenge: &ChallengeBits,
-        encrypted_pairs: &EncryptedPairs,
-        proof: &Proof,
+        challenge: &W<ChallengeBits>,
+        encrypted_pairs: &W<EncryptedPairs>,
+        proof: &W<Proof>,
     ) -> bool {
         Paillier::verifier(
             &paillier_context.ek.val,
-            &challenge,
-            &encrypted_pairs,
-            &proof,
+            &challenge.val,
+            &encrypted_pairs.val,
+            &proof.val,
             &SK::get_q(),
             RawCiphertext::from(&paillier_context.encrypted_secret_share.val),
         ).is_ok()
     }
     pub fn generate_correct_key_challenge(
         paillier_context: &PaillierPublic,
-    ) -> (Challenge, VerificationAid) {
+    ) -> (W<Challenge>, W<VerificationAid>) {
         let (challenge, verification_aid) = Paillier::challenge(&paillier_context.ek.val);
-        (challenge, verification_aid)
+        (
+            W {
+                val: challenge,
+                visibility: Visibility::Public,
+            },
+            W {
+                val: verification_aid,
+                visibility: Visibility::Private,
+            },
+        )
     }
 
     pub fn verify_correct_key(
-        proof: &CorrectKeyProof,
-        aid: &VerificationAid,
+        proof: &W<CorrectKeyProof>,
+        aid: &W<VerificationAid>,
     ) -> Result<(), CorrectKeyProofError> {
-        Paillier::verify(proof, aid)
+        Paillier::verify(&proof.val, &aid.val)
     }
 }
 

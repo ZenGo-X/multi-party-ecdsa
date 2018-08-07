@@ -41,7 +41,7 @@ fn test_two_party_keygen() {
     let (challenge, verification_aid) =
         party_two::PaillierPublic::generate_correct_key_challenge(&party_two_paillier);
     let proof_result =
-        party_one::PaillierKeyPair::generate_proof_correct_key(&paillier_key_pair, &challenge);
+        party_one::PaillierKeyPair::generate_proof_correct_key(&paillier_key_pair, &challenge.val);
 
     let valid_proof = proof_result.expect("Incorrect party #1 correct key proof");
     party_two::PaillierPublic::verify_correct_key(&valid_proof, &verification_aid)
