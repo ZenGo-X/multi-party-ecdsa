@@ -254,10 +254,10 @@ impl Signature {
         keypair: &PaillierKeyPair,
         partial_sig: &party_two::PartialSig,
         ephemeral_local_share: &KeyGenFirstMsg,
-        ephemeral_other_share: &party_two::KeyGenFirstMsg,
+        ephemeral_other_public_share: &WPK,
     ) -> Signature {
         //compute r = k2* R1
-        let mut r = ephemeral_other_share.public_share.val.clone();
+        let mut r = ephemeral_other_public_share.val.clone();
         r.mul_assign(ec_context, &ephemeral_local_share.secret_share.val)
             .expect("Failed to multiply and assign");
 

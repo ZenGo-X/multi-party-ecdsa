@@ -53,7 +53,7 @@ fn test_two_party_sign() {
         &keypair,
         &partial_sig,
         &party_one_first_message,
-        &party_two_first_message,
+        &party_two_first_message.public_share,
     );
 
     let pubkey = party_one::compute_pubkey(
