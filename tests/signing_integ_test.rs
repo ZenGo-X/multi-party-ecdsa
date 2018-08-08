@@ -40,11 +40,11 @@ fn test_two_party_sign() {
     let message = BigInt::from(1234);
     let partial_sig = party_two::PartialSig::compute(
         &ec_context,
-        &keypair.ek.val,
-        &keypair.encrypted_share.val,
+        &keypair.ek,
+        &keypair.encrypted_share,
         &party_two_private_share_gen,
         &party_two_first_message,
-        &party_one_second_message,
+        &party_one_second_message.public_share,
         &message,
     );
 
