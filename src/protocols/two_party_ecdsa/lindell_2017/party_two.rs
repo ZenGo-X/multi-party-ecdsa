@@ -79,6 +79,28 @@ impl KeyGenFirstMsg {
             },
         }
     }
+
+    pub fn create_with_fixed_secret_share(ec_context: &EC, sk: SK) -> KeyGenFirstMsg {
+        let mut pk = PK::to_key(&PK::get_base_point());
+        pk.mul_assign(ec_context, &sk)
+            .expect("Failed to multiply and assign");
+        KeyGenFirstMsg {
+            d_log_proof: W {
+                val: DLogProof::prove(&ec_context, &pk, &sk),
+                visibility: Visibility::Public,
+            },
+
+            public_share: WPK {
+                val: pk,
+                visibility: Visibility::Public,
+            },
+
+            secret_share: WSK {
+                val: sk,
+                visibility: Visibility::Private,
+            },
+        }
+    }
 }
 
 impl KeyGenSecondMsg {

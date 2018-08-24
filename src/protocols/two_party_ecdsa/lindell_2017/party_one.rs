@@ -132,6 +132,62 @@ impl KeyGenFirstMsg {
             },
         }
     }
+    pub fn create_commitments_with_fixed_secret_share(ec_context: &EC,  sk: SK) -> KeyGenFirstMsg {
+        let mut pk = PK::to_key(&PK::get_base_point());
+
+        //in Lindell's protocol range proof works only for x1<q/3
+        assert!(&BigInt::from(&(sk[0..sk.len()]))<&SK::get_q().div_floor(&BigInt::from(3)));
+        pk.mul_assign(ec_context, &sk).expect("Assignment expected");
+
+        let d_log_proof = DLogProof::prove(&ec_context, &pk, &sk);
+
+        let pk_commitment_blind_factor = BigInt::sample(SECURITY_BITS);
+        let pk_commitment = HashCommitment::create_commitment_with_user_defined_randomness(
+            &pk.to_point().x,
+            &pk_commitment_blind_factor,
+        );
+
+        let zk_pok_blind_factor = BigInt::sample(SECURITY_BITS);
+        let zk_pok_commitment = HashCommitment::create_commitment_with_user_defined_randomness(
+            &d_log_proof.pk_t_rand_commitment.to_point().x,
+            &zk_pok_blind_factor,
+        );
+
+        KeyGenFirstMsg {
+            public_share: WPK {
+                val: pk,
+                visibility: Visibility::Private,
+            },
+            secret_share: WSK {
+                val: sk,
+                visibility: Visibility::Private,
+            },
+            pk_commitment: WBigInt {
+                val: pk_commitment,
+                visibility: Visibility::Public,
+            },
+
+            pk_commitment_blind_factor: WBigInt {
+                val: pk_commitment_blind_factor,
+                visibility: Visibility::Private,
+            },
+
+            zk_pok_commitment: WBigInt {
+                val: zk_pok_commitment,
+                visibility: Visibility::Public,
+            },
+
+            zk_pok_blind_factor: WBigInt {
+                val: zk_pok_blind_factor,
+                visibility: Visibility::Private,
+            },
+
+            d_log_proof: W {
+                val: d_log_proof,
+                visibility: Visibility::Private,
+            },
+        }
+    }
 }
 
 impl KeyGenSecondMsg {
