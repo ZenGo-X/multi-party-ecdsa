@@ -5,24 +5,19 @@ extern crate multi_party_ecdsa;
 
 mod bench {
     use bencher::*;
-    use cryptography_utils::EC;
     use multi_party_ecdsa::protocols::two_party_ecdsa::lindell_2017::*;
 
     pub fn bench_full_keygen_party_one_two(b: &mut Bencher) {
         b.iter(|| {
-            let ec_context = EC::new();
-            let party_one_first_message =
-                party_one::KeyGenFirstMsg::create_commitments(&ec_context);
-            let party_two_first_message = party_two::KeyGenFirstMsg::create(&ec_context);
+            let party_one_first_message = party_one::KeyGenFirstMsg::create_commitments();
+            let party_two_first_message = party_two::KeyGenFirstMsg::create();
             let party_one_second_message = party_one::KeyGenSecondMsg::verify_and_decommit(
-                &ec_context,
                 &party_one_first_message,
-                &party_two_first_message.d_log_proof.val,
+                &party_two_first_message.d_log_proof,
             ).expect("failed to verify and decommit");
 
             let _party_two_second_message =
                 party_two::KeyGenSecondMsg::verify_commitments_and_dlog_proof(
-                    &ec_context,
                     &party_one_first_message.pk_commitment,
                     &party_one_first_message.zk_pok_commitment,
                     &party_one_second_message.zk_pok_blind_factor,
@@ -66,7 +61,7 @@ mod bench {
                 &challenge,
                 &encrypted_pairs,
                 &proof,
-            );
+            ).expect("");
         });
     }
 

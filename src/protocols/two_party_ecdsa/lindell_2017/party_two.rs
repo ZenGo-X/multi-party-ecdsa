@@ -23,21 +23,17 @@ use cryptography_utils::cryptographic_primitives::proofs::ProofError;
 use cryptography_utils::elliptic::curves::traits::*;
 
 use cryptography_utils::BigInt;
-use cryptography_utils::EC;
-use cryptography_utils::PK;
-use cryptography_utils::SK;
+use cryptography_utils::FE;
+use cryptography_utils::GE;
 
 use paillier::*;
-
-use super::structs::{Visibility, WBigInt, W, WPK, WSK};
-
 //****************** Begin: Party Two structs ******************//
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct KeyGenFirstMsg {
-    pub d_log_proof: W<DLogProof>,
-    pub public_share: WPK,
-    secret_share: WSK,
+    pub d_log_proof: DLogProof,
+    pub public_share: GE,
+    secret_share: FE,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -45,182 +41,165 @@ pub struct KeyGenSecondMsg {}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PaillierPublic {
-    pub ek: W<EncryptionKey>,
-    pub encrypted_secret_share: WBigInt,
+    pub ek: EncryptionKey,
+    pub encrypted_secret_share: BigInt,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PartialSig {
-    pub c3: WBigInt,
+    pub c3: BigInt,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Party2Private {
+    x2: FE,
 }
 
 //****************** End: Party Two structs ******************//
 
 impl KeyGenFirstMsg {
-    pub fn create(ec_context: &EC) -> KeyGenFirstMsg {
-        let mut pk = PK::to_key(&PK::get_base_point());
-        let sk = SK::from_big_int(&BigInt::sample_below(&SK::get_q()));
-        pk.mul_assign(ec_context, &sk)
-            .expect("Failed to multiply and assign");
+    pub fn create() -> KeyGenFirstMsg {
+        let base: GE = ECPoint::generator();
+        let secret_share: FE = ECScalar::new_random();
+        let public_share = base.scalar_mul(&secret_share.get_element());
+
         KeyGenFirstMsg {
-            d_log_proof: W {
-                val: DLogProof::prove(&ec_context, &pk, &sk),
-                visibility: Visibility::Public,
-            },
-
-            public_share: WPK {
-                val: pk,
-                visibility: Visibility::Public,
-            },
-
-            secret_share: WSK {
-                val: sk,
-                visibility: Visibility::Private,
-            },
+            d_log_proof: DLogProof::prove(&secret_share),
+            public_share,
+            secret_share,
         }
     }
 
-    pub fn create_with_fixed_secret_share(ec_context: &EC, sk: SK) -> KeyGenFirstMsg {
-        let mut pk = PK::to_key(&PK::get_base_point());
-        pk.mul_assign(ec_context, &sk)
-            .expect("Failed to multiply and assign");
+    pub fn create_with_fixed_secret_share(secret_share: FE) -> KeyGenFirstMsg {
+        let base: GE = ECPoint::generator();
+        let public_share = base.scalar_mul(&secret_share.get_element());
         KeyGenFirstMsg {
-            d_log_proof: W {
-                val: DLogProof::prove(&ec_context, &pk, &sk),
-                visibility: Visibility::Public,
-            },
-
-            public_share: WPK {
-                val: pk,
-                visibility: Visibility::Public,
-            },
-
-            secret_share: WSK {
-                val: sk,
-                visibility: Visibility::Private,
-            },
+            d_log_proof: DLogProof::prove(&secret_share),
+            public_share,
+            secret_share,
         }
     }
 }
 
 impl KeyGenSecondMsg {
     pub fn verify_commitments_and_dlog_proof(
-        ec_context: &EC,
-        party_one_pk_commitment: &WBigInt,
-        party_one_zk_pok_commitment: &WBigInt,
-        party_one_zk_pok_blind_factor: &WBigInt,
-        party_one_public_share: &WPK,
-        party_one_pk_commitment_blind_factor: &WBigInt,
-        party_one_d_log_proof: &W<DLogProof>,
+        party_one_pk_commitment: &BigInt,
+        party_one_zk_pok_commitment: &BigInt,
+        party_one_zk_pok_blind_factor: &BigInt,
+        party_one_public_share: &GE,
+        party_one_pk_commitment_blind_factor: &BigInt,
+        party_one_d_log_proof: &DLogProof,
     ) -> Result<KeyGenSecondMsg, ProofError> {
         let mut flag = true;
-        match party_one_pk_commitment.val
-            == HashCommitment::create_commitment_with_user_defined_randomness(
-                &party_one_public_share.val.to_point().x,
-                &party_one_pk_commitment_blind_factor.val,
+        match party_one_pk_commitment
+            == &HashCommitment::create_commitment_with_user_defined_randomness(
+                &party_one_public_share.x_coor(),
+                &party_one_pk_commitment_blind_factor,
             ) {
             false => flag = false,
             true => flag = flag,
         };
-        match party_one_zk_pok_commitment.val
-            == HashCommitment::create_commitment_with_user_defined_randomness(
-                &party_one_d_log_proof.val.pk_t_rand_commitment.to_point().x,
-                &party_one_zk_pok_blind_factor.val,
+        match party_one_zk_pok_commitment
+            == &HashCommitment::create_commitment_with_user_defined_randomness(
+                &party_one_d_log_proof.pk_t_rand_commitment.x_coor(),
+                &party_one_zk_pok_blind_factor,
             ) {
             false => flag = false,
             true => flag = flag,
         };
         assert!(flag);
-        DLogProof::verify(ec_context, &party_one_d_log_proof.val)?;
+        DLogProof::verify(&party_one_d_log_proof)?;
         Ok(KeyGenSecondMsg {})
+    }
+}
+
+pub fn compute_pubkey(local_share: &KeyGenFirstMsg, other_share_public_share: &GE) -> GE {
+    let pubkey = other_share_public_share.clone();
+    pubkey.scalar_mul(&local_share.secret_share.get_element())
+}
+
+impl Party2Private {
+    pub fn set_private_key(ec_key: &KeyGenFirstMsg) -> Party2Private {
+        Party2Private {
+            x2: ec_key.secret_share.clone(),
+        }
+    }
+    pub fn update_private_key(party_two_private: &Party2Private, factor: &BigInt) -> Party2Private {
+        let factor_fe: FE = ECScalar::from(factor);
+        Party2Private {
+            x2: party_two_private.x2.mul(&factor_fe.get_element()),
+        }
     }
 }
 
 impl PaillierPublic {
     pub fn verify_range_proof(
         paillier_context: &PaillierPublic,
-        challenge: &W<ChallengeBits>,
-        encrypted_pairs: &W<EncryptedPairs>,
-        proof: &W<Proof>,
-    ) -> bool {
-        Paillier::verifier(
-            &paillier_context.ek.val,
-            &challenge.val,
-            &encrypted_pairs.val,
-            &proof.val,
-            &SK::get_q(),
-            RawCiphertext::from(&paillier_context.encrypted_secret_share.val),
-        ).is_ok()
+        challenge: &ChallengeBits,
+        encrypted_pairs: &EncryptedPairs,
+        proof: &Proof,
+    ) -> Result<(), CorrectKeyProofError> {
+        let temp: FE = ECScalar::new_random();
+        let result = Paillier::verifier(
+            &paillier_context.ek,
+            challenge,
+            encrypted_pairs,
+            proof,
+            &temp.q(),
+            RawCiphertext::from(&paillier_context.encrypted_secret_share),
+        );
+        return result;
     }
     pub fn generate_correct_key_challenge(
         paillier_context: &PaillierPublic,
-    ) -> (W<Challenge>, W<VerificationAid>) {
-        let (challenge, verification_aid) = Paillier::challenge(&paillier_context.ek.val);
-        (
-            W {
-                val: challenge,
-                visibility: Visibility::Public,
-            },
-            W {
-                val: verification_aid,
-                visibility: Visibility::Private,
-            },
-        )
+    ) -> (Challenge, VerificationAid) {
+        Paillier::challenge(&paillier_context.ek)
     }
 
     pub fn verify_correct_key(
-        proof: &W<CorrectKeyProof>,
-        aid: &W<VerificationAid>,
+        proof: &CorrectKeyProof,
+        aid: &VerificationAid,
     ) -> Result<(), CorrectKeyProofError> {
-        Paillier::verify(&proof.val, &aid.val)
+        Paillier::verify(&proof, &aid)
     }
 }
 
 impl PartialSig {
     pub fn compute(
-        ec_context: &EC,
-        ek: &W<EncryptionKey>,
-        encrypted_secret_share: &WBigInt,
-        local_share: &KeyGenFirstMsg,
+        ek: &EncryptionKey,
+        encrypted_secret_share: &BigInt,
+        local_share: &Party2Private,
         ephemeral_local_share: &KeyGenFirstMsg,
-        ephemeral_other_public_share: &WPK,
+        ephemeral_other_public_share: &GE,
         message: &BigInt,
     ) -> PartialSig {
+        let temp: FE = ECScalar::new_random();
         //compute r = k2* R1
-        let mut r = ephemeral_other_public_share.clone().val;
-        r.mul_assign(ec_context, &ephemeral_local_share.secret_share.val)
-            .expect("Failed to multiply and assign");
+        let mut r: GE = ephemeral_other_public_share.clone();
+        r = r.scalar_mul(&ephemeral_local_share.secret_share.get_element());
 
-        let rx = r.to_point().x.mod_floor(&SK::get_q());
-        let rho = BigInt::sample_below(&SK::get_q().pow(2));
+        let rx = r.x_coor().mod_floor(&temp.q());
+        let rho = BigInt::sample_below(&temp.q().pow(2));
         let k2_inv = &ephemeral_local_share
             .secret_share
-            .val
             .to_big_int()
-            .invert(&SK::get_q())
+            .invert(&temp.q())
             .unwrap();
-        let partial_sig = rho * &SK::get_q() + BigInt::mod_mul(&k2_inv, message, &SK::get_q());
-        let c1 = Paillier::encrypt(&ek.val, RawPlaintext::from(partial_sig));
+        let partial_sig = rho * &temp.q() + BigInt::mod_mul(&k2_inv, message, &temp.q());
+        let c1 = Paillier::encrypt(ek, RawPlaintext::from(partial_sig));
         let v = BigInt::mod_mul(
             &k2_inv,
-            &BigInt::mod_mul(
-                &rx,
-                &local_share.secret_share.val.to_big_int(),
-                &SK::get_q(),
-            ),
-            &SK::get_q(),
+            &BigInt::mod_mul(&rx, &local_share.x2.to_big_int(), &temp.q()),
+            &temp.q(),
         );
         let c2 = Paillier::mul(
-            &ek.val,
-            RawCiphertext::from(encrypted_secret_share.clone().val),
+            ek,
+            RawCiphertext::from(encrypted_secret_share.clone()),
             RawPlaintext::from(v),
         );
         //c3:
         PartialSig {
-            c3: WBigInt {
-                val: Paillier::add(&ek.val, c2, c1).0.into_owned(),
-                visibility: Visibility::Public,
-            },
+            c3: Paillier::add(ek, c2, c1).0.into_owned(),
         }
     }
 }

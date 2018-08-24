@@ -14,12 +14,12 @@
     @license GPL-3.0+ <https://github.com/KZen-networks/multi-party-ecdsa/blob/master/LICENSE>
 */
 
-extern crate cryptography_utils;
-extern crate paillier;
-
 #[macro_use]
 extern crate serde_derive;
 extern crate serde;
 extern crate serde_json;
+
+extern crate cryptography_utils;
+extern crate paillier;
 
 pub mod protocols;
