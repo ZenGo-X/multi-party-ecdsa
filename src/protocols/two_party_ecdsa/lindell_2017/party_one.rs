@@ -29,15 +29,14 @@ use cryptography_utils::cryptographic_primitives::proofs::dlog_zk_protocol::*;
 use cryptography_utils::cryptographic_primitives::proofs::ProofError;
 
 use cryptography_utils::BigInt;
-use cryptography_utils::EC;
-use cryptography_utils::PK;
-use cryptography_utils::SK;
+use cryptography_utils::GE;
+use cryptography_utils::FE;
 
 use super::party_two;
 use super::structs::{Visibility, WBigInt, W, WPK, WSK};
 
 //****************** Begin: Party One structs ******************//
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug)]
 pub struct KeyGenFirstMsg {
     public_share: WPK,
     secret_share: WSK,
@@ -49,7 +48,7 @@ pub struct KeyGenFirstMsg {
     d_log_proof: W<DLogProof>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug)]
 pub struct KeyGenSecondMsg {
     pub pk_commitment_blind_factor: WBigInt,
     pub zk_pok_blind_factor: WBigInt,
@@ -57,7 +56,7 @@ pub struct KeyGenSecondMsg {
     pub d_log_proof: W<DLogProof>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug)]
 pub struct PaillierKeyPair {
     pub ek: W<EncryptionKey>,
     dk: W<DecryptionKey>,
@@ -65,7 +64,7 @@ pub struct PaillierKeyPair {
     randomness: WBigInt,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug)]
 pub struct Signature {
     pub s: WBigInt,
     pub r: WBigInt,
@@ -74,26 +73,24 @@ pub struct Signature {
 //****************** End: Party One structs ******************//
 
 impl KeyGenFirstMsg {
-    pub fn create_commitments(ec_context: &EC) -> KeyGenFirstMsg {
-        let mut pk = PK::to_key(&PK::get_base_point());
-
+    pub fn create_commitments() -> KeyGenFirstMsg {
+        let base: GE = ECPoint::new();
+        let sk: FE = ECScalar::new_random();
         //in Lindell's protocol range proof works only for x1<q/3
-        let sk = SK::from_big_int(&BigInt::sample_below(
-            &SK::get_q().div_floor(&BigInt::from(3)),
-        ));
-        pk.mul_assign(ec_context, &sk).expect("Assignment expected");
+        let sk: FE = ECScalar::from_big_int(&sk.to_big_int().div_floor(&BigInt::from(3)));
+        let pk = base.scalar_mul(&sk.get_element());
 
-        let d_log_proof = DLogProof::prove(&ec_context, &pk, &sk);
-
+        let d_log_proof = DLogProof::prove( &sk);
+        // we use hash based commitment
         let pk_commitment_blind_factor = BigInt::sample(SECURITY_BITS);
         let pk_commitment = HashCommitment::create_commitment_with_user_defined_randomness(
-            &pk.to_point().x,
+            &pk.get_x_coor_as_big_int(),
             &pk_commitment_blind_factor,
         );
 
         let zk_pok_blind_factor = BigInt::sample(SECURITY_BITS);
         let zk_pok_commitment = HashCommitment::create_commitment_with_user_defined_randomness(
-            &d_log_proof.pk_t_rand_commitment.to_point().x,
+            &d_log_proof.pk_t_rand_commitment.get_x_coor_as_big_int(),
             &zk_pok_blind_factor,
         );
 
@@ -132,24 +129,25 @@ impl KeyGenFirstMsg {
             },
         }
     }
-    pub fn create_commitments_with_fixed_secret_share(ec_context: &EC,  sk: SK) -> KeyGenFirstMsg {
-        let mut pk = PK::to_key(&PK::get_base_point());
+    pub fn create_commitments_with_fixed_secret_share( sk: FE) -> KeyGenFirstMsg {
 
         //in Lindell's protocol range proof works only for x1<q/3
-        assert!(&BigInt::from(&(sk[0..sk.len()]))<&SK::get_q().div_floor(&BigInt::from(3)));
-        pk.mul_assign(ec_context, &sk).expect("Assignment expected");
+        let sk_bigint = sk.to_big_int();
+        assert!(&sk_bigint<&sk.get_q().div_floor(&BigInt::from(3)));
+        let base: GE = ECPoint::new();
+        let pk = base.scalar_mul(&sk.get_element());
 
-        let d_log_proof = DLogProof::prove(&ec_context, &pk, &sk);
+        let d_log_proof = DLogProof::prove( &sk);
 
         let pk_commitment_blind_factor = BigInt::sample(SECURITY_BITS);
         let pk_commitment = HashCommitment::create_commitment_with_user_defined_randomness(
-            &pk.to_point().x,
+            &pk.get_x_coor_as_big_int(),
             &pk_commitment_blind_factor,
         );
 
         let zk_pok_blind_factor = BigInt::sample(SECURITY_BITS);
         let zk_pok_commitment = HashCommitment::create_commitment_with_user_defined_randomness(
-            &d_log_proof.pk_t_rand_commitment.to_point().x,
+            &d_log_proof.pk_t_rand_commitment.get_x_coor_as_big_int(),
             &zk_pok_blind_factor,
         );
 
@@ -192,11 +190,10 @@ impl KeyGenFirstMsg {
 
 impl KeyGenSecondMsg {
     pub fn verify_and_decommit(
-        ec_context: &EC,
         first_message: &KeyGenFirstMsg,
         proof: &DLogProof,
     ) -> Result<KeyGenSecondMsg, ProofError> {
-        DLogProof::verify(ec_context, proof)?;
+        DLogProof::verify(proof)?;
         Ok(KeyGenSecondMsg {
             pk_commitment_blind_factor: WBigInt {
                 val: first_message.pk_commitment_blind_factor.val.clone(),
@@ -222,16 +219,11 @@ impl KeyGenSecondMsg {
 }
 
 pub fn compute_pubkey(
-    ec_context: &EC,
     local_share: &KeyGenFirstMsg,
     other_share: &party_two::KeyGenFirstMsg,
-) -> PK {
+) -> GE {
     let mut pubkey = other_share.public_share.val.clone();
-    pubkey
-        .mul_assign(ec_context, &local_share.secret_share.val)
-        .expect("Failed to multiply and assign");
-
-    return pubkey;
+    pubkey.scalar_mul(&local_share.secret_share.val.get_element())
 }
 
 impl PaillierKeyPair {
@@ -270,9 +262,10 @@ impl PaillierKeyPair {
         paillier_context: &PaillierKeyPair,
         keygen: &KeyGenFirstMsg,
     ) -> (W<EncryptedPairs>, W<ChallengeBits>, W<Proof>) {
+        let temp : FE = ECScalar::new_random();
         let (encrypted_pairs, challenge, proof) = Paillier::prover(
             &paillier_context.ek.val,
-            &SK::get_q(),
+            &temp.get_q(),
             &keygen.secret_share.val.to_big_int(),
             &paillier_context.randomness.val,
         );
@@ -306,27 +299,25 @@ impl PaillierKeyPair {
 
 impl Signature {
     pub fn compute(
-        ec_context: &EC,
         keypair: &PaillierKeyPair,
         partial_sig: &party_two::PartialSig,
         ephemeral_local_share: &KeyGenFirstMsg,
         ephemeral_other_public_share: &WPK,
     ) -> Signature {
         //compute r = k2* R1
+        let temp : FE = ECScalar::new_random();
         let mut r = ephemeral_other_public_share.val.clone();
-        r.mul_assign(ec_context, &ephemeral_local_share.secret_share.val)
-            .expect("Failed to multiply and assign");
-
-        let rx = r.to_point().x.mod_floor(&SK::get_q());
+        let r = r.scalar_mul(&ephemeral_local_share.secret_share.val.get_element());
+        let rx = r.get_x_coor_as_big_int().mod_floor(&temp.get_q());
         let k1_inv = &ephemeral_local_share
             .secret_share
             .val
             .to_big_int()
-            .invert(&SK::get_q())
+            .invert(&temp.get_q())
             .unwrap();
         let s_tag = Paillier::decrypt(&keypair.dk.val, &RawCiphertext::from(&partial_sig.c3.val));
-        let s_tag_tag = BigInt::mod_mul(&k1_inv, &s_tag.0, &SK::get_q());
-        let s = cmp::min(s_tag_tag.clone(), &SK::get_q().clone() - s_tag_tag.clone());
+        let s_tag_tag = BigInt::mod_mul(&k1_inv, &s_tag.0, &temp.get_q());
+        let s = cmp::min(s_tag_tag.clone(), &temp.get_q().clone() - s_tag_tag.clone());
 
         Signature {
             s: WBigInt {
@@ -342,33 +333,32 @@ impl Signature {
 }
 
 pub fn verify(
-    ec_context: &EC,
     signature: &Signature,
-    pubkey: &PK,
+    pubkey: &GE,
     message: &BigInt,
 ) -> Result<(), ProofError> {
+    let temp : FE = ECScalar::new_random();
     let b = signature
         .s
         .val
-        .invert(&SK::get_q())
+        .invert(&temp.get_q())
         .unwrap()
-        .mod_floor(&SK::get_q());
-    let a = message.mod_floor(&SK::get_q());
-    let u1 = BigInt::mod_mul(&a, &b, &SK::get_q());
-    let u2 = BigInt::mod_mul(&signature.r.val, &b, &SK::get_q());
+        .mod_floor(&temp.get_q());
+    let a = message.mod_floor(&temp.get_q());
+    let u1 = BigInt::mod_mul(&a, &b, &temp.get_q());
+    let u2 = BigInt::mod_mul(&signature.r.val, &b, &temp.get_q());
     // can be faster using shamir trick
-    let mut point1 = PK::to_key(&PK::get_base_point());
+    let mut point1: GE = ECPoint::new();
+    let u1_fe: FE = ECScalar::from_big_int(&u1);
+    let u2_fe: FE = ECScalar::from_big_int(&u2);
+    let point1 = point1.scalar_mul(&u1_fe.get_element());
 
-    point1
-        .mul_assign(ec_context, &SK::from_big_int(&u1))
-        .expect("Failed to multiply and assign");
 
-    let mut point2 = *pubkey;
-    point2
-        .mul_assign(ec_context, &SK::from_big_int(&u2))
-        .expect("Failed to multiply and assign");
+    let mut point2 = pubkey;
+    let point2 = point2.clone();
+    let point2 = point2.scalar_mul(&u2_fe.get_element());
 
-    if signature.r.val == point1.combine(ec_context, &point2).unwrap().to_point().x {
+    if signature.r.val == point1.add_point( &point2.get_element()).get_x_coor_as_big_int() {
         Ok(())
     } else {
         Err(ProofError)

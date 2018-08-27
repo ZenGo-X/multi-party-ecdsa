@@ -25,7 +25,7 @@ categories = ["cryptography"]
 crate-type = ["lib"]
 
 [dependencies]
-cryptography-utils = { git = "https://github.com/KZen-networks/cryptography-utils" }
+cryptography-utils = { git = "https://github.com/KZen-networks/cryptography-utils" , branch = "rewrite_ec_abstract", features =  ["curvesecp256k1"]}
 paillier = { git = "https://github.com/mortendahl/rust-paillier", branch = "dev" }
 serde = "1.0"
 serde_derive = "1.0"

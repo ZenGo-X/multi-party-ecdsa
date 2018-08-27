@@ -1,37 +1,36 @@
-use cryptography_utils::arithmetic::serde::serde_bigint;
-use cryptography_utils::elliptic::curves::serde::{serde_public_key, serde_secret_key};
-use cryptography_utils::BigInt;
-use cryptography_utils::PK;
-use cryptography_utils::SK;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+use cryptography_utils::BigInt;
+use cryptography_utils::GE;
+use cryptography_utils::FE;
+
+#[derive(Debug, Clone)]
 pub enum Visibility {
     Public = 1,
     Private = 2,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct WBigInt {
-    #[serde(with = "serde_bigint")]
+  //  #[serde(with = "serde_bigint")]
     pub val: BigInt,
     pub visibility: Visibility,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct WPK {
-    #[serde(with = "serde_public_key")]
-    pub val: PK,
+ //   #[serde(with = "serde_public_key")]
+    pub val: GE,
     pub visibility: Visibility,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct WSK {
-    #[serde(with = "serde_secret_key")]
-    pub val: SK,
+//    #[serde(with = "serde_secret_key")]
+    pub val: FE,
     pub visibility: Visibility,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct W<T> {
     pub val: T,
     pub visibility: Visibility,
