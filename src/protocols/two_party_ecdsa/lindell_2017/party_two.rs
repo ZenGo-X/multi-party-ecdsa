@@ -171,7 +171,7 @@ impl PartialSig {
     pub fn compute(
         ek: &EncryptionKey,
         encrypted_secret_share: &BigInt,
-        local_share: &KeyGenFirstMsg,
+        local_share: &Party2Private,
         ephemeral_local_share: &KeyGenFirstMsg,
         ephemeral_other_public_share: &GE,
         message: &BigInt,
@@ -192,7 +192,7 @@ impl PartialSig {
         let c1 = Paillier::encrypt(ek, RawPlaintext::from(partial_sig));
         let v = BigInt::mod_mul(
             &k2_inv,
-            &BigInt::mod_mul(&rx, &local_share.secret_share.to_big_int(), &temp.get_q()),
+            &BigInt::mod_mul(&rx, &local_share.x2.to_big_int(), &temp.get_q()),
             &temp.get_q(),
         );
         let c2 = Paillier::mul(
