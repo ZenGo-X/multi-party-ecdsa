@@ -69,6 +69,13 @@ pub struct Signature {
     pub r: BigInt,
 }
 
+#[derive(Debug)]
+pub struct Party1Private {
+    x1: FE,
+    paillier_priv: DecryptionKey,
+}
+
+
 //****************** End: Party One structs ******************//
 
 impl KeyGenFirstMsg {
@@ -158,6 +165,23 @@ pub fn compute_pubkey(local_share: &KeyGenFirstMsg, other_share: &party_two::Key
     let pubkey = other_share.public_share.clone();
     pubkey.scalar_mul(&local_share.secret_share.get_element())
 }
+
+impl Party1Private {
+    pub fn set_private_key(ec_key: &KeyGenFirstMsg, paillier_key: &PaillierKeyPair) -> Party1Private{
+        Party1Private{
+            x1: ec_key.secret_share,
+            paillier_priv: paillier_key.dk,
+        }
+    }
+    pub fn update_private_key(party_one_private: &Party1Private, factor: &BigInt) -> Party1Private {
+        let factor_fe: FE = ECScalar::from_big_int(factor);
+        Party1Private{
+            x1: party_one_private.x1.mul(&factor_fe.get_element()),
+            paillier_priv: party_one_private.paillier_priv,
+        }
+    }
+}
+
 
 impl PaillierKeyPair {
     pub fn generate_keypair_and_encrypted_share(keygen: &KeyGenFirstMsg) -> PaillierKeyPair {

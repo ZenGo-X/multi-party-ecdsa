@@ -51,6 +51,11 @@ pub struct PartialSig {
     pub c3: BigInt,
 }
 
+#[derive(Debug)]
+pub struct Party2Private {
+    x2: FE,
+}
+
 //****************** End: Party Two structs ******************//
 
 impl KeyGenFirstMsg {
@@ -110,9 +115,24 @@ impl KeyGenSecondMsg {
         Ok(KeyGenSecondMsg {})
     }
 }
+
 pub fn compute_pubkey(local_share: &KeyGenFirstMsg, other_share: &party_one::KeyGenFirstMsg) -> GE {
     let pubkey = other_share.public_share.clone();
     pubkey.scalar_mul(&local_share.secret_share.get_element())
+}
+impl Party2Private {
+    pub fn set_private_key(ec_key: &KeyGenFirstMsg) -> Party2Private{
+        Party2Private{
+            x2: ec_key.secret_share
+        }
+    }
+    pub fn update_private_key(party_two_private: &Party2Private, factor: &BigInt) -> Party2Private {
+        let factor_fe: FE = ECScalar::from_big_int(factor);
+        let factor_invert: FE = ECScalar::from_big_int(&factor.invert(&factor_fe.get_q()).unwrap());
+        Party2Private{
+            x2: party_two_private.x2.mul(&factor_invert.get_element()),
+        }
+    }
 }
 
 impl PaillierPublic {
