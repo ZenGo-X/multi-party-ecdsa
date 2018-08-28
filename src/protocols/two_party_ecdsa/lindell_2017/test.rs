@@ -2,6 +2,7 @@
 
 #[cfg(test)]
 mod tests {
+    use cryptography_utils::arithmetic::traits::Samplable;
     use cryptography_utils::elliptic::curves::traits::*;
     use cryptography_utils::BigInt;
     use protocols::two_party_ecdsa::lindell_2017::*;
@@ -30,7 +31,7 @@ mod tests {
     fn test_full_key_gen() {
         let party_one_first_message =
             party_one::KeyGenFirstMsg::create_commitments_with_fixed_secret_share(
-                ECScalar::from_big_int(&BigInt::from(10)),
+                ECScalar::from_big_int(&BigInt::sample(253)),
             );
         let party_two_first_message = party_two::KeyGenFirstMsg::create_with_fixed_secret_share(
             ECScalar::from_big_int(&BigInt::from(10)),
@@ -76,11 +77,12 @@ mod tests {
             &paillier_key_pair,
             &party_one_first_message,
         );
-        party_two::PaillierPublic::verify_range_proof(
+        let result = party_two::PaillierPublic::verify_range_proof(
             &party_two_paillier,
             &challenge,
             &encrypted_pairs,
             &proof,
-        );
+        ).expect("range proof error");
+
     }
 }

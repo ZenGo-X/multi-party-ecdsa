@@ -168,16 +168,17 @@ pub fn compute_pubkey(local_share: &KeyGenFirstMsg, other_share: &party_two::Key
 
 impl Party1Private {
     pub fn set_private_key(ec_key: &KeyGenFirstMsg, paillier_key: &PaillierKeyPair) -> Party1Private{
+
         Party1Private{
-            x1: ec_key.secret_share,
-            paillier_priv: paillier_key.dk,
+            x1: ec_key.secret_share.clone(),
+            paillier_priv: paillier_key.dk.clone(),
         }
     }
     pub fn update_private_key(party_one_private: &Party1Private, factor: &BigInt) -> Party1Private {
         let factor_fe: FE = ECScalar::from_big_int(factor);
         Party1Private{
             x1: party_one_private.x1.mul(&factor_fe.get_element()),
-            paillier_priv: party_one_private.paillier_priv,
+            paillier_priv: party_one_private.paillier_priv.clone(),
         }
     }
 }

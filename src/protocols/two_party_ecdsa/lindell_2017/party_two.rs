@@ -123,7 +123,7 @@ pub fn compute_pubkey(local_share: &KeyGenFirstMsg, other_share: &party_one::Key
 impl Party2Private {
     pub fn set_private_key(ec_key: &KeyGenFirstMsg) -> Party2Private{
         Party2Private{
-            x2: ec_key.secret_share
+            x2: ec_key.secret_share.clone()
         }
     }
     pub fn update_private_key(party_two_private: &Party2Private, factor: &BigInt) -> Party2Private {
@@ -141,16 +141,17 @@ impl PaillierPublic {
         challenge: &ChallengeBits,
         encrypted_pairs: &EncryptedPairs,
         proof: &Proof,
-    ) -> bool {
+    ) -> Result<(),CorrectKeyProofError> {
         let temp: FE = ECScalar::new_random();
-        Paillier::verifier(
+        let result = Paillier::verifier(
             &paillier_context.ek,
             challenge,
             encrypted_pairs,
             proof,
             &temp.get_q(),
             RawCiphertext::from(&paillier_context.encrypted_secret_share),
-        ).is_ok()
+        );
+        return result;
     }
     pub fn generate_correct_key_challenge(
         paillier_context: &PaillierPublic,
