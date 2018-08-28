@@ -37,7 +37,7 @@ use super::party_two;
 //****************** Begin: Party One structs ******************//
 #[derive(Debug)]
 pub struct KeyGenFirstMsg {
-    public_share: GE,
+    pub public_share: GE,
     secret_share: FE,
 
     pub pk_commitment: BigInt,

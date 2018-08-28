@@ -27,7 +27,7 @@ use cryptography_utils::FE;
 use cryptography_utils::GE;
 
 use paillier::*;
-
+use super::party_one;
 //****************** Begin: Party Two structs ******************//
 
 #[derive(Debug)]
@@ -109,6 +109,10 @@ impl KeyGenSecondMsg {
         DLogProof::verify(&party_one_d_log_proof)?;
         Ok(KeyGenSecondMsg {})
     }
+}
+pub fn compute_pubkey(local_share: &KeyGenFirstMsg, other_share: &party_one::KeyGenFirstMsg) -> GE {
+    let pubkey = other_share.public_share.clone();
+    pubkey.scalar_mul(&local_share.secret_share.get_element())
 }
 
 impl PaillierPublic {
