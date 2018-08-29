@@ -30,28 +30,28 @@ use super::party_one;
 use paillier::*;
 //****************** Begin: Party Two structs ******************//
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct KeyGenFirstMsg {
     pub d_log_proof: DLogProof,
     pub public_share: GE,
     secret_share: FE,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct KeyGenSecondMsg {}
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct PaillierPublic {
     pub ek: EncryptionKey,
     pub encrypted_secret_share: BigInt,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct PartialSig {
     pub c3: BigInt,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Party2Private {
     x2: FE,
 }

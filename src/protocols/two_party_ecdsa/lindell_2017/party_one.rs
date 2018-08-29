@@ -35,7 +35,7 @@ use cryptography_utils::GE;
 use super::party_two;
 
 //****************** Begin: Party One structs ******************//
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct KeyGenFirstMsg {
     pub public_share: GE,
     secret_share: FE,
@@ -47,7 +47,7 @@ pub struct KeyGenFirstMsg {
     d_log_proof: DLogProof,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct KeyGenSecondMsg {
     pub pk_commitment_blind_factor: BigInt,
     pub zk_pok_blind_factor: BigInt,
@@ -55,7 +55,7 @@ pub struct KeyGenSecondMsg {
     pub d_log_proof: DLogProof,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct PaillierKeyPair {
     pub ek: EncryptionKey,
     dk: DecryptionKey,
@@ -63,13 +63,13 @@ pub struct PaillierKeyPair {
     randomness: BigInt,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Signature {
     pub s: BigInt,
     pub r: BigInt,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Party1Private {
     x1: FE,
     paillier_priv: DecryptionKey,
