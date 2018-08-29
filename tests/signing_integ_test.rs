@@ -33,12 +33,12 @@ fn test_two_party_sign() {
         &party_one_second_message.pk_commitment_blind_factor,
         &party_one_second_message.d_log_proof,
     ).expect("failed to verify commitments and DLog proof");
-
+    let party2_private = party_two::Party2Private::set_private_key(&party_two_private_share_gen);
     let message = BigInt::from(1234);
     let partial_sig = party_two::PartialSig::compute(
         &keypair.ek,
         &keypair.encrypted_share,
-        &party_two_private_share_gen,
+        &party2_private,
         &party_two_first_message,
         &party_one_second_message.public_share,
         &message,

@@ -48,10 +48,10 @@ fn test_two_party_keygen() {
         &party_one_first_message,
     );
 
-    assert!(party_two::PaillierPublic::verify_range_proof(
+    party_two::PaillierPublic::verify_range_proof(
         &party_two_paillier,
         &challenge,
         &encrypted_pairs,
         &proof,
-    ));
+    ).expect("error range proof");
 }
