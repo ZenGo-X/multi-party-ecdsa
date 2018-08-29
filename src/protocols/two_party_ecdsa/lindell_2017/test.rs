@@ -77,12 +77,11 @@ mod tests {
             &paillier_key_pair,
             &party_one_first_message,
         );
-        let result = party_two::PaillierPublic::verify_range_proof(
+        let _result = party_two::PaillierPublic::verify_range_proof(
             &party_two_paillier,
             &challenge,
             &encrypted_pairs,
             &proof,
         ).expect("range proof error");
-
     }
 }

@@ -26,8 +26,8 @@ use cryptography_utils::BigInt;
 use cryptography_utils::FE;
 use cryptography_utils::GE;
 
-use paillier::*;
 use super::party_one;
+use paillier::*;
 //****************** Begin: Party Two structs ******************//
 
 #[derive(Debug)]
@@ -121,14 +121,14 @@ pub fn compute_pubkey(local_share: &KeyGenFirstMsg, other_share: &party_one::Key
     pubkey.scalar_mul(&local_share.secret_share.get_element())
 }
 impl Party2Private {
-    pub fn set_private_key(ec_key: &KeyGenFirstMsg) -> Party2Private{
-        Party2Private{
-            x2: ec_key.secret_share.clone()
+    pub fn set_private_key(ec_key: &KeyGenFirstMsg) -> Party2Private {
+        Party2Private {
+            x2: ec_key.secret_share.clone(),
         }
     }
     pub fn update_private_key(party_two_private: &Party2Private, factor: &BigInt) -> Party2Private {
         let factor_fe: FE = ECScalar::from_big_int(factor);
-        Party2Private{
+        Party2Private {
             x2: party_two_private.x2.mul(&factor_fe.get_element()),
         }
     }
@@ -140,7 +140,7 @@ impl PaillierPublic {
         challenge: &ChallengeBits,
         encrypted_pairs: &EncryptedPairs,
         proof: &Proof,
-    ) -> Result<(),CorrectKeyProofError> {
+    ) -> Result<(), CorrectKeyProofError> {
         let temp: FE = ECScalar::new_random();
         let result = Paillier::verifier(
             &paillier_context.ek,

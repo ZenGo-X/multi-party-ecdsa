@@ -56,7 +56,7 @@ mod bench {
                     &paillier_key_pair,
                     &party_one_first_message,
                 );
-             party_two::PaillierPublic::verify_range_proof(
+            party_two::PaillierPublic::verify_range_proof(
                 &party_two_paillier,
                 &challenge,
                 &encrypted_pairs,
