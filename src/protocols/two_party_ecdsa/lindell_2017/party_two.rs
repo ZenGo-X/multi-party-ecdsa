@@ -128,9 +128,8 @@ impl Party2Private {
     }
     pub fn update_private_key(party_two_private: &Party2Private, factor: &BigInt) -> Party2Private {
         let factor_fe: FE = ECScalar::from_big_int(factor);
-        let factor_invert: FE = ECScalar::from_big_int(&factor.invert(&factor_fe.get_q()).unwrap());
         Party2Private{
-            x2: party_two_private.x2.mul(&factor_invert.get_element()),
+            x2: party_two_private.x2.mul(&factor_fe.get_element()),
         }
     }
 }
