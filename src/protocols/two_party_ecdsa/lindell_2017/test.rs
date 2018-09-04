@@ -30,11 +30,11 @@ mod tests {
     #[test]
     fn test_full_key_gen() {
         let party_one_first_message =
-            party_one::KeyGenFirstMsg::create_commitments_with_fixed_secret_share(
-                ECScalar::from_big_int(&BigInt::sample(253)),
-            );
+            party_one::KeyGenFirstMsg::create_commitments_with_fixed_secret_share(ECScalar::from(
+                &BigInt::sample(253),
+            ));
         let party_two_first_message = party_two::KeyGenFirstMsg::create_with_fixed_secret_share(
-            ECScalar::from_big_int(&BigInt::from(10)),
+            ECScalar::from(&BigInt::from(10)),
         );
         let party_one_second_message = party_one::KeyGenSecondMsg::verify_and_decommit(
             &party_one_first_message,

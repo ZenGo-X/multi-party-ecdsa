@@ -59,7 +59,7 @@ pub struct Party2Private {
 
 impl KeyGenFirstMsg {
     pub fn create() -> KeyGenFirstMsg {
-        let base: GE = ECPoint::new();
+        let base: GE = ECPoint::generator();
         let secret_share: FE = ECScalar::new_random();
         let public_share = base.scalar_mul(&secret_share.get_element());
 
@@ -71,7 +71,7 @@ impl KeyGenFirstMsg {
     }
 
     pub fn create_with_fixed_secret_share(secret_share: FE) -> KeyGenFirstMsg {
-        let base: GE = ECPoint::new();
+        let base: GE = ECPoint::generator();
         let public_share = base.scalar_mul(&secret_share.get_element());
         KeyGenFirstMsg {
             d_log_proof: DLogProof::prove(&secret_share),
@@ -93,7 +93,7 @@ impl KeyGenSecondMsg {
         let mut flag = true;
         match party_one_pk_commitment
             == &HashCommitment::create_commitment_with_user_defined_randomness(
-                &party_one_public_share.get_x_coor_as_big_int(),
+                &party_one_public_share.x_coor(),
                 &party_one_pk_commitment_blind_factor,
             ) {
             false => flag = false,
@@ -101,9 +101,7 @@ impl KeyGenSecondMsg {
         };
         match party_one_zk_pok_commitment
             == &HashCommitment::create_commitment_with_user_defined_randomness(
-                &party_one_d_log_proof
-                    .pk_t_rand_commitment
-                    .get_x_coor_as_big_int(),
+                &party_one_d_log_proof.pk_t_rand_commitment.x_coor(),
                 &party_one_zk_pok_blind_factor,
             ) {
             false => flag = false,
@@ -127,7 +125,7 @@ impl Party2Private {
         }
     }
     pub fn update_private_key(party_two_private: &Party2Private, factor: &BigInt) -> Party2Private {
-        let factor_fe: FE = ECScalar::from_big_int(factor);
+        let factor_fe: FE = ECScalar::from(factor);
         Party2Private {
             x2: party_two_private.x2.mul(&factor_fe.get_element()),
         }
@@ -147,7 +145,7 @@ impl PaillierPublic {
             challenge,
             encrypted_pairs,
             proof,
-            &temp.get_q(),
+            &temp.q(),
             RawCiphertext::from(&paillier_context.encrypted_secret_share),
         );
         return result;
@@ -180,19 +178,19 @@ impl PartialSig {
         let mut r: GE = ephemeral_other_public_share.clone();
         r = r.scalar_mul(&ephemeral_local_share.secret_share.get_element());
 
-        let rx = r.get_x_coor_as_big_int().mod_floor(&temp.get_q());
-        let rho = BigInt::sample_below(&temp.get_q().pow(2));
+        let rx = r.x_coor().mod_floor(&temp.q());
+        let rho = BigInt::sample_below(&temp.q().pow(2));
         let k2_inv = &ephemeral_local_share
             .secret_share
             .to_big_int()
-            .invert(&temp.get_q())
+            .invert(&temp.q())
             .unwrap();
-        let partial_sig = rho * &temp.get_q() + BigInt::mod_mul(&k2_inv, message, &temp.get_q());
+        let partial_sig = rho * &temp.q() + BigInt::mod_mul(&k2_inv, message, &temp.q());
         let c1 = Paillier::encrypt(ek, RawPlaintext::from(partial_sig));
         let v = BigInt::mod_mul(
             &k2_inv,
-            &BigInt::mod_mul(&rx, &local_share.x2.to_big_int(), &temp.get_q()),
-            &temp.get_q(),
+            &BigInt::mod_mul(&rx, &local_share.x2.to_big_int(), &temp.q()),
+            &temp.q(),
         );
         let c2 = Paillier::mul(
             ek,
