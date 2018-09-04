@@ -46,12 +46,14 @@ fn test_two_party_sign() {
 
     let signature = party_one::Signature::compute(
         &keypair,
-        &partial_sig,
+        &partial_sig.c3,
         &party_one_first_message,
         &party_two_first_message.public_share,
     );
 
-    let pubkey =
-        party_one::compute_pubkey(&party_one_private_share_gen, &party_two_private_share_gen);
+    let pubkey = party_one::compute_pubkey(
+        &party_one_private_share_gen,
+        &party_two_private_share_gen.public_share,
+    );
     party_one::verify(&signature, &pubkey, &message).expect("Invalid signature")
 }

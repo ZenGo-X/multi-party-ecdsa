@@ -32,8 +32,6 @@ use cryptography_utils::BigInt;
 use cryptography_utils::FE;
 use cryptography_utils::GE;
 
-use super::party_two;
-
 //****************** Begin: Party One structs ******************//
 #[derive(Debug, Serialize, Deserialize)]
 pub struct KeyGenFirstMsg {
@@ -160,8 +158,8 @@ impl KeyGenSecondMsg {
     }
 }
 
-pub fn compute_pubkey(local_share: &KeyGenFirstMsg, other_share: &party_two::KeyGenFirstMsg) -> GE {
-    let pubkey = other_share.public_share.clone();
+pub fn compute_pubkey(local_share: &KeyGenFirstMsg, other_share_public_share: &GE) -> GE {
+    let pubkey = other_share_public_share.clone();
     pubkey.scalar_mul(&local_share.secret_share.get_element())
 }
 
@@ -230,7 +228,7 @@ impl PaillierKeyPair {
 impl Signature {
     pub fn compute(
         keypair: &PaillierKeyPair,
-        partial_sig: &party_two::PartialSig,
+        partial_sig_c3: &BigInt,
         ephemeral_local_share: &KeyGenFirstMsg,
         ephemeral_other_public_share: &GE,
     ) -> Signature {
@@ -245,7 +243,7 @@ impl Signature {
             .to_big_int()
             .invert(&temp.get_q())
             .unwrap();
-        let s_tag = Paillier::decrypt(&keypair.dk, &RawCiphertext::from(&partial_sig.c3));
+        let s_tag = Paillier::decrypt(&keypair.dk, &RawCiphertext::from(partial_sig_c3));
         let s_tag_tag = BigInt::mod_mul(&k1_inv, &s_tag.0, &temp.get_q());
         let s = cmp::min(s_tag_tag.clone(), &temp.get_q().clone() - s_tag_tag.clone());
 

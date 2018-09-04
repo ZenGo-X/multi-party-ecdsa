@@ -26,7 +26,6 @@ use cryptography_utils::BigInt;
 use cryptography_utils::FE;
 use cryptography_utils::GE;
 
-use super::party_one;
 use paillier::*;
 //****************** Begin: Party Two structs ******************//
 
@@ -116,10 +115,11 @@ impl KeyGenSecondMsg {
     }
 }
 
-pub fn compute_pubkey(local_share: &KeyGenFirstMsg, other_share: &party_one::KeyGenFirstMsg) -> GE {
-    let pubkey = other_share.public_share.clone();
+pub fn compute_pubkey(local_share: &KeyGenFirstMsg, other_share_public_share: &GE) -> GE {
+    let pubkey = other_share_public_share.clone();
     pubkey.scalar_mul(&local_share.secret_share.get_element())
 }
+
 impl Party2Private {
     pub fn set_private_key(ec_key: &KeyGenFirstMsg) -> Party2Private {
         Party2Private {
