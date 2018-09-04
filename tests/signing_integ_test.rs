@@ -44,8 +44,11 @@ fn test_two_party_sign() {
         &message,
     );
 
+    let party1_private = party_one::Party1Private::set_private_key(
+        &party_one_private_share_gen, &keypair);
+
     let signature = party_one::Signature::compute(
-        &keypair,
+        &party1_private,
         &partial_sig.c3,
         &party_one_first_message,
         &party_two_first_message.public_share,

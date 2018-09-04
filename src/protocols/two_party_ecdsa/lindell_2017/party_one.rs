@@ -227,7 +227,7 @@ impl PaillierKeyPair {
 
 impl Signature {
     pub fn compute(
-        keypair: &PaillierKeyPair,
+        party_one_private: &Party1Private,
         partial_sig_c3: &BigInt,
         ephemeral_local_share: &KeyGenFirstMsg,
         ephemeral_other_public_share: &GE,
@@ -243,7 +243,7 @@ impl Signature {
             .to_big_int()
             .invert(&temp.get_q())
             .unwrap();
-        let s_tag = Paillier::decrypt(&keypair.dk, &RawCiphertext::from(partial_sig_c3));
+        let s_tag = Paillier::decrypt(&party_one_private.paillier_priv, &RawCiphertext::from(partial_sig_c3));
         let s_tag_tag = BigInt::mod_mul(&k1_inv, &s_tag.0, &temp.get_q());
         let s = cmp::min(s_tag_tag.clone(), &temp.get_q().clone() - s_tag_tag.clone());
 
