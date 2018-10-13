@@ -2,8 +2,12 @@ import os.path
 from cffi import FFI
 ffibuilder = FFI()
 
+prelude = """
+typedef struct DLogProof DLogProof;
+"""
+
 with open("libmulti_party_ecdsa.h") as f:
-    ffibuilder.cdef("\n".join(x for x in f.readlines() if not x.startswith("#include")))
+    ffibuilder.cdef(prelude + "\n".join(x for x in f.readlines() if not x.startswith("#include")))
     #l = f.readlines()
 
 #extern_c_line_indices = [num for num, i in enumerate(l) if 'extern "C"' in i]
@@ -13,7 +17,7 @@ with open("libmulti_party_ecdsa.h") as f:
 #
 #ffibuilder.cdef("\n".join(relevant_declarations))
 
-ffibuilder.set_source("_mpecdsa_cffi",
+ffibuilder.set_source("_mpecdsa_cffi", prelude +
 """
      #include "libmulti_party_ecdsa.h"   // the C header of the library
 """,
