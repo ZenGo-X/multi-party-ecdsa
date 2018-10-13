@@ -1,6 +1,22 @@
 from _mpecdsa_cffi import lib, ffi
 from json import loads, dumps
 
+class GE:
+    def __init__(self, inst):
+        assert ffi.typeof("struct GE *") is ffi.typeof(inst)
+        self.inst = inst
+
+    def __del__(self):
+        lib.ge_delete(self.inst)
+
+class BigInt:
+    def __init__(self, inst):
+        assert ffi.typeof("struct BigInt *") is ffi.typeof(inst)
+        self.inst = inst
+
+    def __del__(self):
+        lib.bigint_delete(self.inst)
+
 class P1KeyGen1:
     def __init__(self, inst):
         # warning, cbindgen lets the names collide as of Oct 2018
@@ -13,6 +29,18 @@ class P1KeyGen1:
 
     def __del__(self):
         lib.p1_keygen1_delete(self.inst)
+
+    @property
+    def public_share(self):
+        return GE(lib.p1_keygen1_public_share(self.inst))
+
+    @property
+    def pk_commitment(self):
+        return BigInt(lib.p1_keygen1_pk_commitment(self.inst))
+
+    @property
+    def zk_pok_commitment(self):
+        return BigInt(lib.p1_keygen1_zk_pok_commitment(self.inst))
 
 class DLogProof:
     def __init__(self, inst):
@@ -45,6 +73,10 @@ class P2KeyGen1:
     def d_log_proof(self):
         return DLogProof(lib.p2_keygen1_d_log_proof(self.inst))
 
+    @property
+    def public_share(self):
+        return GE(lib.p2_keygen1_public_share(self.inst))
+
     def __del__(self):
         lib.p2_keygen1_delete(self.inst)
 
@@ -63,6 +95,22 @@ class P1KeyGen2:
 
     def __del__(self):
         lib.p2_keygen2_delete(self.inst)
+
+    @property
+    def pk_commitment_blind_factor(self):
+        return BigInt(lib.p1_keygen2_pk_commitment_blind_factor(self.inst))
+
+    @property
+    def zk_pok_blind_factor(self):
+        return BigInt(lib.p1_keygen2_zk_pok_blind_factor(self.inst))
+
+    @property
+    def public_share(self):
+        return GE(lib.p1_keygen2_public_share(self.inst))
+
+    @property
+    def d_log_proof(self):
+        return DLogProof(lib.p1_keygen2_d_log_proof(self.inst))
 
 if __name__ == "__main__":
     print("starting test")

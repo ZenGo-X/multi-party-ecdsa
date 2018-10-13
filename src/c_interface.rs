@@ -3,6 +3,51 @@ use serde::ser::Serialize;
 use std::os::raw::c_char;
 use protocols::two_party_ecdsa::lindell_2017::*;
 use cryptography_utils::cryptographic_primitives::proofs::dlog_zk_protocol::DLogProof;
+use cryptography_utils::{BigInt, GE};
+
+#[no_mangle]
+pub extern "C" fn p1_keygen1_public_share(msg: *const party_one::KeyGenFirstMsg) -> *mut GE {
+    unsafe {
+        let x = serde_json::to_string(&*msg).unwrap();
+        let y: party_one::KeyGenFirstMsg = serde_json::from_str(&x).unwrap();
+        let z = Box::new(y.public_share);
+        Box::into_raw(z)
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn p1_keygen1_pk_commitment(msg: *const party_one::KeyGenFirstMsg) -> *mut BigInt {
+    unsafe {
+        let x = serde_json::to_string(&*msg).unwrap();
+        let y: party_one::KeyGenFirstMsg = serde_json::from_str(&x).unwrap();
+        let z = Box::new(y.pk_commitment);
+        Box::into_raw(z)
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn p1_keygen1_zk_pok_commitment(msg: *const party_one::KeyGenFirstMsg) -> *mut BigInt {
+    unsafe {
+        let x = serde_json::to_string(&*msg).unwrap();
+        let y: party_one::KeyGenFirstMsg = serde_json::from_str(&x).unwrap();
+        let z = Box::new(y.zk_pok_commitment);
+        Box::into_raw(z)
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn bigint_delete(msg: *mut BigInt) {
+    unsafe {
+        Box::from_raw(msg);
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn ge_delete(msg: *mut GE) {
+    unsafe {
+        Box::from_raw(msg);
+    }
+}
 
 #[no_mangle]
 pub extern "C" fn p1_keygen1_delete(msg : *mut party_one::KeyGenFirstMsg) {
@@ -79,6 +124,16 @@ pub extern "C" fn p2_keygen1_d_log_proof(msg: *const party_two::KeyGenFirstMsg) 
 }
 
 #[no_mangle]
+pub extern "C" fn p2_keygen1_public_share(msg: *const party_two::KeyGenFirstMsg) -> *mut GE {
+    unsafe {
+        let x = serde_json::to_string(&*msg).unwrap();
+        let y: party_two::KeyGenFirstMsg = serde_json::from_str(&x).unwrap();
+        let z = Box::new(y.public_share);
+        Box::into_raw(z)
+    }
+}
+
+#[no_mangle]
 pub extern "C" fn p2_keygen2_delete(msg : *mut party_two::KeyGenSecondMsg) {
     unsafe {
         Box::from_raw(msg);
@@ -96,6 +151,46 @@ pub extern "C" fn p1_keygen2_nullable_new_verify_and_decommit(p1keygen1 : *const
                 Box::into_raw(z)
             }
         }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn p1_keygen2_pk_commitment_blind_factor(msg: *const party_one::KeyGenSecondMsg) -> *mut BigInt {
+    unsafe {
+        let x = serde_json::to_string(&*msg).unwrap();
+        let y: party_one::KeyGenSecondMsg = serde_json::from_str(&x).unwrap();
+        let z = Box::new(y.pk_commitment_blind_factor);
+        Box::into_raw(z)
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn p1_keygen2_zk_pok_blind_factor(msg: *const party_one::KeyGenSecondMsg) -> *mut BigInt {
+    unsafe {
+        let x = serde_json::to_string(&*msg).unwrap();
+        let y: party_one::KeyGenSecondMsg = serde_json::from_str(&x).unwrap();
+        let z = Box::new(y.zk_pok_blind_factor);
+        Box::into_raw(z)
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn p1_keygen2_public_share(msg: *const party_one::KeyGenSecondMsg) -> *mut GE {
+    unsafe {
+        let x = serde_json::to_string(&*msg).unwrap();
+        let y: party_one::KeyGenSecondMsg = serde_json::from_str(&x).unwrap();
+        let z = Box::new(y.public_share);
+        Box::into_raw(z)
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn p1_keygen2_d_log_proof(msg: *const party_one::KeyGenSecondMsg) -> *mut DLogProof {
+    unsafe {
+        let x = serde_json::to_string(&*msg).unwrap();
+        let y: party_one::KeyGenSecondMsg = serde_json::from_str(&x).unwrap();
+        let z = Box::new(y.d_log_proof);
+        Box::into_raw(z)
     }
 }
 
