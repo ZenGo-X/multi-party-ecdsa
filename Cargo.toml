@@ -22,7 +22,7 @@ license = "GPL-3.0-or-later"
 categories = ["cryptography"]
 
 [lib]
-crate-type = ["lib"]
+crate-type = ["lib", "cdylib"]
 
 [dependencies]
 paillier = { git = "https://github.com/mortendahl/rust-paillier" }

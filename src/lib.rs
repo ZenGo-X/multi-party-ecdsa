@@ -23,3 +23,5 @@ extern crate cryptography_utils;
 extern crate paillier;
 
 pub mod protocols;
+
+pub mod c_interface;
