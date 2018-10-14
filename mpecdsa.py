@@ -94,7 +94,7 @@ class P1KeyGen2:
         return P1KeyGen2(ptr)
 
     def __del__(self):
-        lib.p2_keygen2_delete(self.inst)
+        lib.p1_keygen2_delete(self.inst)
 
     @property
     def pk_commitment_blind_factor(self):
@@ -111,6 +111,33 @@ class P1KeyGen2:
     @property
     def d_log_proof(self):
         return DLogProof(lib.p1_keygen2_d_log_proof(self.inst))
+
+class P2KeyGen2:
+    def __init__(self, inst):
+        self.inst = inst
+
+    @staticmethod
+    def verify_commitments_and_dlog_proof(
+        pk_com,
+        zk_pok,
+        zk_pok_blind,
+        public_share,
+        pk_com_blind_party,
+        d_log_proof,
+    ):
+        assert type(pk_com) is BigInt
+        assert type(zk_pok) is BigInt
+        assert type(zk_pok_blind) is BigInt
+        assert type(public_share) is GE
+        assert type(pk_com_blind_party) is BigInt
+        assert type(d_log_proof) is DLogProof
+        ptr = lib.p2_keygen2_nullable_new_verify_commitments_and_dlog_proof(pk_com.inst, zk_pok.inst, zk_pok_blind.inst, public_share.inst, pk_com_blind_party.inst, d_log_proof.inst)
+        if ptr == ffi.cast('struct KeyGenSecondMsg *', 0):
+            raise Exception('could not verify_commitments_and_dlog_proof')
+        return P2KeyGen2(ptr)
+
+    def __del__(self):
+        lib.p2_keygen2_delete(self.inst)
 
 if __name__ == "__main__":
     print("starting test")
@@ -137,5 +164,23 @@ if __name__ == "__main__":
         pass
     else:
         assert False
-    P1KeyGen2.verify_and_decommit(p1k1, d1)
+    p1k2 = P1KeyGen2.verify_and_decommit(p1k1, d1)
+    #swapping the first two parameters like this shouldn't panic go:
+    #P2KeyGen2.verify_commitments_and_dlog_proof(
+    #    p1k1.zk_pok_commitment,
+    #    p1k1.pk_commitment,
+    #    p1k2.zk_pok_blind_factor,
+    #    p1k2.public_share,
+    #    p1k2.pk_commitment_blind_factor,
+    #    p1k2.d_log_proof,
+    #)
+    P2KeyGen2.verify_commitments_and_dlog_proof(
+        p1k1.pk_commitment,
+        p1k1.zk_pok_commitment,
+        p1k2.zk_pok_blind_factor,
+        p1k2.public_share,
+        p1k2.pk_commitment_blind_factor,
+        p1k2.d_log_proof,
+    )
+
     print("test passed")

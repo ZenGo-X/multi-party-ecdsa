@@ -134,7 +134,7 @@ pub extern "C" fn p2_keygen1_public_share(msg: *const party_two::KeyGenFirstMsg)
 }
 
 #[no_mangle]
-pub extern "C" fn p2_keygen2_delete(msg : *mut party_two::KeyGenSecondMsg) {
+pub extern "C" fn p1_keygen2_delete(msg : *mut party_one::KeyGenSecondMsg) {
     unsafe {
         Box::from_raw(msg);
     }
@@ -202,4 +202,40 @@ fn conv<T: Serialize>(msg: &T) -> *mut c_char {
     )
     .unwrap() // safe because it doesn't contain \0
     .into_raw()
+}
+
+#[no_mangle]
+pub extern "C" fn p2_keygen2_nullable_new_verify_commitments_and_dlog_proof(
+    // all these are from party_one
+    pk_com: *const BigInt,
+    zk_pok: *const BigInt,
+    zk_pok_blind: *const BigInt,
+    public_share: *const GE,
+    pk_com_blind_party: *const BigInt,
+    d_log_proof: *const DLogProof,
+) -> *mut party_two::KeyGenSecondMsg {
+    unsafe {
+        let x = party_two::KeyGenSecondMsg::verify_commitments_and_dlog_proof(
+            &*pk_com,
+            &*zk_pok,
+            &*zk_pok_blind,
+            &*public_share,
+            &*pk_com_blind_party,
+            &*d_log_proof,
+        );
+        match x {
+            Ok(msg) => {
+                let y = Box::new(msg);
+                Box::into_raw(y)
+            },
+            Err(err) => 0 as *mut party_two::KeyGenSecondMsg
+        }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn p2_keygen2_delete(msg : *mut party_two::KeyGenSecondMsg) {
+    unsafe {
+        Box::from_raw(msg);
+    }
 }
