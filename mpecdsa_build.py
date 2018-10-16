@@ -3,6 +3,7 @@ from cffi import FFI
 ffibuilder = FFI()
 
 prelude = """
+typedef struct EncryptionKey EncryptionKey;
 typedef struct GE GE;
 typedef struct BigInt BigInt;
 typedef struct DLogProof DLogProof;

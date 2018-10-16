@@ -1,3 +1,4 @@
+use paillier::EncryptionKey;
 use std::ffi::{CStr,CString};
 use serde::ser::Serialize;
 use std::os::raw::c_char;
@@ -8,9 +9,7 @@ use cryptography_utils::{BigInt, GE};
 #[no_mangle]
 pub extern "C" fn p1_keygen1_public_share(msg: *const party_one::KeyGenFirstMsg) -> *mut GE {
     unsafe {
-        let x = serde_json::to_string(&*msg).unwrap();
-        let y: party_one::KeyGenFirstMsg = serde_json::from_str(&x).unwrap();
-        let z = Box::new(y.public_share);
+        let z = Box::new((&*msg).public_share.clone());
         Box::into_raw(z)
     }
 }
@@ -18,9 +17,7 @@ pub extern "C" fn p1_keygen1_public_share(msg: *const party_one::KeyGenFirstMsg)
 #[no_mangle]
 pub extern "C" fn p1_keygen1_pk_commitment(msg: *const party_one::KeyGenFirstMsg) -> *mut BigInt {
     unsafe {
-        let x = serde_json::to_string(&*msg).unwrap();
-        let y: party_one::KeyGenFirstMsg = serde_json::from_str(&x).unwrap();
-        let z = Box::new(y.pk_commitment);
+        let z = Box::new((&*msg).pk_commitment.clone());
         Box::into_raw(z)
     }
 }
@@ -28,9 +25,7 @@ pub extern "C" fn p1_keygen1_pk_commitment(msg: *const party_one::KeyGenFirstMsg
 #[no_mangle]
 pub extern "C" fn p1_keygen1_zk_pok_commitment(msg: *const party_one::KeyGenFirstMsg) -> *mut BigInt {
     unsafe {
-        let x = serde_json::to_string(&*msg).unwrap();
-        let y: party_one::KeyGenFirstMsg = serde_json::from_str(&x).unwrap();
-        let z = Box::new(y.zk_pok_commitment);
+        let z = Box::new((&*msg).zk_pok_commitment.clone());
         Box::into_raw(z)
     }
 }
@@ -116,9 +111,7 @@ pub extern "C" fn c_str_delete(msg: *mut c_char) {
 #[no_mangle]
 pub extern "C" fn p2_keygen1_d_log_proof(msg: *const party_two::KeyGenFirstMsg) -> *mut DLogProof {
     unsafe {
-        let x = serde_json::to_string(&*msg).unwrap();
-        let y: party_two::KeyGenFirstMsg = serde_json::from_str(&x).unwrap();
-        let z = Box::new(y.d_log_proof);
+        let z = Box::new((&*msg).d_log_proof.clone());
         Box::into_raw(z)
     }
 }
@@ -126,9 +119,7 @@ pub extern "C" fn p2_keygen1_d_log_proof(msg: *const party_two::KeyGenFirstMsg) 
 #[no_mangle]
 pub extern "C" fn p2_keygen1_public_share(msg: *const party_two::KeyGenFirstMsg) -> *mut GE {
     unsafe {
-        let x = serde_json::to_string(&*msg).unwrap();
-        let y: party_two::KeyGenFirstMsg = serde_json::from_str(&x).unwrap();
-        let z = Box::new(y.public_share);
+        let z = Box::new((&*msg).public_share.clone());
         Box::into_raw(z)
     }
 }
@@ -157,9 +148,7 @@ pub extern "C" fn p1_keygen2_nullable_new_verify_and_decommit(p1keygen1 : *const
 #[no_mangle]
 pub extern "C" fn p1_keygen2_pk_commitment_blind_factor(msg: *const party_one::KeyGenSecondMsg) -> *mut BigInt {
     unsafe {
-        let x = serde_json::to_string(&*msg).unwrap();
-        let y: party_one::KeyGenSecondMsg = serde_json::from_str(&x).unwrap();
-        let z = Box::new(y.pk_commitment_blind_factor);
+        let z = Box::new((&*msg).pk_commitment_blind_factor.clone());
         Box::into_raw(z)
     }
 }
@@ -167,9 +156,7 @@ pub extern "C" fn p1_keygen2_pk_commitment_blind_factor(msg: *const party_one::K
 #[no_mangle]
 pub extern "C" fn p1_keygen2_zk_pok_blind_factor(msg: *const party_one::KeyGenSecondMsg) -> *mut BigInt {
     unsafe {
-        let x = serde_json::to_string(&*msg).unwrap();
-        let y: party_one::KeyGenSecondMsg = serde_json::from_str(&x).unwrap();
-        let z = Box::new(y.zk_pok_blind_factor);
+        let z = Box::new((&*msg).zk_pok_blind_factor.clone());
         Box::into_raw(z)
     }
 }
@@ -177,9 +164,7 @@ pub extern "C" fn p1_keygen2_zk_pok_blind_factor(msg: *const party_one::KeyGenSe
 #[no_mangle]
 pub extern "C" fn p1_keygen2_public_share(msg: *const party_one::KeyGenSecondMsg) -> *mut GE {
     unsafe {
-        let x = serde_json::to_string(&*msg).unwrap();
-        let y: party_one::KeyGenSecondMsg = serde_json::from_str(&x).unwrap();
-        let z = Box::new(y.public_share);
+        let z = Box::new((&*msg).public_share.clone());
         Box::into_raw(z)
     }
 }
@@ -239,3 +224,43 @@ pub extern "C" fn p2_keygen2_delete(msg : *mut party_two::KeyGenSecondMsg) {
         Box::from_raw(msg);
     }
 }
+
+#[no_mangle]
+pub extern "C" fn p1_paillier_pair_new_generate_keypair_and_encrypted_share(msg : *const party_one::KeyGenFirstMsg) -> *mut party_one::PaillierKeyPair {
+    unsafe {
+        let x = party_one::PaillierKeyPair::generate_keypair_and_encrypted_share(&*msg);
+        let y = Box::new(x);
+        Box::into_raw(y)
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn p1_paillier_pair_ek(msg : *const party_one::PaillierKeyPair) -> *mut EncryptionKey {
+    unsafe {
+        let z = Box::new((&*msg).ek.clone());
+        Box::into_raw(z)
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn p1_paillier_pair_encrypted_share(msg : *const party_one::PaillierKeyPair) -> *mut BigInt {
+    unsafe {
+        let z = Box::new((&*msg).encrypted_share.clone());
+        Box::into_raw(z)
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn p2_paillier_public_new(ek_ptr : *const EncryptionKey, encrypted_secret_share_ptr : *const BigInt) -> *mut party_two::PaillierPublic {
+    unsafe {
+        let ek: EncryptionKey = (&*ek_ptr).clone();
+        let encrypted_secret_share: BigInt = (&*encrypted_secret_share_ptr).clone();
+        let y = party_two::PaillierPublic { ek, encrypted_secret_share };
+        let z = Box::new(y);
+        Box::into_raw(z)
+    }
+}
+
+// todo: zk proof of correct paillier key
+// todo: zk range proof
+// todo: signing
