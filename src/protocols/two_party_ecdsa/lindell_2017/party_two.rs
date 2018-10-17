@@ -57,7 +57,7 @@ pub struct Party2Private {
     x2: FE,
 }
 #[derive(Debug, Serialize, Deserialize)]
-pub struct PDLchallenge{
+pub struct PDLchallenge {
     pub c_tag: BigInt,
     pub c_tag_tag: BigInt,
     a: BigInt,
@@ -67,12 +67,11 @@ pub struct PDLchallenge{
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct PDLdecommit{
+pub struct PDLdecommit {
     pub a: BigInt,
     pub b: BigInt,
     pub blindness: BigInt,
 }
-
 
 //****************** End: Party Two structs ******************//
 
@@ -152,9 +151,8 @@ impl Party2Private {
 }
 
 impl PaillierPublic {
-
-    pub fn pdl_challenge(&self, other_share_public_share: &GE) -> PDLchallenge{
-        let a_fe:FE = ECScalar::new_random();
+    pub fn pdl_challenge(&self, other_share_public_share: &GE) -> PDLchallenge {
+        let a_fe: FE = ECScalar::new_random();
         let a = a_fe.to_big_int();
         let q = a_fe.q();
         let q_sq = q.pow(2);
@@ -169,11 +167,12 @@ impl PaillierPublic {
         let c_tag = Paillier::add(&self.ek, ac, b_enc).0.into_owned();
         let ab_concat = a.clone() + b.clone().shl(a.bit_length());
         let blindness = BigInt::sample_below(&q);
-        let c_tag_tag = HashCommitment::create_commitment_with_user_defined_randomness(&ab_concat, &blindness);
-        let g :GE = ECPoint::generator();
+        let c_tag_tag =
+            HashCommitment::create_commitment_with_user_defined_randomness(&ab_concat, &blindness);
+        let g: GE = ECPoint::generator();
         let q_tag = other_share_public_share.clone() * a_fe + g * b_fe;
 
-        PDLchallenge{
+        PDLchallenge {
             c_tag,
             c_tag_tag,
             a,
@@ -181,20 +180,33 @@ impl PaillierPublic {
             blindness,
             q_tag,
         }
-
     }
 
-    pub fn pdl_decommit_c_tag_tag(pdl_chal: &PDLchallenge) -> PDLdecommit{
-        PDLdecommit{a: pdl_chal.a.clone(), b: pdl_chal.b.clone(), blindness: pdl_chal.blindness.clone()}
-    }
-
-    pub fn verify_pdl(pdl_chal: &PDLchallenge, blindness: &BigInt, q_hat: &GE, c_hat: &BigInt) -> Result<(),()>{
-        let c_hat_test = HashCommitment::create_commitment_with_user_defined_randomness(&q_hat.x_coor(), blindness);
-        if c_hat.clone() == c_hat_test && q_hat.get_element().clone() == pdl_chal.q_tag.get_element().clone(){
-            Ok(())
+    pub fn pdl_decommit_c_tag_tag(pdl_chal: &PDLchallenge) -> PDLdecommit {
+        PDLdecommit {
+            a: pdl_chal.a.clone(),
+            b: pdl_chal.b.clone(),
+            blindness: pdl_chal.blindness.clone(),
         }
-        else {Err(())}
+    }
 
+    pub fn verify_pdl(
+        pdl_chal: &PDLchallenge,
+        blindness: &BigInt,
+        q_hat: &GE,
+        c_hat: &BigInt,
+    ) -> Result<(), ()> {
+        let c_hat_test = HashCommitment::create_commitment_with_user_defined_randomness(
+            &q_hat.x_coor(),
+            blindness,
+        );
+        if c_hat.clone() == c_hat_test
+            && q_hat.get_element().clone() == pdl_chal.q_tag.get_element().clone()
+        {
+            Ok(())
+        } else {
+            Err(())
+        }
     }
 
     pub fn verify_range_proof(
