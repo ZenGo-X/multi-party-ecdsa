@@ -16,6 +16,7 @@
 
 use paillier::*;
 use std::cmp;
+use std::ops::Shl;
 
 const SECURITY_BITS: usize = 256;
 
@@ -71,6 +72,20 @@ pub struct Signature {
 pub struct Party1Private {
     x1: FE,
     paillier_priv: DecryptionKey,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PDL {
+    alpha: BigInt,
+    q_hat: GE,
+    blindness: BigInt,
+    pub c_hat : BigInt,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PDLdecommit{
+    pub q_hat: GE,
+    pub blindness: BigInt,
 }
 
 //****************** End: Party One structs ******************//
@@ -193,7 +208,7 @@ impl PaillierKeyPair {
             RawPlaintext::from(keygen.secret_share.to_big_int()),
             &randomness,
         ).0
-        .into_owned();
+            .into_owned();
 
         PaillierKeyPair {
             ek,
@@ -223,6 +238,36 @@ impl PaillierKeyPair {
         challenge: &Challenge,
     ) -> Result<CorrectKeyProof, CorrectKeyProofError> {
         Ok(Paillier::prove(&paillier_context.dk, challenge).unwrap())
+    }
+
+    pub fn pdl_first_stage(&self, c_tag: &BigInt) -> PDL {
+        let alpha = Paillier::decrypt(
+            &self.dk,
+            &RawCiphertext::from(c_tag.clone()),
+        );
+        let alpha_fe: FE = ECScalar::from(&alpha.0);
+        let g: GE = ECPoint::generator();
+        let q_hat = g * &alpha_fe;
+        let blindness = BigInt::sample_below(&alpha_fe.q());
+        let c_hat = HashCommitment::create_commitment_with_user_defined_randomness(&q_hat.x_coor(), &blindness);
+
+        PDL {
+            alpha: alpha.0.into_owned(),
+            q_hat: q_hat,
+            blindness,
+            c_hat,
+        }
+    }
+
+    pub fn pdl_second_stage(pdl: &PDL, c_tag_tag: &BigInt, first_message: &KeyGenFirstMsg, a: &BigInt, b: &BigInt, blindness: &BigInt, ) -> Result<(PDLdecommit), ()> {
+        let ab_concat = a.clone() + b.clone().shl(a.bit_length());
+        let c_tag_tag_test = HashCommitment::create_commitment_with_user_defined_randomness(&ab_concat, &blindness);
+        let ax1 = a.clone() * first_message.secret_share.to_big_int().clone();
+        let alpha_test = ax1 + b.clone();
+        let pdl_decom = PDLdecommit { q_hat: pdl.q_hat.clone(), blindness: pdl.blindness.clone() };
+        if alpha_test == pdl.alpha && c_tag_tag.clone() == c_tag_tag_test {
+            Ok(pdl_decom)
+        } else { Err(()) }
     }
 }
 

@@ -87,5 +87,20 @@ mod tests {
             &encrypted_pairs,
             &proof,
         ).expect("range proof error");
+
+        // pdl proof minus range proof
+        let pdl_chal = party_two_paillier.pdl_challenge(&party_one_first_message.public_share);
+
+        let pdl_prover = paillier_key_pair.pdl_first_stage(&pdl_chal.c_tag);
+
+        let pdl_decom_party2 = party_two::PaillierPublic::pdl_decommit_c_tag_tag(&pdl_chal);
+
+        let pdl_decom_party1 = party_one::PaillierKeyPair::pdl_second_stage(&pdl_prover, &pdl_chal.c_tag_tag,
+                                                                            &party_one_first_message,&pdl_decom_party2.a,
+                                                                            & pdl_decom_party2.b,
+                                                                            &pdl_decom_party2.blindness ).expect("pdl error party2");
+        party_two::PaillierPublic::verify_pdl(&pdl_chal, &pdl_decom_party1.blindness,
+                                              &pdl_decom_party1.q_hat,
+                                              &pdl_prover.c_hat).expect("pdl error party1")
     }
 }
