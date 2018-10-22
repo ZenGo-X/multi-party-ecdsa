@@ -226,17 +226,12 @@ impl PaillierPublic {
         );
         return result;
     }
-    pub fn generate_correct_key_challenge(
-        paillier_context: &PaillierPublic,
-    ) -> (Challenge, VerificationAid) {
-        Paillier::challenge(&paillier_context.ek)
-    }
 
-    pub fn verify_correct_key(
-        proof: &CorrectKeyProof,
-        aid: &VerificationAid,
+    pub fn verify_ni_proof_correct_key(
+        proof: NICorrectKeyProof,
+        ek: &EncryptionKey,
     ) -> Result<(), CorrectKeyProofError> {
-        Paillier::verify(&proof, &aid)
+        proof.verify(&ek)
     }
 }
 

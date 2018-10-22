@@ -1,14 +1,20 @@
 extern crate cryptography_utils;
 extern crate multi_party_ecdsa;
 
+use cryptography_utils::arithmetic::traits::Samplable;
+use cryptography_utils::elliptic::curves::traits::*;
+use cryptography_utils::BigInt;
 use multi_party_ecdsa::protocols::two_party_ecdsa::lindell_2017::*;
 
 #[test]
 fn test_two_party_keygen() {
-    // secret share generation
-    let party_one_first_message = party_one::KeyGenFirstMsg::create_commitments();
-    let party_two_first_message = party_two::KeyGenFirstMsg::create();
-
+    let party_one_first_message =
+        party_one::KeyGenFirstMsg::create_commitments_with_fixed_secret_share(ECScalar::from(
+            &BigInt::sample(253),
+        ));
+    let party_two_first_message = party_two::KeyGenFirstMsg::create_with_fixed_secret_share(
+        ECScalar::from(&BigInt::from(10)),
+    );
     let party_one_second_message = party_one::KeyGenSecondMsg::verify_and_decommit(
         &party_one_first_message,
         &party_two_first_message.d_log_proof,
@@ -32,26 +38,46 @@ fn test_two_party_keygen() {
         encrypted_secret_share: paillier_key_pair.encrypted_share.clone(),
     };
 
+    let correct_key_proof =
+        party_one::PaillierKeyPair::generate_ni_proof_correct_key(&paillier_key_pair);
+    party_two::PaillierPublic::verify_ni_proof_correct_key(
+        correct_key_proof,
+        &party_two_paillier.ek,
+    ).expect("bad paillier key");
     // zk proof of correct paillier key
-    let (challenge, verification_aid) =
-        party_two::PaillierPublic::generate_correct_key_challenge(&party_two_paillier);
-    let proof_result =
-        party_one::PaillierKeyPair::generate_proof_correct_key(&paillier_key_pair, &challenge);
-
-    let valid_proof = proof_result.expect("Incorrect party #1 correct key proof");
-    party_two::PaillierPublic::verify_correct_key(&valid_proof, &verification_aid)
-        .expect("Incorrect party #2 correct key verification");
 
     // zk range proof
     let (encrypted_pairs, challenge, proof) = party_one::PaillierKeyPair::generate_range_proof(
         &paillier_key_pair,
         &party_one_first_message,
     );
-
-    party_two::PaillierPublic::verify_range_proof(
+    let _result = party_two::PaillierPublic::verify_range_proof(
         &party_two_paillier,
         &challenge,
         &encrypted_pairs,
         &proof,
-    ).expect("error range proof");
+    ).expect("range proof error");
+
+    // pdl proof minus range proof
+    let pdl_chal = party_two_paillier.pdl_challenge(&party_one_first_message.public_share);
+
+    let pdl_prover = paillier_key_pair.pdl_first_stage(&pdl_chal.c_tag);
+
+    let pdl_decom_party2 = party_two::PaillierPublic::pdl_decommit_c_tag_tag(&pdl_chal);
+
+    let pdl_decom_party1 = party_one::PaillierKeyPair::pdl_second_stage(
+        &pdl_prover,
+        &pdl_chal.c_tag_tag,
+        &party_one_first_message,
+        &pdl_decom_party2.a,
+        &pdl_decom_party2.b,
+        &pdl_decom_party2.blindness,
+    ).expect("pdl error party2");
+
+    party_two::PaillierPublic::verify_pdl(
+        &pdl_chal,
+        &pdl_decom_party1.blindness,
+        &pdl_decom_party1.q_hat,
+        &pdl_prover.c_hat,
+    ).expect("pdl error party1")
 }

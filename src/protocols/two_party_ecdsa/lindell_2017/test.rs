@@ -63,20 +63,15 @@ mod tests {
             encrypted_secret_share: paillier_key_pair.encrypted_share.clone(),
         };
 
+        let correct_key_proof =
+            party_one::PaillierKeyPair::generate_ni_proof_correct_key(&paillier_key_pair);
+        party_two::PaillierPublic::verify_ni_proof_correct_key(
+            correct_key_proof,
+            &party_two_paillier.ek,
+        ).expect("bad paillier key");
         // zk proof of correct paillier key
-        let (challenge, verification_aid) =
-            party_two::PaillierPublic::generate_correct_key_challenge(&party_two_paillier);
-
-        let proof_result =
-            party_one::PaillierKeyPair::generate_proof_correct_key(&paillier_key_pair, &challenge);
-
-        let _result = party_two::PaillierPublic::verify_correct_key(
-            &proof_result.unwrap(),
-            &verification_aid,
-        );
 
         // zk range proof
-
         let (encrypted_pairs, challenge, proof) = party_one::PaillierKeyPair::generate_range_proof(
             &paillier_key_pair,
             &party_one_first_message,
@@ -103,6 +98,7 @@ mod tests {
             &pdl_decom_party2.b,
             &pdl_decom_party2.blindness,
         ).expect("pdl error party2");
+
         party_two::PaillierPublic::verify_pdl(
             &pdl_chal,
             &pdl_decom_party1.blindness,

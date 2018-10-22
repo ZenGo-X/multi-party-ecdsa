@@ -233,11 +233,8 @@ impl PaillierKeyPair {
         (encrypted_pairs, challenge, proof)
     }
 
-    pub fn generate_proof_correct_key(
-        paillier_context: &PaillierKeyPair,
-        challenge: &Challenge,
-    ) -> Result<CorrectKeyProof, CorrectKeyProofError> {
-        Ok(Paillier::prove(&paillier_context.dk, challenge).unwrap())
+    pub fn generate_ni_proof_correct_key(paillier_context: &PaillierKeyPair) -> NICorrectKeyProof {
+        NICorrectKeyProof::proof(&paillier_context.dk)
     }
 
     pub fn pdl_first_stage(&self, c_tag: &BigInt) -> PDL {
