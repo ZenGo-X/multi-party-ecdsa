@@ -26,6 +26,7 @@ crate-type = ["lib"]
 
 [dependencies]
 paillier = { git = "https://github.com/mortendahl/rust-paillier",  branch = "new_correct_key"}
+
 serde = "1.0"
 serde_derive = "1.0"
 serde_json = "1.0"
