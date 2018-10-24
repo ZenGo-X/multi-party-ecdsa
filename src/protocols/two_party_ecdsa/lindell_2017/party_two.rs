@@ -154,7 +154,7 @@ impl PaillierPublic {
     pub fn pdl_challenge(&self, other_share_public_share: &GE) -> PDLchallenge {
         let a_fe: FE = ECScalar::new_random();
         let a = a_fe.to_big_int();
-        let q = a_fe.q();
+        let q = FE::q();
         let q_sq = q.pow(2);
         let b = BigInt::sample_below(&q_sq);
         let b_fe: FE = ECScalar::from(&b);
@@ -215,13 +215,12 @@ impl PaillierPublic {
         encrypted_pairs: &EncryptedPairs,
         proof: &Proof,
     ) -> Result<(), CorrectKeyProofError> {
-        let temp: FE = ECScalar::new_random();
         let result = Paillier::verifier(
             &paillier_context.ek,
             challenge,
             encrypted_pairs,
             proof,
-            &temp.q(),
+            &FE::q(),
             RawCiphertext::from(&paillier_context.encrypted_secret_share),
         );
         return result;
@@ -244,24 +243,24 @@ impl PartialSig {
         ephemeral_other_public_share: &GE,
         message: &BigInt,
     ) -> PartialSig {
-        let temp: FE = ECScalar::new_random();
+        let q = FE::q();
         //compute r = k2* R1
         let mut r: GE = ephemeral_other_public_share.clone();
         r = r.scalar_mul(&ephemeral_local_share.secret_share.get_element());
 
-        let rx = r.x_coor().mod_floor(&temp.q());
-        let rho = BigInt::sample_below(&temp.q().pow(2));
+        let rx = r.x_coor().mod_floor(&q);
+        let rho = BigInt::sample_below(&q.pow(2));
         let k2_inv = &ephemeral_local_share
             .secret_share
             .to_big_int()
-            .invert(&temp.q())
+            .invert(&q)
             .unwrap();
-        let partial_sig = rho * &temp.q() + BigInt::mod_mul(&k2_inv, message, &temp.q());
+        let partial_sig = rho * &q + BigInt::mod_mul(&k2_inv, message, &q);
         let c1 = Paillier::encrypt(ek, RawPlaintext::from(partial_sig));
         let v = BigInt::mod_mul(
             &k2_inv,
-            &BigInt::mod_mul(&rx, &local_share.x2.to_big_int(), &temp.q()),
-            &temp.q(),
+            &BigInt::mod_mul(&rx, &local_share.x2.to_big_int(), &q),
+            &q,
         );
         let c2 = Paillier::mul(
             ek,

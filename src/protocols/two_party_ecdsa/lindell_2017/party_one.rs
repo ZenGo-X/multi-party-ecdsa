@@ -129,7 +129,8 @@ impl KeyGenFirstMsg {
     pub fn create_commitments_with_fixed_secret_share(secret_share: FE) -> KeyGenFirstMsg {
         //in Lindell's protocol range proof works only for x1<q/3
         let sk_bigint = secret_share.to_big_int();
-        assert!(&sk_bigint < &secret_share.q().div_floor(&BigInt::from(3)));
+        let q_third = FE::q();
+        assert!(&sk_bigint < &q_third.div_floor(&BigInt::from(3)));
         let base: GE = ECPoint::generator();
         let public_share = base.scalar_mul(&secret_share.get_element());
 
@@ -222,10 +223,9 @@ impl PaillierKeyPair {
         paillier_context: &PaillierKeyPair,
         keygen: &KeyGenFirstMsg,
     ) -> (EncryptedPairs, ChallengeBits, Proof) {
-        let temp: FE = ECScalar::new_random();
         let (encrypted_pairs, challenge, proof) = Paillier::prover(
             &paillier_context.ek,
-            &temp.q(),
+            &FE::q(),
             &keygen.secret_share.to_big_int(),
             &paillier_context.randomness,
         );
@@ -242,7 +242,7 @@ impl PaillierKeyPair {
         let alpha_fe: FE = ECScalar::from(&alpha.0);
         let g: GE = ECPoint::generator();
         let q_hat = g * &alpha_fe;
-        let blindness = BigInt::sample_below(&alpha_fe.q());
+        let blindness = BigInt::sample_below(&FE::q());
         let c_hat = HashCommitment::create_commitment_with_user_defined_randomness(
             &q_hat.x_coor(),
             &blindness,
@@ -289,33 +289,32 @@ impl Signature {
         ephemeral_other_public_share: &GE,
     ) -> Signature {
         //compute r = k2* R1
-        let temp: FE = ECScalar::new_random();
         let mut r = ephemeral_other_public_share.clone();
         r = r.scalar_mul(&ephemeral_local_share.secret_share.get_element());
 
-        let rx = r.x_coor().mod_floor(&temp.q());
+        let rx = r.x_coor().mod_floor(&FE::q());
         let k1_inv = &ephemeral_local_share
             .secret_share
             .to_big_int()
-            .invert(&temp.q())
+            .invert(&FE::q())
             .unwrap();
         let s_tag = Paillier::decrypt(
             &party_one_private.paillier_priv,
             &RawCiphertext::from(partial_sig_c3),
         );
-        let s_tag_tag = BigInt::mod_mul(&k1_inv, &s_tag.0, &temp.q());
-        let s = cmp::min(s_tag_tag.clone(), &temp.q().clone() - s_tag_tag.clone());
+        let s_tag_tag = BigInt::mod_mul(&k1_inv, &s_tag.0, &FE::q());
+        let s = cmp::min(s_tag_tag.clone(), FE::q().clone() - s_tag_tag.clone());
 
         Signature { s, r: rx }
     }
 }
 
 pub fn verify(signature: &Signature, pubkey: &GE, message: &BigInt) -> Result<(), ProofError> {
-    let temp: FE = ECScalar::new_random();
-    let b = signature.s.invert(&temp.q()).unwrap().mod_floor(&temp.q());
-    let a = message.mod_floor(&temp.q());
-    let u1 = BigInt::mod_mul(&a, &b, &temp.q());
-    let u2 = BigInt::mod_mul(&signature.r, &b, &temp.q());
+    let q = FE::q();
+    let b = signature.s.invert(&q).unwrap().mod_floor(&q);
+    let a = message.mod_floor(&q);
+    let u1 = BigInt::mod_mul(&a, &b, &q);
+    let u2 = BigInt::mod_mul(&signature.r, &b, &q);
     // can be faster using shamir trick
     let mut point1: GE = ECPoint::generator();
     let u1_fe: FE = ECScalar::from(&u1);
