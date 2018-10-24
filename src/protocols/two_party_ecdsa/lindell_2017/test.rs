@@ -15,7 +15,8 @@ mod tests {
         let party_one_second_message = party_one::KeyGenSecondMsg::verify_and_decommit(
             &party_one_first_message,
             &party_two_first_message.d_log_proof,
-        ).expect("failed to verify and decommit");
+        )
+        .expect("failed to verify and decommit");
 
         let _party_two_second_message =
             party_two::KeyGenSecondMsg::verify_commitments_and_dlog_proof(
@@ -25,7 +26,8 @@ mod tests {
                 &party_one_second_message.public_share,
                 &party_one_second_message.pk_commitment_blind_factor,
                 &party_one_second_message.d_log_proof,
-            ).expect("failed to verify commitments and DLog proof");
+            )
+            .expect("failed to verify commitments and DLog proof");
     }
 
     #[test]
@@ -41,7 +43,8 @@ mod tests {
         let party_one_second_message = party_one::KeyGenSecondMsg::verify_and_decommit(
             &party_one_first_message,
             &party_two_first_message.d_log_proof,
-        ).expect("failed to verify and decommit");
+        )
+        .expect("failed to verify and decommit");
 
         let _party_two_second_message =
             party_two::KeyGenSecondMsg::verify_commitments_and_dlog_proof(
@@ -51,7 +54,8 @@ mod tests {
                 &party_one_second_message.public_share,
                 &party_one_second_message.pk_commitment_blind_factor,
                 &party_one_second_message.d_log_proof,
-            ).expect("failed to verify commitments and DLog proof");
+            )
+            .expect("failed to verify commitments and DLog proof");
 
         // init paillier keypair:
         let paillier_key_pair = party_one::PaillierKeyPair::generate_keypair_and_encrypted_share(
@@ -68,7 +72,8 @@ mod tests {
         party_two::PaillierPublic::verify_ni_proof_correct_key(
             correct_key_proof,
             &party_two_paillier.ek,
-        ).expect("bad paillier key");
+        )
+        .expect("bad paillier key");
         // zk proof of correct paillier key
 
         // zk range proof
@@ -81,7 +86,8 @@ mod tests {
             &challenge,
             &encrypted_pairs,
             &proof,
-        ).expect("range proof error");
+        )
+        .expect("range proof error");
 
         // pdl proof minus range proof
         let pdl_chal = party_two_paillier.pdl_challenge(&party_one_first_message.public_share);
@@ -97,13 +103,15 @@ mod tests {
             &pdl_decom_party2.a,
             &pdl_decom_party2.b,
             &pdl_decom_party2.blindness,
-        ).expect("pdl error party2");
+        )
+        .expect("pdl error party2");
 
         party_two::PaillierPublic::verify_pdl(
             &pdl_chal,
             &pdl_decom_party1.blindness,
             &pdl_decom_party1.q_hat,
             &pdl_prover.c_hat,
-        ).expect("pdl error party1")
+        )
+        .expect("pdl error party1")
     }
 }
