@@ -7,6 +7,12 @@ typedef struct EncryptionKey EncryptionKey;
 typedef struct GE GE;
 typedef struct BigInt BigInt;
 typedef struct DLogProof DLogProof;
+typedef struct Challenge Challenge;
+typedef struct CorrectKeyProof CorrectKeyProof;
+typedef struct VerificationAid VerificationAid;
+typedef struct ChallengeBits ChallengeBits;
+typedef struct EncryptedPairs EncryptedPairs;
+typedef struct Proof Proof;
 """
 
 with open("libmulti_party_ecdsa.h") as f:
