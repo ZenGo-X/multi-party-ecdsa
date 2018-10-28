@@ -82,7 +82,7 @@ pub extern "C" fn d_log_proof_nullable_new_deserialize(msg: *mut c_char) -> *mut
     unsafe {
         let x = CStr::from_ptr(msg).to_string_lossy().into_owned();
         match serde_json::from_str(&x) {
-            Err(e) => 0 as *mut DLogProof, // TODO: test this
+            Err(_e) => 0 as *mut DLogProof, // TODO: test this
             Ok(y) => {
                 let z = Box::new(y);
                 Box::into_raw(z)
@@ -136,7 +136,7 @@ pub extern "C" fn p1_keygen2_nullable_new_verify_and_decommit(p1keygen1 : *const
     unsafe {
         let x = party_one::KeyGenSecondMsg::verify_and_decommit(&*p1keygen1, &*dlogproof);
         match x {
-            Err(err) => 0 as *mut party_one::KeyGenSecondMsg,
+            Err(_err) => 0 as *mut party_one::KeyGenSecondMsg,
             Ok(y) => {
                 let z = Box::new(y);
                 Box::into_raw(z)
@@ -213,7 +213,7 @@ pub extern "C" fn p2_keygen2_nullable_new_verify_commitments_and_dlog_proof(
                 let y = Box::new(msg);
                 Box::into_raw(y)
             },
-            Err(err) => 0 as *mut party_two::KeyGenSecondMsg
+            Err(_err) => 0 as *mut party_two::KeyGenSecondMsg
         }
     }
 }
@@ -307,7 +307,7 @@ pub extern "C" fn chal_veri_pair_challenge(msg : *const ChalVeriPair) -> *mut pa
         let z = serde_json::to_string(&(&*msg).challenge)
             .unwrap_or("error".to_string());
         match serde_json::from_str(&z) {
-            Err(e) => 0 as *mut paillier::Challenge,
+            Err(_e) => 0 as *mut paillier::Challenge,
             Ok(y) => {
                 let z = Box::new(y);
                 Box::into_raw(z)
@@ -323,7 +323,7 @@ pub extern "C" fn chal_veri_pair_verification_aid(msg: *const ChalVeriPair) -> *
         let z = serde_json::to_string(&(&*msg).verification_aid)
             .unwrap_or("error".to_string());
         match serde_json::from_str(&z) {
-            Err(e) => 0 as *mut paillier::VerificationAid,
+            Err(_e) => 0 as *mut paillier::VerificationAid,
             Ok(y) => {
                 let z = Box::new(y);
                 Box::into_raw(z)
@@ -351,7 +351,7 @@ pub extern "C" fn p1_paillier_pair_nullable_generate_proof_correct_key(p1pair: *
     unsafe {
         let x = party_one::PaillierKeyPair::generate_proof_correct_key(&*p1pair, &*chal);
         match x {
-            Err(e) => 0 as *mut paillier::CorrectKeyProof,
+            Err(_e) => 0 as *mut paillier::CorrectKeyProof,
             Ok(y) => {
                 let z = Box::new(y);
                 Box::into_raw(z)
@@ -371,8 +371,8 @@ pub extern "C" fn correct_key_proof_delete(msg: *mut paillier::CorrectKeyProof) 
 pub extern "C" fn p2_paillier_public_verify_correct_key(c_k_p: *const paillier::CorrectKeyProof, veri_aid : *const paillier::VerificationAid) -> bool {
     unsafe {
         match party_two::PaillierPublic::verify_correct_key(&*c_k_p, &*veri_aid) {
-            Ok(res) => true,
-            Err(e) => false,
+            Ok(_res) => true,
+            Err(_e) => false,
         }
     }
 }
@@ -418,7 +418,7 @@ pub extern "C" fn range_tuple_1(msg: *const RangeProofTriple) -> *mut paillier::
         let z = serde_json::to_string(&(&*msg).encrypted_pairs)
             .unwrap_or("error".to_string());
         match serde_json::from_str(&z) {
-            Err(e) => 0 as *mut paillier::EncryptedPairs,
+            Err(_e) => 0 as *mut paillier::EncryptedPairs,
             Ok(y) => {
                 let z = Box::new(y);
                 Box::into_raw(z)
@@ -433,7 +433,7 @@ pub extern "C" fn range_tuple_2(msg: *const RangeProofTriple) -> *mut paillier::
         let z = serde_json::to_string(&(&*msg).challenge)
             .unwrap_or("error".to_string());
         match serde_json::from_str(&z) {
-            Err(e) => 0 as *mut paillier::ChallengeBits,
+            Err(_e) => 0 as *mut paillier::ChallengeBits,
             Ok(y) => {
                 let z = Box::new(y);
                 Box::into_raw(z)
@@ -448,7 +448,7 @@ pub extern "C" fn range_tuple_3(msg: *const RangeProofTriple) -> *mut paillier::
         let z = serde_json::to_string(&(&*msg).proof)
             .unwrap_or("error".to_string());
         match serde_json::from_str(&z) {
-            Err(e) => 0 as *mut paillier::Proof,
+            Err(_e) => 0 as *mut paillier::Proof,
             Ok(y) => {
                 let z = Box::new(y);
                 Box::into_raw(z)
@@ -479,10 +479,146 @@ pub extern "C" fn p1_paillier_pair_generate_range_proof(pkp: *const party_one::P
 pub extern "C" fn p2_paillier_public_verify_range_proof(p2pub: *const party_two::PaillierPublic, challenge_bits : *const paillier::ChallengeBits, encrypted_pairs: *const paillier::EncryptedPairs, proof: *const paillier::Proof) -> bool {
     unsafe {
         match party_two::PaillierPublic::verify_range_proof(&*p2pub, &*challenge_bits, &*encrypted_pairs, &*proof) {
-            Ok(res) => true,
-            Err(e) => false,
+            Ok(_res) => true,
+            Err(_e) => false,
         }
     }
 }
 
-// todo: signing
+// signing
+//
+
+#[no_mangle]
+pub extern "C" fn party2private_new_set_private_key(msg : *const party_two::KeyGenFirstMsg) -> *mut party_two::Party2Private {
+    unsafe {
+        let x = party_two::Party2Private::set_private_key(&*msg);
+        let y = Box::new(x);
+        Box::into_raw(y)
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn party2private_delete(msg: *mut party_two::Party2Private) {
+    unsafe {
+        Box::from_raw(msg);
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn bigint_new_from_int(num: u64) -> *mut BigInt {
+    let x = BigInt::from(num);
+    let y = Box::new(x);
+    Box::into_raw(y)
+}
+
+#[no_mangle]
+pub extern "C" fn p2partialsig_delete(msg: *mut party_two::PartialSig) {
+    unsafe {
+        Box::from_raw(msg);
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn p2partialsig_new_compute(
+        ek: *const EncryptionKey,
+        encrypted_secret_share: *const BigInt,
+        local_share: *const party_two::Party2Private,
+        ephemeral_local_share: *const party_two::KeyGenFirstMsg,
+        ephemeral_other_public_share: *const GE,
+        message: *const BigInt,
+    ) -> *mut party_two::PartialSig {
+    unsafe {
+        let x = party_two::PartialSig::compute(
+                &*ek,
+                &*encrypted_secret_share,
+                &*local_share,
+                &*ephemeral_local_share,
+                &*ephemeral_other_public_share,
+                &*message
+            );
+        let y = Box::new(x);
+        Box::into_raw(y)
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn party1private_delete(msg: *mut party_one::Party1Private) {
+    unsafe {
+        Box::from_raw(msg);
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn party1private_new_set_private_key(
+    ec_key: *const party_one::KeyGenFirstMsg,
+    paillier_key: *const party_one::PaillierKeyPair
+    ) -> *mut party_one::Party1Private {
+    unsafe {
+        let x = party_one::Party1Private::set_private_key(
+                &*ec_key,
+                &*paillier_key,
+            );
+        let y = Box::new(x);
+        Box::into_raw(y)
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn p1signature_new_compute(
+    party_one_private: *const party_one::Party1Private,
+    partial_sig_c3: *const BigInt,
+    ephemeral_local_share: *const party_one::KeyGenFirstMsg,
+    ephemeral_other_public_share: *const GE,
+    ) -> *mut party_one::Signature {
+    unsafe {
+        let x = party_one::Signature::compute(
+                &*party_one_private,
+                &*partial_sig_c3,
+                &*ephemeral_local_share,
+                &*ephemeral_other_public_share,
+            );
+        let y = Box::new(x);
+        Box::into_raw(y)
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn p1signature_delete(msg: *mut party_one::Signature) {
+    unsafe {
+        Box::from_raw(msg);
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn p2partialsig_c3(msg: *const party_two::PartialSig) -> *mut BigInt {
+    unsafe {
+        let z = Box::new((&*msg).c3.clone());
+        Box::into_raw(z)
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn p1_compute_pubkey(
+    local_share: *const party_one::KeyGenFirstMsg,
+    other_share_public_share: *const GE,
+) -> *mut GE {
+    unsafe {
+        let x = party_one::compute_pubkey(&*local_share, &*other_share_public_share);
+        let y = Box::new(x);
+        Box::into_raw(y)
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn p1_verify(
+    signature: *const party_one::Signature,
+    pubkey: *const GE,
+    message: *const BigInt,
+) -> bool {
+    unsafe {
+        match party_one::verify(&*signature, &*pubkey, &*message) {
+            Ok(_res) => true,
+            Err(_e) => false,
+        }
+    }
+}

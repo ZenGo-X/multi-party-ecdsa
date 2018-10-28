@@ -15,6 +15,10 @@ class BigInt:
         assert ffi.typeof("struct BigInt *") is ffi.typeof(inst)
         self.inst = inst
 
+    @staticmethod
+    def from_int(num):
+        return BigInt(lib.bigint_new_from_int(num))
+
     def __del__(self):
         lib.bigint_delete(self.inst)
 
@@ -274,10 +278,116 @@ class P2PaillierPublic:
         if not lib.p2_paillier_public_verify_range_proof(self.inst, challenge_bits.inst, encrypted_pairs.inst, proof.inst):
             raise Exception('error verifying range proof')
 
+class Party2Private:
+    def __init__(self, inst):
+        assert ffi.typeof("struct Party2Private *") is ffi.typeof(inst)
+        self.inst = inst
+
+    @staticmethod
+    def set_private_key(p2k1):
+        assert type(p2k1) is P2KeyGen1
+        return Party2Private(lib.party2private_new_set_private_key(p2k1.inst))
+
+    def __del__(self):
+        lib.party2private_delete(self.inst)
+
+class P2PartialSig:
+    def __init__(self, inst):
+        assert ffi.typeof("struct PartialSig *") is ffi.typeof(inst)
+        self.inst = inst
+
+    @property
+    def c3(self):
+        return BigInt(lib.p2partialsig_c3(self.inst))
+
+    @staticmethod
+    def compute(ek,
+            encrypted_share, #encrypted_secret_share
+            party2_private,
+            p2k1, #ephemeral_local_share
+            public_share, #ephemeral_other_public_share
+            message):
+        assert type(ek) is EncryptionKey
+        assert type(encrypted_share) is BigInt
+        assert type(party2_private) is Party2Private
+        assert type(p2k1) is P2KeyGen1
+        assert type(public_share) is GE
+        assert type(message) is BigInt
+        return P2PartialSig(lib.p2partialsig_new_compute(
+            ek.inst,
+            encrypted_share.inst,
+            party2_private.inst,
+            p2k1.inst,
+            public_share.inst,
+            message.inst))
+
+    def __del__(self):
+        lib.p2partialsig_delete(self.inst)
+
+class Party1Private:
+    def __init__(self, inst):
+        assert ffi.typeof("struct Party1Private *") is ffi.typeof(inst)
+        self.inst = inst
+
+    @staticmethod
+    def set_private_key(ec_key, paillier_key):
+        assert type(ec_key) is P1KeyGen1
+        assert type(paillier_key) is P1PaillierKeyPair
+        x = lib.party1private_new_set_private_key(
+                ec_key.inst,
+                paillier_key.inst)
+        return Party1Private(x)
+
+    def __del__(self):
+        lib.party1private_delete(self.inst)
+
+class P1Signature:
+    def __init__(self, inst):
+        assert ffi.typeof("struct Signature *") is ffi.typeof(inst)
+        self.inst = inst
+
+    @staticmethod
+    def compute(party_one_private,
+            partial_sig_c3,
+            ephemeral_local_share,
+            ephemeral_other_public_share):
+        assert type(party_one_private) is Party1Private
+        assert type(partial_sig_c3) is BigInt
+        assert type(ephemeral_local_share) is P1KeyGen1
+        assert type(ephemeral_other_public_share) is GE
+        x = lib.p1signature_new_compute(
+            party_one_private.inst,
+            partial_sig_c3.inst,
+            ephemeral_local_share.inst,
+            ephemeral_other_public_share.inst,
+        )
+
+        return P1Signature(x)
+
+    def __del__(self):
+        lib.p1signature_delete(self.inst)
+
+def p1_compute_pubkey(local_share, other_share_public_share):
+    assert type(local_share) is P1KeyGen1
+    assert type(other_share_public_share) is GE
+    x = lib.p1_compute_pubkey(local_share.inst,
+            other_share_public_share.inst)
+    return GE(x)
+
+def p1_verify(signature, pubkey, message):
+    assert type(signature) is P1Signature
+    assert type(pubkey) is GE
+    assert type(message) is BigInt
+    if not lib.p1_verify(signature.inst,
+        pubkey.inst,
+        message.inst):
+        raise Exception('signature did not verify')
+
 if __name__ == "__main__":
     print("starting test")
     p1k1 = P1KeyGen1.create_commitments()
-    d1 = P2KeyGen1().d_log_proof
+    p2k1 = P2KeyGen1()
+    d1 = p2k1.d_log_proof
     #ser = d1.serialize()
     #try:
     #    bajts = bytes.fromhex(ser['pk']['x'])
@@ -319,8 +429,6 @@ if __name__ == "__main__":
     )
 
     p1pkp = P1PaillierKeyPair.generate_keypair_and_encrypted_share(p1k1)
-    p1pkp.ek
-    p1pkp.encrypted_share
 
     p2paillierpub = P2PaillierPublic(p1pkp.ek, encrypted_secret_share=p1pkp.encrypted_share)
 
@@ -333,5 +441,23 @@ if __name__ == "__main__":
     encrypted_pairs, challenge_bits, proof = p1pkp.generate_range_proof(p1k1)
 
     p2paillierpub.verify_range_proof(challenge_bits, encrypted_pairs, proof)
+
+    #signing test
+
+    party2_private = Party2Private.set_private_key(p2k1)
+    message = BigInt.from_int(1234)
+    partial_sig = P2PartialSig.compute(
+        p1pkp.ek, p1pkp.encrypted_share,
+        party2_private, p2k1,
+        p1k2.public_share, message)
+
+    party1_private = Party1Private.set_private_key(p1k1, p1pkp)
+
+    signature = P1Signature.compute(party1_private, partial_sig.c3, p1k1,
+        p2k1.public_share)
+
+    pubkey = p1_compute_pubkey(p1k1, p2k1.public_share)
+
+    p1_verify(signature, pubkey, message)
 
     print("test passed")
