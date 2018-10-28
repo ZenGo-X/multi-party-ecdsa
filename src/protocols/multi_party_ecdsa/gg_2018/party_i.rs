@@ -29,6 +29,7 @@ use cryptography_utils::BigInt;
 use cryptography_utils::FE;
 use cryptography_utils::GE;
 
+const SECURITY: usize =  256;
 pub struct Keys {
     pub u_i: FE,
     pub y_i: GE,
@@ -54,6 +55,14 @@ pub struct SharedKeys {
     pub x_i: FE,
 }
 
+pub struct SignKeys {
+    pub s: Vec<usize>,
+    pub w_i: FE,
+    pub g_w_i : GE,
+    pub k_i: FE,
+    pub gamma_i: FE,
+}
+
 impl Keys {
     pub fn create(index: usize) -> Keys {
         let u: FE = ECScalar::new_random();
@@ -70,7 +79,7 @@ impl Keys {
     }
 
     pub fn phase1_broadcast_phase3_proof_of_correct_key(&self) -> (BroadcastMessage1, BigInt) {
-        let blind_factor = BigInt::sample(256);
+        let blind_factor = BigInt::sample(SECURITY);
         let correct_key_proof = NICorrectKeyProof::proof(&self.dk);
         let com = HashCommitment::create_commitment_with_user_defined_randomness(
             &self.y_i.x_coor(),
@@ -163,5 +172,32 @@ impl Keys {
             true => Ok(()),
             false => Err(InvalidKey),
         }
+    }
+}
+
+impl SignKeys{
+
+    pub fn create(shared_keys: &SharedKeys, vss_scheme: &VerifiableSS, index: usize, s: &Vec<usize>) -> SignKeys{
+        let li = vss_scheme.map_share_to_new_params(&index, s);
+        let w_i = li * &shared_keys.x_i;
+        let g : GE = ECPoint::generator();
+        let g_w_i = g * &w_i;
+        SignKeys{
+            s: s.clone(),
+            w_i,
+            g_w_i,
+            k_i: ECScalar::new_random(),
+            gamma_i: ECScalar::new_random(),
+        }
+    }
+
+    pub fn phase1_broadcast(&self) -> (BigInt, BigInt){
+        let blind_factor = BigInt::sample(SECURITY);
+        let com = HashCommitment::create_commitment_with_user_defined_randomness(
+            &self.g_w_i.x_coor(),
+            &blind_factor,
+        );
+
+        (com, blind_factor)
     }
 }

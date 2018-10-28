@@ -17,7 +17,13 @@
 #[cfg(test)]
 mod tests {
 
+    use paillier::*;
     use protocols::multi_party_ecdsa::gg_2018::party_i::*;
+    use protocols::multi_party_ecdsa::gg_2018::mta::*;
+    use cryptography_utils::BigInt;
+    use cryptography_utils::FE;
+    use cryptography_utils::GE;
+    use cryptography_utils::elliptic::curves::traits::*;
 
     #[test]
     fn test_keygen_two_parties() {
@@ -210,5 +216,19 @@ mod tests {
         );
         let sum_u_i = party1_keys.u_i + party2_keys.u_i + party3_keys.u_i;
         assert_eq!(x, sum_u_i);
+    }
+    
+    #[test]
+    fn test_mta(){
+        let alice_input: FE = ECScalar::new_random();
+        let (ek_alice, dk_alice) = Paillier::keypair().keys();
+        let bob_input : FE = ECScalar::new_random();
+        let m_a = MessageA::a(&alice_input, &ek_alice);
+        let (m_b, beta) = MessageB::b(&bob_input, &ek_alice, m_a);
+        let alpha = m_b.verify_b(&dk_alice, &alice_input).expect("wrong dlog or m_b");
+
+        let left = alpha + beta;
+        let right = alice_input * bob_input;
+        assert_eq!(left.get_element(), right.get_element());
     }
 }
