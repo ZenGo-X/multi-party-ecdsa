@@ -29,7 +29,7 @@ use cryptography_utils::BigInt;
 use cryptography_utils::FE;
 use cryptography_utils::GE;
 
-const SECURITY: usize =  256;
+const SECURITY: usize = 256;
 pub struct Keys {
     pub u_i: FE,
     pub y_i: GE,
@@ -58,7 +58,7 @@ pub struct SharedKeys {
 pub struct SignKeys {
     pub s: Vec<usize>,
     pub w_i: FE,
-    pub g_w_i : GE,
+    pub g_w_i: GE,
     pub k_i: FE,
     pub gamma_i: FE,
 }
@@ -175,14 +175,18 @@ impl Keys {
     }
 }
 
-impl SignKeys{
-
-    pub fn create(shared_keys: &SharedKeys, vss_scheme: &VerifiableSS, index: usize, s: &Vec<usize>) -> SignKeys{
+impl SignKeys {
+    pub fn create(
+        shared_keys: &SharedKeys,
+        vss_scheme: &VerifiableSS,
+        index: usize,
+        s: &Vec<usize>,
+    ) -> SignKeys {
         let li = vss_scheme.map_share_to_new_params(&index, s);
         let w_i = li * &shared_keys.x_i;
-        let g : GE = ECPoint::generator();
+        let g: GE = ECPoint::generator();
         let g_w_i = g * &w_i;
-        SignKeys{
+        SignKeys {
             s: s.clone(),
             w_i,
             g_w_i,
@@ -191,7 +195,7 @@ impl SignKeys{
         }
     }
 
-    pub fn phase1_broadcast(&self) -> (BigInt, BigInt){
+    pub fn phase1_broadcast(&self) -> (BigInt, BigInt) {
         let blind_factor = BigInt::sample(SECURITY);
         let com = HashCommitment::create_commitment_with_user_defined_randomness(
             &self.g_w_i.x_coor(),
