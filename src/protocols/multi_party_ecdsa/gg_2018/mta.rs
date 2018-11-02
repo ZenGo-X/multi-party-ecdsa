@@ -14,22 +14,25 @@
     @license GPL-3.0+ <https://github.com/KZen-networks/multi-party-ecdsa/blob/master/LICENSE>
 */
 
+use cryptography_utils::arithmetic::traits::Samplable;
 use cryptography_utils::cryptographic_primitives::proofs::sigma_dlog::{DLogProof, ProveDLog};
 use cryptography_utils::elliptic::curves::traits::*;
 use cryptography_utils::BigInt;
 use cryptography_utils::FE;
 use cryptography_utils::GE;
 use paillier::*;
+
 use Error::{self, InvalidKey};
 
+#[derive(Clone, PartialEq, Debug)]
 pub struct MessageA<'a> {
-    c: RawCiphertext<'a>, // paillier encryption
+    pub c: RawCiphertext<'a>, // paillier encryption
 }
-
+#[derive(Clone, PartialEq, Debug)]
 pub struct MessageB<'a> {
-    c: RawCiphertext<'a>, // paillier encryption
-    b_proof: DLogProof,
-    beta_tag_proof: DLogProof,
+    pub c: RawCiphertext<'a>, // paillier encryption
+    pub b_proof: DLogProof,
+    pub beta_tag_proof: DLogProof,
 }
 
 impl<'a> MessageA<'a> {
@@ -41,8 +44,10 @@ impl<'a> MessageA<'a> {
 
 impl<'a> MessageB<'a> {
     pub fn b(b: &FE, alice_ek: &EncryptionKey, c_a: MessageA) -> (MessageB<'a>, FE) {
-        let beta_tag_fe: FE = ECScalar::new_random();
-        let c_beta_tag = Paillier::encrypt(alice_ek, RawPlaintext::from(beta_tag_fe.to_big_int()));
+        let beta_tag = BigInt::sample_below(&alice_ek.n);
+        let beta_tag_fe: FE = ECScalar::from(&beta_tag);
+        let c_beta_tag = Paillier::encrypt(alice_ek, RawPlaintext::from(beta_tag));
+
         let b_bn = b.to_big_int();
         let b_c_a = Paillier::mul(alice_ek, c_a.c, RawPlaintext::from(b_bn));
         let c_b = Paillier::add(alice_ek, b_c_a, c_beta_tag);
@@ -60,7 +65,7 @@ impl<'a> MessageB<'a> {
         )
     }
 
-    pub fn verify_b(&self, dk: &DecryptionKey, a: &FE) -> Result<FE, Error> {
+    pub fn verify_proofs_get_alpha(&self, dk: &DecryptionKey, a: &FE) -> Result<FE, Error> {
         let alice_share = Paillier::decrypt(dk, &self.c);
         let g: GE = ECPoint::generator();
         let alpha: FE = ECScalar::from(&alice_share.0);
@@ -73,5 +78,9 @@ impl<'a> MessageB<'a> {
             true => Ok(alpha),
             false => Err(InvalidKey),
         }
+    }
+
+    pub fn verify_b_against_public(public_gb: &GE, mta_gb: &GE) -> bool {
+        public_gb.get_element() == mta_gb.get_element()
     }
 }
