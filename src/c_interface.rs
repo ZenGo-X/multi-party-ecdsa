@@ -622,3 +622,279 @@ pub extern "C" fn p1_verify(
         }
     }
 }
+
+#[no_mangle]
+pub extern "C" fn p1_keygen1_serialize(msg: *const party_one::KeyGenFirstMsg) -> *mut c_char {
+    unsafe {
+        let x = conv(&*msg);
+        x
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn p1_keygen2_serialize(msg: *const party_one::KeyGenSecondMsg) -> *mut c_char {
+    unsafe {
+        let x = conv(&*msg);
+        x
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn p2_keygen1_serialize(msg: *const party_two::KeyGenFirstMsg) -> *mut c_char {
+    unsafe {
+        let x = conv(&*msg);
+        x
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn p1_paillier_pair_serialize(msg: *const party_one::PaillierKeyPair) -> *mut c_char {
+    unsafe {
+        let x = conv(&*msg);
+        x
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn p2_paillier_public_serialize(msg: *const party_two::PaillierPublic) -> *mut c_char {
+    unsafe {
+        let x = conv(&*msg);
+        x
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn party2private_serialize(msg: *const party_two::Party2Private) -> *mut c_char {
+    unsafe {
+        let x = conv(&*msg);
+        x
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn challenge_serialize(msg: *const paillier::Challenge) -> *mut c_char {
+    unsafe {
+        let x = conv(&*msg);
+        x
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn verification_aid_serialize(msg: *const paillier::VerificationAid) -> *mut c_char {
+    unsafe {
+        let x = conv(&*msg);
+        x
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn correct_key_proof_serialize(msg: *const paillier::CorrectKeyProof) -> *mut c_char {
+    unsafe {
+        let x = conv(&*msg);
+        x
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn encrypted_pairs_serialize(msg: *const paillier::EncryptedPairs) -> *mut c_char {
+    unsafe {
+        let x = conv(&*msg);
+        x
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn challenge_bits_serialize(msg: *const paillier::ChallengeBits) -> *mut c_char {
+    unsafe {
+        let x = conv(&*msg);
+        x
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn proof_serialize(msg: *const paillier::Proof) -> *mut c_char {
+    unsafe {
+        let x = conv(&*msg);
+        x
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn p2partialsig_serialize(msg: *const party_two::PartialSig) -> *mut c_char {
+    unsafe {
+        let x = conv(&*msg);
+        x
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn p1signature_serialize(msg: *const party_one::Signature) -> *mut c_char {
+    unsafe {
+        let x = conv(&*msg);
+        x
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn ge_serialize(msg: *const GE) -> *mut c_char {
+    unsafe {
+        let x = conv(&*msg);
+        x
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn bigint_serialize(msg: *const BigInt) -> *mut c_char {
+    unsafe {
+        let x = conv(&*msg);
+        x
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn encryption_key_serialize(msg: *const EncryptionKey) -> *mut c_char {
+    unsafe {
+        let x = conv(&*msg);
+        x
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn bigint_new_deserialize(msg: *mut c_char) -> *mut BigInt {
+    unsafe {
+        let x = CStr::from_ptr(msg).to_string_lossy().into_owned();
+        match serde_json::from_str(&x) {
+            Err(_e) => 0 as *mut BigInt,
+            Ok(y) => {
+                let z = Box::new(y);
+                Box::into_raw(z)
+            }
+        }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn ge_new_deserialize(msg: *mut c_char) -> *mut GE {
+    unsafe {
+        let x = CStr::from_ptr(msg).to_string_lossy().into_owned();
+        match serde_json::from_str(&x) {
+            Err(_e) => 0 as *mut GE,
+            Ok(y) => {
+                let z = Box::new(y);
+                Box::into_raw(z)
+            }
+        }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn encryption_key_new_deserialize(msg: *mut c_char) -> *mut EncryptionKey {
+    unsafe {
+        let x = CStr::from_ptr(msg).to_string_lossy().into_owned();
+        match serde_json::from_str(&x) {
+            Err(_e) => 0 as *mut EncryptionKey,
+            Ok(y) => {
+                let z = Box::new(y);
+                Box::into_raw(z)
+            }
+        }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn verification_aid_new_deserialize(msg: *mut c_char) -> *mut paillier::VerificationAid {
+    unsafe {
+        let x = CStr::from_ptr(msg).to_string_lossy().into_owned();
+        match serde_json::from_str(&x) {
+            Err(_e) => 0 as *mut paillier::VerificationAid,
+            Ok(y) => {
+                let z = Box::new(y);
+                Box::into_raw(z)
+            }
+        }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn challenge_new_deserialize(msg: *mut c_char) -> *mut paillier::Challenge {
+    unsafe {
+        let x = CStr::from_ptr(msg).to_string_lossy().into_owned();
+        match serde_json::from_str(&x) {
+            Err(_e) => 0 as *mut paillier::Challenge,
+            Ok(y) => {
+                let z = Box::new(y);
+                Box::into_raw(z)
+            }
+        }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn correct_key_proof_new_deserialize(msg: *mut c_char) -> *mut paillier::CorrectKeyProof {
+    unsafe {
+        let x = CStr::from_ptr(msg).to_string_lossy().into_owned();
+        match serde_json::from_str(&x) {
+            Err(_e) => 0 as *mut paillier::CorrectKeyProof,
+            Ok(y) => {
+                let z = Box::new(y);
+                Box::into_raw(z)
+            }
+        }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn encrypted_pairs_new_deserialize(msg: *mut c_char) -> *mut paillier::EncryptedPairs {
+    unsafe {
+        let x = CStr::from_ptr(msg).to_string_lossy().into_owned();
+        match serde_json::from_str(&x) {
+            Err(_e) => 0 as *mut paillier::EncryptedPairs,
+            Ok(y) => {
+                let z = Box::new(y);
+                Box::into_raw(z)
+            }
+        }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn challenge_bits_new_deserialize(msg: *mut c_char) -> *mut paillier::ChallengeBits {
+    unsafe {
+        let x = CStr::from_ptr(msg).to_string_lossy().into_owned();
+        match serde_json::from_str(&x) {
+            Err(_e) => 0 as *mut paillier::ChallengeBits,
+            Ok(y) => {
+                let z = Box::new(y);
+                Box::into_raw(z)
+            }
+        }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn proof_new_deserialize(msg: *mut c_char) -> *mut paillier::Proof {
+    unsafe {
+        let x = CStr::from_ptr(msg).to_string_lossy().into_owned();
+        match serde_json::from_str(&x) {
+            Err(_e) => 0 as *mut paillier::Proof,
+            Ok(y) => {
+                let z = Box::new(y);
+                Box::into_raw(z)
+            }
+        }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn p2partialsig_new_deserialize(msg: *mut c_char) -> *mut party_two::PartialSig {
+    unsafe {
+        let x = CStr::from_ptr(msg).to_string_lossy().into_owned();
+        match serde_json::from_str(&x) {
+            Err(_e) => 0 as *mut party_two::PartialSig,
+            Ok(y) => {
+                let z = Box::new(y);
+                Box::into_raw(z)
+            }
+        }
+    }
+}

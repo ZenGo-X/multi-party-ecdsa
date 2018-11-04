@@ -10,6 +10,21 @@ class GE:
     def __del__(self):
         lib.ge_delete(self.inst)
 
+    def serialize(self):
+        c_str = lib.ge_serialize(self.inst)
+        py_str = ffi.string(c_str)
+        lib.c_str_delete(c_str)
+        return loads(py_str)
+
+    @staticmethod
+    def deserialize(json):
+        asc = dumps(json).encode('ascii')
+        c_str = ffi.new('char[]', asc) # freed by cffi
+        obj = lib.ge_new_deserialize(c_str)
+        if obj == ffi.cast('struct GE *', 0):
+            raise Exception('could not deserialize')
+        return GE(obj)
+
 class BigInt:
     def __init__(self, inst):
         assert ffi.typeof("struct BigInt *") is ffi.typeof(inst)
@@ -22,6 +37,21 @@ class BigInt:
     def __del__(self):
         lib.bigint_delete(self.inst)
 
+    def serialize(self):
+        c_str = lib.bigint_serialize(self.inst)
+        py_str = ffi.string(c_str)
+        lib.c_str_delete(c_str)
+        return loads(py_str)
+
+    @staticmethod
+    def deserialize(json):
+        asc = dumps(json).encode('ascii')
+        c_str = ffi.new('char[]', asc) # freed by cffi
+        obj = lib.bigint_new_deserialize(c_str)
+        if obj == ffi.cast('struct BigInt *', 0):
+            raise Exception('could not deserialize')
+        return BigInt(obj)
+
 class EncryptionKey:
     def __init__(self, inst):
         assert ffi.typeof("struct EncryptionKey *") is ffi.typeof(inst)
@@ -29,6 +59,21 @@ class EncryptionKey:
 
     def __del__(self):
         lib.encryption_key_delete(self.inst)
+
+    def serialize(self):
+        c_str = lib.encryption_key_serialize(self.inst)
+        py_str = ffi.string(c_str)
+        lib.c_str_delete(c_str)
+        return loads(py_str)
+
+    @staticmethod
+    def deserialize(json):
+        asc = dumps(json).encode('ascii')
+        c_str = ffi.new('char[]', asc) # freed by cffi
+        obj = lib.encryption_key_new_deserialize(c_str)
+        if obj == ffi.cast('struct EncryptionKey *', 0):
+            raise Exception('could not deserialize')
+        return EncryptionKey(obj)
 
 class P1KeyGen1:
     def __init__(self, inst):
@@ -54,6 +99,13 @@ class P1KeyGen1:
     @property
     def zk_pok_commitment(self):
         return BigInt(lib.p1_keygen1_zk_pok_commitment(self.inst))
+
+    def serialize(self):
+        c_str = lib.p1_keygen1_serialize(self.inst)
+        py_str = ffi.string(c_str)
+        lib.c_str_delete(c_str)
+        return loads(py_str)
+
 
 class DLogProof:
     def __init__(self, inst):
@@ -93,6 +145,12 @@ class P2KeyGen1:
     def __del__(self):
         lib.p2_keygen1_delete(self.inst)
 
+    def serialize(self):
+        c_str = lib.p2_keygen1_serialize(self.inst)
+        py_str = ffi.string(c_str)
+        lib.c_str_delete(c_str)
+        return loads(py_str)
+
 class P1KeyGen2:
     def __init__(self, inst):
         self.inst = inst
@@ -124,6 +182,12 @@ class P1KeyGen2:
     @property
     def d_log_proof(self):
         return DLogProof(lib.p1_keygen2_d_log_proof(self.inst))
+
+    def serialize(self):
+        c_str = lib.p1_keygen2_serialize(self.inst)
+        py_str = ffi.string(c_str)
+        lib.c_str_delete(c_str)
+        return loads(py_str)
 
 class P2KeyGen2:
     def __init__(self, inst):
@@ -190,6 +254,13 @@ class P1PaillierKeyPair:
         lib.range_tuple_delete(res)
         return encrypted_pairs, challenge, proof
 
+    def serialize(self):
+        c_str = lib.p1_paillier_pair_serialize(self.inst)
+        py_str = ffi.string(c_str)
+        lib.c_str_delete(c_str)
+        return loads(py_str)
+
+
 class EncryptedPairs:
     def __init__(self, inst):
         assert ffi.typeof("struct EncryptedPairs *") is ffi.typeof(inst)
@@ -197,6 +268,21 @@ class EncryptedPairs:
 
     def __del__(self):
         lib.encrypted_pairs_delete(self.inst)
+
+    def serialize(self):
+        c_str = lib.encrypted_pairs_serialize(self.inst)
+        py_str = ffi.string(c_str)
+        lib.c_str_delete(c_str)
+        return loads(py_str)
+
+    @staticmethod
+    def deserialize(json):
+        asc = dumps(json).encode('ascii')
+        c_str = ffi.new('char[]', asc) # freed by cffi
+        obj = lib.encrypted_pairs_new_deserialize(c_str)
+        if obj == ffi.cast('struct EncryptedPairs *', 0):
+            raise Exception('could not deserialize')
+        return EncryptedPairs(obj)
 
 class ChallengeBits:
     def __init__(self, inst):
@@ -206,6 +292,21 @@ class ChallengeBits:
     def __del__(self):
         lib.challenge_bits_delete(self.inst)
 
+    def serialize(self):
+        c_str = lib.challenge_bits_serialize(self.inst)
+        py_str = ffi.string(c_str)
+        lib.c_str_delete(c_str)
+        return loads(py_str)
+
+    @staticmethod
+    def deserialize(json):
+        asc = dumps(json).encode('ascii')
+        c_str = ffi.new('char[]', asc) # freed by cffi
+        obj = lib.challenge_bits_new_deserialize(c_str)
+        if obj == ffi.cast('struct ChallengeBits *', 0):
+            raise Exception('could not deserialize')
+        return ChallengeBits(obj)
+
 class Proof:
     def __init__(self, inst):
         assert ffi.typeof("struct Proof *") is ffi.typeof(inst)
@@ -213,6 +314,21 @@ class Proof:
 
     def __del__(self):
         lib.proof_delete(self.inst)
+
+    def serialize(self):
+        c_str = lib.proof_serialize(self.inst)
+        py_str = ffi.string(c_str)
+        lib.c_str_delete(c_str)
+        return loads(py_str)
+
+    @staticmethod
+    def deserialize(json):
+        asc = dumps(json).encode('ascii')
+        c_str = ffi.new('char[]', asc) # freed by cffi
+        obj = lib.proof_new_deserialize(c_str)
+        if obj == ffi.cast('struct Proof *', 0):
+            raise Exception('could not deserialize')
+        return Proof(obj)
 
 class CorrectKeyProof:
     def __init__(self, inst):
@@ -222,6 +338,21 @@ class CorrectKeyProof:
     def __del__(self):
         lib.correct_key_proof_delete(self.inst)
 
+    def serialize(self):
+        c_str = lib.correct_key_proof_serialize(self.inst)
+        py_str = ffi.string(c_str)
+        lib.c_str_delete(c_str)
+        return loads(py_str)
+
+    @staticmethod
+    def deserialize(json):
+        asc = dumps(json).encode('ascii')
+        c_str = ffi.new('char[]', asc) # freed by cffi
+        obj = lib.correct_key_proof_new_deserialize(c_str)
+        if obj == ffi.cast('struct CorrectKeyProof *', 0):
+            raise Exception('could not deserialize')
+        return CorrectKeyProof(obj)
+
 class Challenge:
     def __init__(self, inst):
         assert ffi.typeof("struct Challenge *") is ffi.typeof(inst)
@@ -230,21 +361,20 @@ class Challenge:
     def __del__(self):
         lib.challenge_delete(self.inst)
 
-class ChalVeriPair:
-    def __init__(self, inst):
-        assert ffi.typeof("struct ChalVeriPair *") is ffi.typeof(inst)
-        self.inst = inst
+    def serialize(self):
+        c_str = lib.challenge_serialize(self.inst)
+        py_str = ffi.string(c_str)
+        lib.c_str_delete(c_str)
+        return loads(py_str)
 
-    def __del__(self):
-        lib.chal_veri_pair_delete(self.inst)
-
-    @property
-    def challenge(self):
-        return Challenge(lib.chal_veri_pair_challenge(self.inst))
-
-    @property
-    def verification_aid(self):
-        return VerificationAid(lib.chal_veri_pair_verification_aid(self.inst))
+    @staticmethod
+    def deserialize(json):
+        asc = dumps(json).encode('ascii')
+        c_str = ffi.new('char[]', asc) # freed by cffi
+        obj = lib.challenge_new_deserialize(c_str)
+        if obj == ffi.cast('struct Challenge *', 0):
+            raise Exception('could not deserialize')
+        return Challenge(obj)
 
 class VerificationAid:
     def __init__(self, inst):
@@ -254,6 +384,21 @@ class VerificationAid:
     def __del__(self):
         lib.verification_aid_delete(self.inst)
 
+    def serialize(self):
+        c_str = lib.verification_aid_serialize(self.inst)
+        py_str = ffi.string(c_str)
+        lib.c_str_delete(c_str)
+        return loads(py_str)
+
+    @staticmethod
+    def deserialize(json):
+        asc = dumps(json).encode('ascii')
+        c_str = ffi.new('char[]', asc) # freed by cffi
+        obj = lib.verification_aid_new_deserialize(c_str)
+        if obj == ffi.cast('struct VerificationAid *', 0):
+            raise Exception('could not deserialize')
+        return VerificationAid(obj)
+
 class P2PaillierPublic:
     def __init__(self, ek, encrypted_secret_share):
         self.inst = lib.p2_paillier_public_new(ek.inst, encrypted_secret_share.inst)
@@ -262,7 +407,12 @@ class P2PaillierPublic:
         lib.p2_paillier_public_delete(self.inst)
 
     def generate_correct_key_challenge(self):
-        return ChalVeriPair(lib.chal_veri_pair_new(self.inst))
+        x = lib.chal_veri_pair_new(self.inst)
+        chal = Challenge(lib.chal_veri_pair_challenge(x))
+
+        veri_aid = VerificationAid(lib.chal_veri_pair_verification_aid(x))
+        lib.chal_veri_pair_delete(x)
+        return chal, veri_aid
 
     @staticmethod
     def verify_correct_key(c_k_p, veri_aid):
@@ -278,6 +428,12 @@ class P2PaillierPublic:
         if not lib.p2_paillier_public_verify_range_proof(self.inst, challenge_bits.inst, encrypted_pairs.inst, proof.inst):
             raise Exception('error verifying range proof')
 
+    def serialize(self):
+        c_str = lib.p2_paillier_public_serialize(self.inst)
+        py_str = ffi.string(c_str)
+        lib.c_str_delete(c_str)
+        return loads(py_str)
+
 class Party2Private:
     def __init__(self, inst):
         assert ffi.typeof("struct Party2Private *") is ffi.typeof(inst)
@@ -290,6 +446,12 @@ class Party2Private:
 
     def __del__(self):
         lib.party2private_delete(self.inst)
+
+    def serialize(self):
+        c_str = lib.party2private_serialize(self.inst)
+        py_str = ffi.string(c_str)
+        lib.c_str_delete(c_str)
+        return loads(py_str)
 
 class P2PartialSig:
     def __init__(self, inst):
@@ -323,6 +485,21 @@ class P2PartialSig:
 
     def __del__(self):
         lib.p2partialsig_delete(self.inst)
+
+    def serialize(self):
+        c_str = lib.p2partialsig_serialize(self.inst)
+        py_str = ffi.string(c_str)
+        lib.c_str_delete(c_str)
+        return loads(py_str)
+
+    @staticmethod
+    def deserialize(json):
+        asc = dumps(json).encode('ascii')
+        c_str = ffi.new('char[]', asc) # freed by cffi
+        obj = lib.p2partialsig_new_deserialize(c_str)
+        if obj == ffi.cast('struct PartialSig *', 0):
+            raise Exception('could not deserialize')
+        return P2PartialSig(obj)
 
 class Party1Private:
     def __init__(self, inst):
@@ -366,6 +543,12 @@ class P1Signature:
 
     def __del__(self):
         lib.p1signature_delete(self.inst)
+
+    def serialize(self):
+        c_str = lib.p1signature_serialize(self.inst)
+        py_str = ffi.string(c_str)
+        lib.c_str_delete(c_str)
+        return loads(py_str)
 
 def p1_compute_pubkey(local_share, other_share_public_share):
     assert type(local_share) is P1KeyGen1
@@ -432,11 +615,11 @@ if __name__ == "__main__":
 
     p2paillierpub = P2PaillierPublic(p1pkp.ek, encrypted_secret_share=p1pkp.encrypted_share)
 
-    challenge_verification_pair =\
-     p2paillierpub.generate_correct_key_challenge()
-    proof_result = P1PaillierKeyPair.generate_proof_correct_key(p1pkp, challenge_verification_pair.challenge)
+    challenge, verification_aid =p2paillierpub.generate_correct_key_challenge()
+    proof_result = P1PaillierKeyPair.generate_proof_correct_key(p1pkp, challenge)
+    assert verification_aid.serialize() == proof_result.serialize()
 
-    P2PaillierPublic.verify_correct_key(proof_result, challenge_verification_pair.verification_aid)
+    P2PaillierPublic.verify_correct_key(proof_result, verification_aid)
 
     encrypted_pairs, challenge_bits, proof = p1pkp.generate_range_proof(p1k1)
 
