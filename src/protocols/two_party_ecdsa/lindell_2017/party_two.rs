@@ -13,9 +13,9 @@
 
     @license GPL-3.0+ <https://github.com/KZen-networks/multi-party-ecdsa/blob/master/LICENSE>
 */
-use std::ops::Shl;
-
+use super::SECURITY_BITS;
 use cryptography_utils::arithmetic::traits::*;
+use std::ops::Shl;
 
 use cryptography_utils::cryptographic_primitives::commitments::hash_commitment::HashCommitment;
 use cryptography_utils::cryptographic_primitives::commitments::traits::Commitment;
@@ -71,6 +71,26 @@ pub struct PDLdecommit {
     pub a: BigInt,
     pub b: BigInt,
     pub blindness: BigInt,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct EphKeyGenFirstMsg {
+    pub public_share: GE,
+    secret_share: FE,
+
+    pub pk_commitment: BigInt,
+    pk_commitment_blind_factor: BigInt,
+    pub zk_pok_commitment: BigInt,
+    zk_pok_blind_factor: BigInt,
+    d_log_proof: DLogProof,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct EphKeyGenSecondMsg {
+    pub pk_commitment_blind_factor: BigInt,
+    pub zk_pok_blind_factor: BigInt,
+    pub public_share: GE,
+    pub d_log_proof: DLogProof,
 }
 
 //****************** End: Party Two structs ******************//
@@ -234,12 +254,64 @@ impl PaillierPublic {
     }
 }
 
+impl EphKeyGenFirstMsg {
+    pub fn create_commitments() -> EphKeyGenFirstMsg {
+        let base: GE = ECPoint::generator();
+
+        let secret_share: FE = ECScalar::new_random();
+        //in Lindell's protocol range proof works only for x1<q/3
+        let secret_share: FE =
+            ECScalar::from(&secret_share.to_big_int().div_floor(&BigInt::from(3)));
+
+        let public_share = base.scalar_mul(&secret_share.get_element());
+
+        let d_log_proof = DLogProof::prove(&secret_share);
+        // we use hash based commitment
+        let pk_commitment_blind_factor = BigInt::sample(SECURITY_BITS);
+        let pk_commitment = HashCommitment::create_commitment_with_user_defined_randomness(
+            &public_share.x_coor(),
+            &pk_commitment_blind_factor,
+        );
+
+        let zk_pok_blind_factor = BigInt::sample(SECURITY_BITS);
+        let zk_pok_commitment = HashCommitment::create_commitment_with_user_defined_randomness(
+            &d_log_proof.pk_t_rand_commitment.x_coor(),
+            &zk_pok_blind_factor,
+        );
+
+        EphKeyGenFirstMsg {
+            public_share,
+            secret_share,
+            pk_commitment,
+            pk_commitment_blind_factor,
+            zk_pok_commitment,
+            zk_pok_blind_factor,
+            d_log_proof,
+        }
+    }
+}
+
+impl EphKeyGenSecondMsg {
+    pub fn verify_and_decommit(
+        first_message: &EphKeyGenFirstMsg,
+        proof: &DLogProof,
+    ) -> Result<EphKeyGenSecondMsg, ProofError> {
+        DLogProof::verify(proof)?;
+        Ok(EphKeyGenSecondMsg {
+            pk_commitment_blind_factor: first_message.pk_commitment_blind_factor.clone(),
+            zk_pok_blind_factor: first_message.zk_pok_blind_factor.clone(),
+            public_share: first_message.public_share.clone(),
+            d_log_proof: first_message.d_log_proof.clone(),
+        })
+    }
+}
+
 impl PartialSig {
     pub fn compute(
         ek: &EncryptionKey,
         encrypted_secret_share: &BigInt,
         local_share: &Party2Private,
-        ephemeral_local_share: &KeyGenFirstMsg,
+        ephemeral_local_share: &EphKeyGenFirstMsg,
         ephemeral_other_public_share: &GE,
         message: &BigInt,
     ) -> PartialSig {

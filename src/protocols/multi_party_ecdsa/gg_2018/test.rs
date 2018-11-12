@@ -52,7 +52,7 @@ mod tests {
     fn test_sign_n8_t4_ttag6() {
         sign(4, 8, 6, vec![0, 1, 2, 4, 6, 7])
     }
-    
+
     pub fn keygen_t_n_parties(
         t: usize,
         n: usize,
@@ -149,8 +149,6 @@ mod tests {
             vss_scheme_for_test[0].clone(),
         )
     }
-
-
 
     #[test]
     fn test_mta() {
@@ -393,6 +391,5 @@ mod tests {
             .output_signature(&s_vec)
             .expect("verification failed");
     }
-
 
 }

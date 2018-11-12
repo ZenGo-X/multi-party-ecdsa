@@ -18,8 +18,7 @@ use paillier::*;
 use std::cmp;
 use std::ops::Shl;
 
-const SECURITY_BITS: usize = 256;
-
+use super::SECURITY_BITS;
 use cryptography_utils::arithmetic::traits::*;
 
 use cryptography_utils::elliptic::curves::traits::*;
@@ -87,6 +86,16 @@ pub struct PDLdecommit {
     pub q_hat: GE,
     pub blindness: BigInt,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct EphKeyGenFirstMsg {
+    pub d_log_proof: DLogProof,
+    pub public_share: GE,
+    secret_share: FE,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct EphKeyGenSecondMsg {}
 
 //****************** End: Party One structs ******************//
 
@@ -282,11 +291,57 @@ impl PaillierKeyPair {
     }
 }
 
+impl EphKeyGenFirstMsg {
+    pub fn create() -> EphKeyGenFirstMsg {
+        let base: GE = ECPoint::generator();
+        let secret_share: FE = ECScalar::new_random();
+        let public_share = base.scalar_mul(&secret_share.get_element());
+
+        EphKeyGenFirstMsg {
+            d_log_proof: DLogProof::prove(&secret_share),
+            public_share,
+            secret_share,
+        }
+    }
+}
+
+impl EphKeyGenSecondMsg {
+    pub fn verify_commitments_and_dlog_proof(
+        party_one_pk_commitment: &BigInt,
+        party_one_zk_pok_commitment: &BigInt,
+        party_one_zk_pok_blind_factor: &BigInt,
+        party_one_public_share: &GE,
+        party_one_pk_commitment_blind_factor: &BigInt,
+        party_one_d_log_proof: &DLogProof,
+    ) -> Result<EphKeyGenSecondMsg, ProofError> {
+        let mut flag = true;
+        match party_one_pk_commitment
+            == &HashCommitment::create_commitment_with_user_defined_randomness(
+                &party_one_public_share.x_coor(),
+                &party_one_pk_commitment_blind_factor,
+            ) {
+            false => flag = false,
+            true => flag = flag,
+        };
+        match party_one_zk_pok_commitment
+            == &HashCommitment::create_commitment_with_user_defined_randomness(
+                &party_one_d_log_proof.pk_t_rand_commitment.x_coor(),
+                &party_one_zk_pok_blind_factor,
+            ) {
+            false => flag = false,
+            true => flag = flag,
+        };
+        assert!(flag);
+        DLogProof::verify(&party_one_d_log_proof)?;
+        Ok(EphKeyGenSecondMsg {})
+    }
+}
+
 impl Signature {
     pub fn compute(
         party_one_private: &Party1Private,
         partial_sig_c3: &BigInt,
-        ephemeral_local_share: &KeyGenFirstMsg,
+        ephemeral_local_share: &EphKeyGenFirstMsg,
         ephemeral_other_public_share: &GE,
     ) -> Signature {
         //compute r = k2* R1
