@@ -18,29 +18,32 @@ fn test_two_party_sign() {
 
     // creating the ephemeral private shares:
 
-    let party_one_first_message = party_one::KeyGenFirstMsg::create_commitments();
-    let party_two_first_message = party_two::KeyGenFirstMsg::create();
-    let party_one_second_message = party_one::KeyGenSecondMsg::verify_and_decommit(
-        &party_one_first_message,
-        &party_two_first_message.d_log_proof,
-    ).expect("party1 DLog proof failed");
+    let eph_party_two_first_message = party_two::EphKeyGenFirstMsg::create_commitments();
+    let eph_party_one_first_message = party_one::EphKeyGenFirstMsg::create();
+    let eph_party_two_second_message = party_two::EphKeyGenSecondMsg::verify_and_decommit(
+        &eph_party_two_first_message,
+        &eph_party_one_first_message.d_log_proof,
+    )
+    .expect("party1 DLog proof failed");
 
-    let _party_two_second_message = party_two::KeyGenSecondMsg::verify_commitments_and_dlog_proof(
-        &party_one_first_message.pk_commitment,
-        &party_one_first_message.zk_pok_commitment,
-        &party_one_second_message.zk_pok_blind_factor,
-        &party_one_second_message.public_share,
-        &party_one_second_message.pk_commitment_blind_factor,
-        &party_one_second_message.d_log_proof,
-    ).expect("failed to verify commitments and DLog proof");
+    let _eph_party_one_second_message =
+        party_one::EphKeyGenSecondMsg::verify_commitments_and_dlog_proof(
+            &eph_party_two_first_message.pk_commitment,
+            &eph_party_two_first_message.zk_pok_commitment,
+            &eph_party_two_second_message.zk_pok_blind_factor,
+            &eph_party_two_second_message.public_share,
+            &eph_party_two_second_message.pk_commitment_blind_factor,
+            &eph_party_two_second_message.d_log_proof,
+        )
+        .expect("failed to verify commitments and DLog proof");
     let party2_private = party_two::Party2Private::set_private_key(&party_two_private_share_gen);
     let message = BigInt::from(1234);
     let partial_sig = party_two::PartialSig::compute(
         &keypair.ek,
         &keypair.encrypted_share,
         &party2_private,
-        &party_two_first_message,
-        &party_one_second_message.public_share,
+        &eph_party_two_first_message,
+        &eph_party_one_first_message.public_share,
         &message,
     );
 
@@ -50,8 +53,8 @@ fn test_two_party_sign() {
     let signature = party_one::Signature::compute(
         &party1_private,
         &partial_sig.c3,
-        &party_one_first_message,
-        &party_two_first_message.public_share,
+        &eph_party_one_first_message,
+        &eph_party_two_first_message.public_share,
     );
 
     let pubkey = party_one::compute_pubkey(
