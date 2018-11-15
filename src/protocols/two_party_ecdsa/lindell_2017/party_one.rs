@@ -36,19 +36,21 @@ use cryptography_utils::FE;
 use cryptography_utils::GE;
 
 //****************** Begin: Party One structs ******************//
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct EcKeyPair {
     pub public_share: GE,
     secret_share: FE,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CommWitness {
     pub pk_commitment_blind_factor: BigInt,
     pub zk_pok_blind_factor: BigInt,
     pub public_share: GE,
     pub d_log_proof: DLogProof,
 }
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct KeyGenFirstMsg {
     pub pk_commitment: BigInt,
     pub zk_pok_commitment: BigInt,
@@ -93,7 +95,7 @@ pub struct PDLdecommit {
     pub blindness: BigInt,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct EphEcKeyPair {
     pub public_share: GE,
     secret_share: FE,

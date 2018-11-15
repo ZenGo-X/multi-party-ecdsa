@@ -33,13 +33,13 @@ use protocols::two_party_ecdsa::lindell_2017::party_one::KeyGenSecondMsg as Part
 use paillier::*;
 //****************** Begin: Party Two structs ******************//
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct EcKeyPair {
     pub public_share: GE,
     secret_share: FE,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct KeyGenFirstMsg {
     pub d_log_proof: DLogProof,
     pub public_share: GE,
@@ -80,13 +80,13 @@ pub struct PDLdecommit {
     pub blindness: BigInt,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct EphEcKeyPair {
     pub public_share: GE,
     secret_share: FE,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct EphCommWitness {
     pub pk_commitment_blind_factor: BigInt,
     pub zk_pok_blind_factor: BigInt,
