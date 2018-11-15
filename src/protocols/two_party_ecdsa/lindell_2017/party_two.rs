@@ -27,15 +27,22 @@ use cryptography_utils::elliptic::curves::traits::*;
 use cryptography_utils::BigInt;
 use cryptography_utils::FE;
 use cryptography_utils::GE;
+use protocols::two_party_ecdsa::lindell_2017::party_one::KeyGenFirstMsg as Party1KeyGenFirstMessage;
+use protocols::two_party_ecdsa::lindell_2017::party_one::KeyGenSecondMsg as Party1KeyGenSecondMessage;
 
 use paillier::*;
 //****************** Begin: Party Two structs ******************//
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct EcKeyPair {
+    pub public_share: GE,
+    secret_share: FE,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct KeyGenFirstMsg {
     pub d_log_proof: DLogProof,
     pub public_share: GE,
-    secret_share: FE,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -74,60 +81,82 @@ pub struct PDLdecommit {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct EphKeyGenFirstMsg {
+pub struct EphEcKeyPair {
     pub public_share: GE,
     secret_share: FE,
-
-    pub pk_commitment: BigInt,
-    pk_commitment_blind_factor: BigInt,
-    pub zk_pok_commitment: BigInt,
-    zk_pok_blind_factor: BigInt,
-    d_log_proof: DLogProof,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct EphKeyGenSecondMsg {
+pub struct EphCommWitness {
     pub pk_commitment_blind_factor: BigInt,
     pub zk_pok_blind_factor: BigInt,
     pub public_share: GE,
     pub d_log_proof: DLogProof,
 }
+pub struct EphKeyGenFirstMsg {
+    pub pk_commitment: BigInt,
+    pub zk_pok_commitment: BigInt,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct EphKeyGenSecondMsg {
+    pub comm_witness: EphCommWitness,
+}
 
 //****************** End: Party Two structs ******************//
 
 impl KeyGenFirstMsg {
-    pub fn create() -> KeyGenFirstMsg {
+    pub fn create() -> (KeyGenFirstMsg, EcKeyPair) {
         let base: GE = ECPoint::generator();
         let secret_share: FE = ECScalar::new_random();
-        let public_share = base.scalar_mul(&secret_share.get_element());
-
-        KeyGenFirstMsg {
-            d_log_proof: DLogProof::prove(&secret_share),
-            public_share,
+        let public_share = base * &secret_share;
+        let d_log_proof = DLogProof::prove(&secret_share);
+        let ec_key_pair = EcKeyPair {
+            public_share: public_share.clone(),
             secret_share,
-        }
+        };
+        (
+            KeyGenFirstMsg {
+                d_log_proof,
+                public_share,
+            },
+            ec_key_pair,
+        )
     }
 
-    pub fn create_with_fixed_secret_share(secret_share: FE) -> KeyGenFirstMsg {
+    pub fn create_with_fixed_secret_share(secret_share: FE) -> (KeyGenFirstMsg, EcKeyPair) {
         let base: GE = ECPoint::generator();
-        let public_share = base.scalar_mul(&secret_share.get_element());
-        KeyGenFirstMsg {
-            d_log_proof: DLogProof::prove(&secret_share),
-            public_share,
+        let public_share = base * &secret_share;
+        let d_log_proof = DLogProof::prove(&secret_share);
+        let ec_key_pair = EcKeyPair {
+            public_share: public_share.clone(),
             secret_share,
-        }
+        };
+        (
+            KeyGenFirstMsg {
+                d_log_proof,
+                public_share,
+            },
+            ec_key_pair,
+        )
     }
 }
 
 impl KeyGenSecondMsg {
     pub fn verify_commitments_and_dlog_proof(
-        party_one_pk_commitment: &BigInt,
-        party_one_zk_pok_commitment: &BigInt,
-        party_one_zk_pok_blind_factor: &BigInt,
-        party_one_public_share: &GE,
-        party_one_pk_commitment_blind_factor: &BigInt,
-        party_one_d_log_proof: &DLogProof,
+        party_one_first_message: &Party1KeyGenFirstMessage,
+        party_one_second_message: &Party1KeyGenSecondMessage,
     ) -> Result<KeyGenSecondMsg, ProofError> {
+        let party_one_pk_commitment = &party_one_first_message.pk_commitment;
+        let party_one_zk_pok_commitment = &party_one_first_message.zk_pok_commitment;
+        let party_one_zk_pok_blind_factor =
+            &party_one_second_message.comm_witness.zk_pok_blind_factor;
+        let party_one_public_share = &party_one_second_message.comm_witness.public_share;
+        let party_one_pk_commitment_blind_factor = &party_one_second_message
+            .comm_witness
+            .pk_commitment_blind_factor;
+        let party_one_d_log_proof = &party_one_second_message.comm_witness.d_log_proof;
+
         let mut flag = true;
         match party_one_pk_commitment
             == &HashCommitment::create_commitment_with_user_defined_randomness(
@@ -151,13 +180,13 @@ impl KeyGenSecondMsg {
     }
 }
 
-pub fn compute_pubkey(local_share: &KeyGenFirstMsg, other_share_public_share: &GE) -> GE {
+pub fn compute_pubkey(local_share: &EcKeyPair, other_share_public_share: &GE) -> GE {
     let pubkey = other_share_public_share.clone();
     pubkey.scalar_mul(&local_share.secret_share.get_element())
 }
 
 impl Party2Private {
-    pub fn set_private_key(ec_key: &KeyGenFirstMsg) -> Party2Private {
+    pub fn set_private_key(ec_key: &EcKeyPair) -> Party2Private {
         Party2Private {
             x2: ec_key.secret_share.clone(),
         }
@@ -255,7 +284,7 @@ impl PaillierPublic {
 }
 
 impl EphKeyGenFirstMsg {
-    pub fn create_commitments() -> EphKeyGenFirstMsg {
+    pub fn create_commitments() -> (EphKeyGenFirstMsg, EphCommWitness, EphEcKeyPair) {
         let base: GE = ECPoint::generator();
 
         let secret_share: FE = ECScalar::new_random();
@@ -279,30 +308,33 @@ impl EphKeyGenFirstMsg {
             &zk_pok_blind_factor,
         );
 
-        EphKeyGenFirstMsg {
+        let ec_key_pair = EphEcKeyPair {
             public_share,
             secret_share,
-            pk_commitment,
-            pk_commitment_blind_factor,
-            zk_pok_commitment,
-            zk_pok_blind_factor,
-            d_log_proof,
-        }
+        };
+        (
+            EphKeyGenFirstMsg {
+                pk_commitment,
+                zk_pok_commitment,
+            },
+            EphCommWitness {
+                pk_commitment_blind_factor,
+                zk_pok_blind_factor,
+                public_share: ec_key_pair.public_share.clone(),
+                d_log_proof,
+            },
+            ec_key_pair,
+        )
     }
 }
 
 impl EphKeyGenSecondMsg {
     pub fn verify_and_decommit(
-        first_message: &EphKeyGenFirstMsg,
+        comm_witness: EphCommWitness,
         proof: &DLogProof,
     ) -> Result<EphKeyGenSecondMsg, ProofError> {
         DLogProof::verify(proof)?;
-        Ok(EphKeyGenSecondMsg {
-            pk_commitment_blind_factor: first_message.pk_commitment_blind_factor.clone(),
-            zk_pok_blind_factor: first_message.zk_pok_blind_factor.clone(),
-            public_share: first_message.public_share.clone(),
-            d_log_proof: first_message.d_log_proof.clone(),
-        })
+        Ok(EphKeyGenSecondMsg { comm_witness })
     }
 }
 
@@ -311,7 +343,7 @@ impl PartialSig {
         ek: &EncryptionKey,
         encrypted_secret_share: &BigInt,
         local_share: &Party2Private,
-        ephemeral_local_share: &EphKeyGenFirstMsg,
+        ephemeral_local_share: &EphEcKeyPair,
         ephemeral_other_public_share: &GE,
         message: &BigInt,
     ) -> PartialSig {
