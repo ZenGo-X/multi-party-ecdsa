@@ -93,6 +93,8 @@ pub struct EphCommWitness {
     pub public_share: GE,
     pub d_log_proof: DLogProof,
 }
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct EphKeyGenFirstMsg {
     pub pk_commitment: BigInt,
     pub zk_pok_commitment: BigInt,
