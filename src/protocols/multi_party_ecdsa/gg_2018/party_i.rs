@@ -349,11 +349,11 @@ impl LocalSignature {
             &input_hash,
             &blind_factor,
         );
-        let witness = hegWitness {
+        let witness = HomoElGamalWitness {
             r: self.l_i.clone(),
             x: self.s_i.clone(),
         };
-        let delta = hegStatement {
+        let delta = HomoElGamalStatement {
             G: A_i.clone(),
             H: self.R.clone(),
             Y: g,
@@ -387,7 +387,7 @@ impl LocalSignature {
         let g: GE = ECPoint::generator();
         let test_com_elgamal = (0..com_vec.len())
             .map(|i| {
-                let delta = hegStatement {
+                let delta = HomoElGamalStatement {
                     G: decom_vec[i].A_i.clone(),
                     H: R.clone(),
                     Y: g.clone(),
