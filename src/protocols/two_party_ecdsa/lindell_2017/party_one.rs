@@ -192,7 +192,8 @@ impl PaillierKeyPair {
             &ek,
             RawPlaintext::from(keygen.secret_share.to_big_int()),
             &randomness,
-        ).0
+        )
+        .0
         .into_owned();
 
         PaillierKeyPair {
