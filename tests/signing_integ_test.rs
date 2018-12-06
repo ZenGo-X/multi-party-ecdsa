@@ -1,7 +1,7 @@
-extern crate cryptography_utils;
+extern crate curv;
 extern crate multi_party_ecdsa;
 
-use cryptography_utils::BigInt;
+use curv::BigInt;
 use multi_party_ecdsa::protocols::two_party_ecdsa::lindell_2017::*;
 
 #[test]
