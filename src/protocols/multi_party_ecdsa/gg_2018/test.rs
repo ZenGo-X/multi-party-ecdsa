@@ -19,12 +19,12 @@
 #[cfg(test)]
 mod tests {
 
-    use cryptography_utils::cryptographic_primitives::hashing::hash_sha256::HSha256;
-    use cryptography_utils::cryptographic_primitives::hashing::traits::Hash;
-    use cryptography_utils::cryptographic_primitives::proofs::sigma_dlog::DLogProof;
-    use cryptography_utils::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS;
-    use cryptography_utils::elliptic::curves::traits::*;
-    use cryptography_utils::{FE, GE};
+    use curv::cryptographic_primitives::hashing::hash_sha256::HSha256;
+    use curv::cryptographic_primitives::hashing::traits::Hash;
+    use curv::cryptographic_primitives::proofs::sigma_dlog::DLogProof;
+    use curv::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS;
+    use curv::elliptic::curves::traits::*;
+    use curv::{FE, GE};
     use paillier::*;
     use protocols::multi_party_ecdsa::gg_2018::mta::*;
     use protocols::multi_party_ecdsa::gg_2018::party_i::*;

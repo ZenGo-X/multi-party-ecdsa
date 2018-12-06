@@ -3,9 +3,9 @@
 #[cfg(test)]
 mod tests {
 
-    use cryptography_utils::arithmetic::traits::Samplable;
-    use cryptography_utils::elliptic::curves::traits::*;
-    use cryptography_utils::BigInt;
+    use curv::arithmetic::traits::Samplable;
+    use curv::elliptic::curves::traits::*;
+    use curv::BigInt;
     use protocols::two_party_ecdsa::lindell_2017::*;
 
     #[test]

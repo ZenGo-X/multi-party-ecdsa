@@ -14,19 +14,19 @@
     @license GPL-3.0+ <https://github.com/KZen-networks/multi-party-ecdsa/blob/master/LICENSE>
 */
 use super::SECURITY_BITS;
-use cryptography_utils::arithmetic::traits::*;
+use curv::arithmetic::traits::*;
 use std::ops::Shl;
 
-use cryptography_utils::cryptographic_primitives::commitments::hash_commitment::HashCommitment;
-use cryptography_utils::cryptographic_primitives::commitments::traits::Commitment;
-use cryptography_utils::cryptographic_primitives::proofs::dlog_zk_protocol::*;
-use cryptography_utils::cryptographic_primitives::proofs::ProofError;
+use curv::cryptographic_primitives::commitments::hash_commitment::HashCommitment;
+use curv::cryptographic_primitives::commitments::traits::Commitment;
+use curv::cryptographic_primitives::proofs::dlog_zk_protocol::*;
+use curv::cryptographic_primitives::proofs::ProofError;
 
-use cryptography_utils::elliptic::curves::traits::*;
+use curv::elliptic::curves::traits::*;
 
-use cryptography_utils::BigInt;
-use cryptography_utils::FE;
-use cryptography_utils::GE;
+use curv::BigInt;
+use curv::FE;
+use curv::GE;
 use protocols::two_party_ecdsa::lindell_2017::party_one::KeyGenFirstMsg as Party1KeyGenFirstMessage;
 use protocols::two_party_ecdsa::lindell_2017::party_one::KeyGenSecondMsg as Party1KeyGenSecondMessage;
 

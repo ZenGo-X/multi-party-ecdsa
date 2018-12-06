@@ -19,20 +19,20 @@
 use paillier::*;
 use Error::{self, InvalidCom, InvalidKey, InvalidSS, InvalidSig};
 
-use cryptography_utils::arithmetic::traits::*;
+use curv::arithmetic::traits::*;
 
-use cryptography_utils::elliptic::curves::traits::*;
+use curv::elliptic::curves::traits::*;
 
-use cryptography_utils::cryptographic_primitives::commitments::hash_commitment::HashCommitment;
-use cryptography_utils::cryptographic_primitives::commitments::traits::Commitment;
-use cryptography_utils::cryptographic_primitives::hashing::hash_sha256::HSha256;
-use cryptography_utils::cryptographic_primitives::hashing::traits::Hash;
-use cryptography_utils::cryptographic_primitives::proofs::sigma_correct_homomrphic_elgamal_enc::*;
-use cryptography_utils::cryptographic_primitives::proofs::sigma_dlog::{DLogProof, ProveDLog};
-use cryptography_utils::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS;
-use cryptography_utils::BigInt;
-use cryptography_utils::FE;
-use cryptography_utils::GE;
+use curv::cryptographic_primitives::commitments::hash_commitment::HashCommitment;
+use curv::cryptographic_primitives::commitments::traits::Commitment;
+use curv::cryptographic_primitives::hashing::hash_sha256::HSha256;
+use curv::cryptographic_primitives::hashing::traits::Hash;
+use curv::cryptographic_primitives::proofs::sigma_correct_homomrphic_elgamal_enc::*;
+use curv::cryptographic_primitives::proofs::sigma_dlog::{DLogProof, ProveDLog};
+use curv::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS;
+use curv::BigInt;
+use curv::FE;
+use curv::GE;
 
 const SECURITY: usize = 256;
 
