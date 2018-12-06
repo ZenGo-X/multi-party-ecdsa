@@ -19,7 +19,10 @@ use std::ops::Shl;
 
 use curv::cryptographic_primitives::commitments::hash_commitment::HashCommitment;
 use curv::cryptographic_primitives::commitments::traits::Commitment;
+use curv::cryptographic_primitives::hashing::hash_sha256::HSha256;
+use curv::cryptographic_primitives::hashing::traits::Hash;
 use curv::cryptographic_primitives::proofs::dlog_zk_protocol::*;
+use curv::cryptographic_primitives::proofs::sigma_ec_ddh::*;
 use curv::cryptographic_primitives::proofs::ProofError;
 
 use curv::elliptic::curves::traits::*;
@@ -27,6 +30,7 @@ use curv::elliptic::curves::traits::*;
 use curv::BigInt;
 use curv::FE;
 use curv::GE;
+use protocols::two_party_ecdsa::lindell_2017::party_one::EphKeyGenFirstMsg as Party1EphKeyGenFirstMsg;
 use protocols::two_party_ecdsa::lindell_2017::party_one::KeyGenFirstMsg as Party1KeyGenFirstMessage;
 use protocols::two_party_ecdsa::lindell_2017::party_one::KeyGenSecondMsg as Party1KeyGenSecondMessage;
 
@@ -91,7 +95,8 @@ pub struct EphCommWitness {
     pub pk_commitment_blind_factor: BigInt,
     pub zk_pok_blind_factor: BigInt,
     pub public_share: GE,
-    pub d_log_proof: DLogProof,
+    pub d_log_proof: ECDDHProof,
+    pub c: GE, //c = secret_share * base_point2
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -296,7 +301,19 @@ impl EphKeyGenFirstMsg {
 
         let public_share = base.scalar_mul(&secret_share.get_element());
 
-        let d_log_proof = DLogProof::prove(&secret_share);
+        let h: GE = GE::base_point2();
+        let w = ECDDHWitness {
+            x: secret_share.clone(),
+        };
+        let c = &h * &secret_share;
+        let delta = ECDDHStatement {
+            g1: base.clone(),
+            h1: public_share.clone(),
+            g2: h.clone(),
+            h2: c.clone(),
+        };
+        let d_log_proof = ECDDHProof::prove(&w, &delta);
+
         // we use hash based commitment
         let pk_commitment_blind_factor = BigInt::sample(SECURITY_BITS);
         let pk_commitment = HashCommitment::create_commitment_with_user_defined_randomness(
@@ -306,7 +323,7 @@ impl EphKeyGenFirstMsg {
 
         let zk_pok_blind_factor = BigInt::sample(SECURITY_BITS);
         let zk_pok_commitment = HashCommitment::create_commitment_with_user_defined_randomness(
-            &d_log_proof.pk_t_rand_commitment.x_coor(),
+            &HSha256::create_hash_from_ge(&[&d_log_proof.a1, &d_log_proof.a2]).to_big_int(),
             &zk_pok_blind_factor,
         );
 
@@ -324,6 +341,7 @@ impl EphKeyGenFirstMsg {
                 zk_pok_blind_factor,
                 public_share: ec_key_pair.public_share.clone(),
                 d_log_proof,
+                c,
             },
             ec_key_pair,
         )
@@ -333,9 +351,15 @@ impl EphKeyGenFirstMsg {
 impl EphKeyGenSecondMsg {
     pub fn verify_and_decommit(
         comm_witness: EphCommWitness,
-        proof: &DLogProof,
+        party_one_first_message: &Party1EphKeyGenFirstMsg,
     ) -> Result<EphKeyGenSecondMsg, ProofError> {
-        DLogProof::verify(proof)?;
+        let delta = ECDDHStatement {
+            g1: GE::generator(),
+            h1: party_one_first_message.public_share.clone(),
+            g2: GE::base_point2(),
+            h2: party_one_first_message.c.clone(),
+        };
+        party_one_first_message.d_log_proof.verify(&delta)?;
         Ok(EphKeyGenSecondMsg { comm_witness })
     }
 }

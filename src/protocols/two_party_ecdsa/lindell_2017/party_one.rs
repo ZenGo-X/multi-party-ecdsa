@@ -25,9 +25,11 @@ use curv::elliptic::curves::traits::*;
 
 use curv::cryptographic_primitives::commitments::hash_commitment::HashCommitment;
 use curv::cryptographic_primitives::commitments::traits::Commitment;
+use curv::cryptographic_primitives::hashing::hash_sha256::HSha256;
+use curv::cryptographic_primitives::hashing::traits::Hash;
 use curv::cryptographic_primitives::proofs::dlog_zk_protocol::*;
+use curv::cryptographic_primitives::proofs::sigma_ec_ddh::*;
 use curv::cryptographic_primitives::proofs::ProofError;
-
 use protocols::two_party_ecdsa::lindell_2017::party_two::EphKeyGenFirstMsg as Party2EphKeyGenFirstMessage;
 use protocols::two_party_ecdsa::lindell_2017::party_two::EphKeyGenSecondMsg as Party2EphKeyGenSecondMessage;
 
@@ -103,8 +105,9 @@ pub struct EphEcKeyPair {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct EphKeyGenFirstMsg {
-    pub d_log_proof: DLogProof,
+    pub d_log_proof: ECDDHProof,
     pub public_share: GE,
+    pub c: GE, //c = secret_share * base_point2
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -316,8 +319,19 @@ impl EphKeyGenFirstMsg {
     pub fn create() -> (EphKeyGenFirstMsg, EphEcKeyPair) {
         let base: GE = ECPoint::generator();
         let secret_share: FE = ECScalar::new_random();
-        let public_share = base * &secret_share;
-        let d_log_proof = DLogProof::prove(&secret_share);
+        let public_share = &base * &secret_share;
+        let h: GE = GE::base_point2();
+        let w = ECDDHWitness {
+            x: secret_share.clone(),
+        };
+        let c = &h * &secret_share;
+        let delta = ECDDHStatement {
+            g1: base.clone(),
+            h1: public_share.clone(),
+            g2: h.clone(),
+            h2: c.clone(),
+        };
+        let d_log_proof = ECDDHProof::prove(&w, &delta);
         let ec_key_pair = EphEcKeyPair {
             public_share: public_share.clone(),
             secret_share,
@@ -326,6 +340,7 @@ impl EphKeyGenFirstMsg {
             EphKeyGenFirstMsg {
                 d_log_proof,
                 public_share,
+                c,
             },
             ec_key_pair,
         )
@@ -357,14 +372,24 @@ impl EphKeyGenSecondMsg {
         };
         match party_two_zk_pok_commitment
             == &HashCommitment::create_commitment_with_user_defined_randomness(
-                &party_two_d_log_proof.pk_t_rand_commitment.x_coor(),
+                &HSha256::create_hash_from_ge(&[
+                    &party_two_d_log_proof.a1,
+                    &party_two_d_log_proof.a2,
+                ])
+                .to_big_int(),
                 &party_two_zk_pok_blind_factor,
             ) {
             false => flag = false,
             true => flag = flag,
         };
         assert!(flag);
-        DLogProof::verify(&party_two_d_log_proof)?;
+        let delta = ECDDHStatement {
+            g1: GE::generator(),
+            h1: party_two_public_share.clone(),
+            g2: GE::base_point2(),
+            h2: party_two_second_message.comm_witness.c.clone(),
+        };
+        party_two_d_log_proof.verify(&delta)?;
         Ok(EphKeyGenSecondMsg {})
     }
 }

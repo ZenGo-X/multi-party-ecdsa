@@ -24,7 +24,7 @@ fn test_two_party_sign() {
         party_one::EphKeyGenFirstMsg::create();
     let eph_party_two_second_message = party_two::EphKeyGenSecondMsg::verify_and_decommit(
         eph_comm_witness,
-        &eph_party_one_first_message.d_log_proof,
+        &eph_party_one_first_message,
     )
     .expect("party1 DLog proof failed");
 
