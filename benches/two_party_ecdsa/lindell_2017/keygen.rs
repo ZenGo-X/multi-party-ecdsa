@@ -97,7 +97,7 @@ mod bench {
         });
     }
 
-    criterion_group!{
+    criterion_group! {
     name = keygen;
     config = Criterion::default().sample_size(10);
     targets =self::bench_full_keygen_party_one_two}
