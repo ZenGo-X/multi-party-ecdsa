@@ -83,6 +83,7 @@ pub struct Signature {
 pub struct Party1Private {
     x1: FE,
     paillier_priv: DecryptionKey,
+    c_key_randomness: BigInt,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -223,6 +224,7 @@ impl Party1Private {
         Party1Private {
             x1: ec_key.secret_share.clone(),
             paillier_priv: paillier_key.dk.clone(),
+            c_key_randomness: paillier_key.randomness.clone(),
         }
     }
     pub fn update_private_key(party_one_private: &Party1Private, factor: &BigInt) -> Party1Private {
@@ -230,7 +232,22 @@ impl Party1Private {
         Party1Private {
             x1: party_one_private.x1.mul(&factor_fe.get_element()),
             paillier_priv: party_one_private.paillier_priv.clone(),
+            c_key_randomness: party_one_private.c_key_randomness.clone(),
         }
+    }
+
+    pub fn paillier_encrypt_secret_share(
+        ek: &EncryptionKey,
+        randomness: &Randomness,
+        private_key: &Party1Private,
+    ) -> BigInt {
+        Paillier::encrypt_with_chosen_randomness(
+            ek,
+            RawPlaintext::from(private_key.x1.to_big_int().clone()),
+            randomness,
+        )
+        .0
+        .into_owned()
     }
 }
 
