@@ -13,10 +13,12 @@
 
     @license GPL-3.0+ <https://github.com/KZen-networks/multi-party-ecdsa/blob/master/LICENSE>
 */
-
-use paillier::*;
+use paillier::Paillier;
+use paillier::{Decrypt, EncryptWithChosenRandomness, KeyGeneration};
+use paillier::{DecryptionKey, EncryptionKey, Randomness, RawCiphertext, RawPlaintext};
 use std::cmp;
 use std::ops::Shl;
+use zk_paillier::zkproofs::{NICorrectKeyProof, RangeProofNi};
 
 use super::SECURITY_BITS;
 use curv::arithmetic::traits::*;
@@ -256,15 +258,15 @@ impl PaillierKeyPair {
     pub fn generate_range_proof(
         paillier_context: &PaillierKeyPair,
         keygen: &EcKeyPair,
-    ) -> (EncryptedPairs, ChallengeBits, Proof) {
-        let (encrypted_pairs, challenge, proof) = Paillier::prover(
+    ) -> RangeProofNi {
+        let range_proof = RangeProofNi::prove(
             &paillier_context.ek,
             &FE::q(),
+            &paillier_context.encrypted_share.clone(),
             &keygen.secret_share.to_big_int(),
             &paillier_context.randomness,
         );
-
-        (encrypted_pairs, challenge, proof)
+        range_proof
     }
 
     pub fn generate_ni_proof_correct_key(paillier_context: &PaillierKeyPair) -> NICorrectKeyProof {

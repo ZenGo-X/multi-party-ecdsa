@@ -34,7 +34,13 @@ use protocols::two_party_ecdsa::lindell_2017::party_one::EphKeyGenFirstMsg as Pa
 use protocols::two_party_ecdsa::lindell_2017::party_one::KeyGenFirstMsg as Party1KeyGenFirstMessage;
 use protocols::two_party_ecdsa::lindell_2017::party_one::KeyGenSecondMsg as Party1KeyGenSecondMessage;
 
-use paillier::*;
+use paillier::Paillier;
+use paillier::{Add, Encrypt, Mul};
+use paillier::{EncryptionKey, RawCiphertext, RawPlaintext};
+use zk_paillier::zkproofs::{
+    CorrectKeyProofError, NICorrectKeyProof, RangeProofError, RangeProofNi,
+};
+
 //****************** Begin: Party Two structs ******************//
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -267,17 +273,11 @@ impl PaillierPublic {
 
     pub fn verify_range_proof(
         paillier_context: &PaillierPublic,
-        challenge: &ChallengeBits,
-        encrypted_pairs: &EncryptedPairs,
-        proof: &Proof,
-    ) -> Result<(), CorrectKeyProofError> {
-        let result = Paillier::verifier(
+        range_proof: &RangeProofNi,
+    ) -> Result<(), RangeProofError> {
+        let result = range_proof.verify(
             &paillier_context.ek,
-            challenge,
-            encrypted_pairs,
-            proof,
-            &FE::q(),
-            RawCiphertext::from(&paillier_context.encrypted_secret_share),
+            &paillier_context.encrypted_secret_share,
         );
         return result;
     }

@@ -13,14 +13,14 @@
 
     @license GPL-3.0+ <https://github.com/KZen-networks/multi-party-ecdsa/blob/master/LICENSE>
 */
-
 use curv::arithmetic::traits::Samplable;
 use curv::cryptographic_primitives::proofs::sigma_dlog::{DLogProof, ProveDLog};
 use curv::elliptic::curves::traits::*;
 use curv::BigInt;
 use curv::FE;
 use curv::GE;
-use paillier::*;
+use paillier::{Add, Decrypt, Encrypt, Mul};
+use paillier::{DecryptionKey, EncryptionKey, Paillier, RawCiphertext, RawPlaintext};
 
 use Error::{self, InvalidKey};
 

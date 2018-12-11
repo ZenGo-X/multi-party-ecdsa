@@ -3,7 +3,6 @@ name = "multi-party-ecdsa"
 version = "0.1.0"
 authors = [
     "Gary <gary@kzencorp.com>",
-    "Morten Dahl <mortendahlcs@gmail.com>",
     "Omer <omer.shlomovits@gmail.com>"
 ]
 keywords = [
@@ -25,7 +24,8 @@ categories = ["cryptography"]
 crate-type = ["lib"]
 
 [dependencies]
-paillier = { git = "https://github.com/mortendahl/rust-paillier",  branch = "new_correct_key"}
+paillier = { git = "https://github.com/mortendahl/rust-paillier"}
+zk-paillier = { git = "https://github.com/KZen-networks/zk-paillier"}
 
 serde = "1.0"
 serde_derive = "1.0"

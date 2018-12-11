@@ -55,16 +55,13 @@ mod bench {
                 // zk proof of correct paillier key
 
                 // zk range proof
-                let (encrypted_pairs, challenge, proof) =
-                    party_one::PaillierKeyPair::generate_range_proof(
-                        &paillier_key_pair,
-                        &ec_key_pair_party1,
-                    );
+                let range_proof = party_one::PaillierKeyPair::generate_range_proof(
+                    &paillier_key_pair,
+                    &ec_key_pair_party1,
+                );
                 let _result = party_two::PaillierPublic::verify_range_proof(
                     &party_two_paillier,
-                    &challenge,
-                    &encrypted_pairs,
-                    &proof,
+                    &range_proof,
                 )
                 .expect("range proof error");
 

@@ -47,15 +47,10 @@ fn test_two_party_keygen() {
     // zk proof of correct paillier key
 
     // zk range proof
-    let (encrypted_pairs, challenge, proof) =
+    let range_proof =
         party_one::PaillierKeyPair::generate_range_proof(&paillier_key_pair, &ec_key_pair_party1);
-    let _result = party_two::PaillierPublic::verify_range_proof(
-        &party_two_paillier,
-        &challenge,
-        &encrypted_pairs,
-        &proof,
-    )
-    .expect("range proof error");
+    let _result = party_two::PaillierPublic::verify_range_proof(&party_two_paillier, &range_proof)
+        .expect("range proof error");
 
     // pdl proof minus range proof
     let pdl_chal =

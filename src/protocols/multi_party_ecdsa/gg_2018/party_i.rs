@@ -16,7 +16,10 @@
     @license GPL-3.0+ <https://github.com/KZen-networks/multi-party-ecdsa/blob/master/LICENSE>
 */
 
-use paillier::*;
+use paillier::KeyGeneration;
+use paillier::Paillier;
+use paillier::{DecryptionKey, EncryptionKey};
+use zk_paillier::zkproofs::NICorrectKeyProof;
 use Error::{self, InvalidCom, InvalidKey, InvalidSS, InvalidSig};
 
 use curv::arithmetic::traits::*;
