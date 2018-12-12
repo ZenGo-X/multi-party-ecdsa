@@ -18,7 +18,10 @@ use paillier::{Decrypt, EncryptWithChosenRandomness, KeyGeneration};
 use paillier::{DecryptionKey, EncryptionKey, Randomness, RawCiphertext, RawPlaintext};
 use std::cmp;
 use std::ops::Shl;
-use zk_paillier::zkproofs::{NICorrectKeyProof, RangeProofNi, Witness as SameMessageWitness};
+use zk_paillier::zkproofs::{
+    EqualMessageProof, NICorrectKeyProof, NISigmaProof as SigmaTrait, RangeProofNi,
+    Statement as SameMessageStatement, Witness as SameMessageWitness,
+};
 
 use super::SECURITY_BITS;
 use curv::arithmetic::traits::*;
@@ -236,7 +239,18 @@ impl Party1Private {
         }
     }
 
-    pub fn paillier_refresh(&self) -> (EncryptionKey, BigInt, SameMessageWitness, Party1Private) {
+    pub fn paillier_refresh(
+        &self,
+        c_key_old: &BigInt,
+        ek_old: &EncryptionKey,
+    ) -> (
+        EncryptionKey,
+        BigInt,
+        SameMessageWitness,
+        Party1Private,
+        NICorrectKeyProof,
+        EqualMessageProof,
+    ) {
         let (ek_new, dk_new) = Paillier::keypair().keys();
         let randomness = Randomness::sample(&ek_new);
         let c_key_new = Paillier::encrypt_with_chosen_randomness(
@@ -246,18 +260,35 @@ impl Party1Private {
         )
         .0
         .into_owned();
-
+        let correct_key_proof_new = NICorrectKeyProof::proof(&dk_new);
         let witness = SameMessageWitness {
             x: RawPlaintext::from(self.x1.to_big_int().clone()),
             r1: Randomness::from(self.c_key_randomness.clone()),
             r2: randomness,
         };
+
+        let statement = SameMessageStatement {
+            c1: RawCiphertext::from(c_key_old.clone()),
+            ek1: ek_old.clone(),
+            c2: RawCiphertext::from(c_key_new.clone()),
+            ek2: ek_new.clone(),
+        };
+
+        let equal_message_proof = EqualMessageProof::prove(&witness, &statement);
+
         let new_private = Party1Private {
             x1: self.x1.clone(),
             paillier_priv: dk_new,
             c_key_randomness: c_key_new.clone(),
         };
-        (ek_new, c_key_new, witness, new_private)
+        (
+            ek_new,
+            c_key_new,
+            witness,
+            new_private,
+            correct_key_proof_new,
+            equal_message_proof,
+        )
     }
 }
 
