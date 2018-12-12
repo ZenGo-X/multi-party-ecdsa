@@ -246,7 +246,6 @@ impl Party1Private {
     ) -> (
         EncryptionKey,
         BigInt,
-        SameMessageWitness,
         Party1Private,
         NICorrectKeyProof,
         EqualMessageProof,
@@ -284,7 +283,6 @@ impl Party1Private {
         (
             ek_new,
             c_key_new,
-            witness,
             new_private,
             correct_key_proof_new,
             equal_message_proof,
