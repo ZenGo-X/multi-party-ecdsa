@@ -232,7 +232,7 @@ impl Party1Private {
     }
     pub fn update_private_key(party_one_private: &Party1Private, factor: &BigInt) -> Party1Private {
         let new_randomness_bn =
-            BigInt::mod_pow(&party_one_private.c_key_randomness, factor, &FE::q());
+            BigInt::mod_pow(&party_one_private.c_key_randomness, factor, &party_one_private.paillier_priv.nn);
         let factor_fe: FE = ECScalar::from(factor);
         Party1Private {
             x1: party_one_private.x1.mul(&factor_fe.get_element()),
