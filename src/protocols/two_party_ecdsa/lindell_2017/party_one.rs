@@ -276,6 +276,7 @@ impl Party1Private {
         };
 
         let equal_message_proof = EqualMessageProof::prove(&witness, &statement);
+        println!("verify : {:?}", equal_message_proof.verify(&statement));
 
         let new_private = Party1Private {
             x1: self.x1.clone(),
