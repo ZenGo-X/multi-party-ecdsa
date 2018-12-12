@@ -231,11 +231,13 @@ impl Party1Private {
         }
     }
     pub fn update_private_key(party_one_private: &Party1Private, factor: &BigInt) -> Party1Private {
+        let new_randomness_bn =
+            BigInt::mod_pow(&party_one_private.c_key_randomness, factor, &FE::q());
         let factor_fe: FE = ECScalar::from(factor);
         Party1Private {
             x1: party_one_private.x1.mul(&factor_fe.get_element()),
             paillier_priv: party_one_private.paillier_priv.clone(),
-            c_key_randomness: party_one_private.c_key_randomness.clone(),
+            c_key_randomness: new_randomness_bn,
         }
     }
 
@@ -272,9 +274,9 @@ impl Party1Private {
             c2: RawCiphertext::from(c_key_new.clone()),
             ek2: ek_new.clone(),
         };
-        println!("statement party 1 {:?}", statement.clone());
 
         let equal_message_proof = EqualMessageProof::prove(&witness, &statement);
+
         let new_private = Party1Private {
             x1: self.x1.clone(),
             paillier_priv: dk_new,
