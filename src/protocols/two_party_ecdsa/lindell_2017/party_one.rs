@@ -18,7 +18,7 @@ use paillier::{Decrypt, EncryptWithChosenRandomness, KeyGeneration};
 use paillier::{DecryptionKey, EncryptionKey, Randomness, RawCiphertext, RawPlaintext};
 use std::cmp;
 use std::ops::Shl;
-use zk_paillier::zkproofs::{NICorrectKeyProof, RangeProofNi};
+use zk_paillier::zkproofs::{NICorrectKeyProof, RangeProofNi, Witness as SameMessageWitness};
 
 use super::SECURITY_BITS;
 use curv::arithmetic::traits::*;
@@ -236,18 +236,28 @@ impl Party1Private {
         }
     }
 
-    pub fn paillier_encrypt_secret_share(
-        ek: &EncryptionKey,
-        randomness: &Randomness,
-        private_key: &Party1Private,
-    ) -> BigInt {
-        Paillier::encrypt_with_chosen_randomness(
-            ek,
-            RawPlaintext::from(private_key.x1.to_big_int().clone()),
-            randomness,
+    pub fn paillier_refresh(&self) -> (EncryptionKey, BigInt, SameMessageWitness, Party1Private) {
+        let (ek_new, dk_new) = Paillier::keypair().keys();
+        let randomness = Randomness::sample(&ek_new);
+        let c_key_new = Paillier::encrypt_with_chosen_randomness(
+            &ek_new,
+            RawPlaintext::from(self.x1.to_big_int().clone()),
+            &randomness,
         )
         .0
-        .into_owned()
+        .into_owned();
+
+        let witness = SameMessageWitness {
+            x: RawPlaintext::from(self.x1.to_big_int().clone()),
+            r1: Randomness::from(self.c_key_randomness.clone()),
+            r2: randomness,
+        };
+        let new_private = Party1Private {
+            x1: self.x1.clone(),
+            paillier_priv: dk_new,
+            c_key_randomness: c_key_new.clone(),
+        };
+        (ek_new, c_key_new, witness, new_private)
     }
 }
 
