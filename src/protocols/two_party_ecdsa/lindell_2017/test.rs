@@ -162,4 +162,5 @@ mod tests {
         );
         party_one::verify(&signature, &pubkey, &message).expect("Invalid signature")
     }
+
 }

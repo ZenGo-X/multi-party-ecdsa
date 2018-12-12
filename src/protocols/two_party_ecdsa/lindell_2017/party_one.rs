@@ -272,9 +272,9 @@ impl Party1Private {
             c2: RawCiphertext::from(c_key_new.clone()),
             ek2: ek_new.clone(),
         };
+        println!("statement party 1 {:?}", statement.clone());
 
         let equal_message_proof = EqualMessageProof::prove(&witness, &statement);
-
         let new_private = Party1Private {
             x1: self.x1.clone(),
             paillier_priv: dk_new,
