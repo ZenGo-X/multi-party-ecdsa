@@ -280,7 +280,7 @@ impl Party1Private {
         let new_private = Party1Private {
             x1: self.x1.clone(),
             paillier_priv: dk_new,
-            c_key_randomness: c_key_new.clone(),
+            c_key_randomness: witness.r2.0.clone(),
         };
         (
             ek_new,
