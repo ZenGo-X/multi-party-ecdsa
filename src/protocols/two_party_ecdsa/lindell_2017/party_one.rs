@@ -37,6 +37,8 @@ use curv::cryptographic_primitives::proofs::sigma_ec_ddh::*;
 use curv::cryptographic_primitives::proofs::ProofError;
 use protocols::two_party_ecdsa::lindell_2017::party_two::EphKeyGenFirstMsg as Party2EphKeyGenFirstMessage;
 use protocols::two_party_ecdsa::lindell_2017::party_two::EphKeyGenSecondMsg as Party2EphKeyGenSecondMessage;
+use protocols::two_party_ecdsa::lindell_2017::party_two::PDLFirstMessage as Party2PDLFirstMessage;
+use protocols::two_party_ecdsa::lindell_2017::party_two::PDLSecondMessage as Party2PDLSecondMessage;
 
 use curv::BigInt;
 use curv::FE;
@@ -90,10 +92,8 @@ pub struct Party1Private {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct PDL {
-    alpha: BigInt,
-    q_hat: GE,
-    blindness: BigInt,
+pub struct PDLFirstMessage {
+    pub alpha: BigInt,
     pub c_hat: BigInt,
 }
 
@@ -101,6 +101,11 @@ pub struct PDL {
 pub struct PDLdecommit {
     pub q_hat: GE,
     pub blindness: BigInt,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PDLSecondMessage {
+    pub decommit: PDLdecommit,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -231,8 +236,11 @@ impl Party1Private {
         }
     }
     pub fn update_private_key(party_one_private: &Party1Private, factor: &BigInt) -> Party1Private {
-        let new_randomness_bn =
-            BigInt::mod_pow(&party_one_private.c_key_randomness, factor, &party_one_private.paillier_priv.n);
+        let new_randomness_bn = BigInt::mod_pow(
+            &party_one_private.c_key_randomness,
+            factor,
+            &party_one_private.paillier_priv.n,
+        );
         let factor_fe: FE = ECScalar::from(factor);
         Party1Private {
             x1: party_one_private.x1.mul(&factor_fe.get_element()),
@@ -332,7 +340,11 @@ impl PaillierKeyPair {
         NICorrectKeyProof::proof(&paillier_context.dk)
     }
 
-    pub fn pdl_first_stage(&self, c_tag: &BigInt) -> PDL {
+    pub fn pdl_first_stage(
+        &self,
+        pdl_first_message: &Party2PDLFirstMessage,
+    ) -> (PDLFirstMessage, PDLdecommit) {
+        let c_tag = pdl_first_message.c_tag.clone();
         let alpha = Paillier::decrypt(&self.dk, &RawCiphertext::from(c_tag.clone()));
         let alpha_fe: FE = ECScalar::from(&alpha.0);
         let g: GE = ECPoint::generator();
@@ -342,34 +354,37 @@ impl PaillierKeyPair {
             &q_hat.x_coor(),
             &blindness,
         );
-
-        PDL {
-            alpha: alpha.0.into_owned(),
-            q_hat: q_hat,
-            blindness,
-            c_hat,
-        }
+        (
+            PDLFirstMessage {
+                alpha: alpha.0.into_owned(),
+                c_hat,
+            },
+            PDLdecommit { blindness, q_hat },
+        )
     }
 
     pub fn pdl_second_stage(
-        pdl: &PDL,
-        c_tag_tag: &BigInt,
+        pdl_party_one_first_message: &PDLFirstMessage,
+        pdl_party_two_first_message: &Party2PDLFirstMessage,
+        pdl_party_two_second_message: &Party2PDLSecondMessage,
         ec_key_pair: EcKeyPair,
-        a: &BigInt,
-        b: &BigInt,
-        blindness: &BigInt,
-    ) -> Result<(PDLdecommit), ()> {
+        pdl_decommit: PDLdecommit,
+    ) -> Result<(PDLSecondMessage), ()> {
+        let a = pdl_party_two_second_message.decommit.a.clone();
+        let b = pdl_party_two_second_message.decommit.b.clone();
+        let blindness = pdl_party_two_second_message.decommit.blindness.clone();
+
         let ab_concat = a.clone() + b.clone().shl(a.bit_length());
         let c_tag_tag_test =
             HashCommitment::create_commitment_with_user_defined_randomness(&ab_concat, &blindness);
         let ax1 = a.clone() * ec_key_pair.secret_share.to_big_int();
         let alpha_test = ax1 + b.clone();
-        let pdl_decom = PDLdecommit {
-            q_hat: pdl.q_hat.clone(),
-            blindness: pdl.blindness.clone(),
-        };
-        if alpha_test == pdl.alpha && c_tag_tag.clone() == c_tag_tag_test {
-            Ok(pdl_decom)
+        if alpha_test == pdl_party_one_first_message.alpha
+            && pdl_party_two_first_message.c_tag_tag.clone() == c_tag_tag_test
+        {
+            Ok(PDLSecondMessage {
+                decommit: pdl_decommit,
+            })
         } else {
             Err(())
         }

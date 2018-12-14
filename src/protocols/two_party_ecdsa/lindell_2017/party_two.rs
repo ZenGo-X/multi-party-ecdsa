@@ -33,6 +33,8 @@ use curv::GE;
 use protocols::two_party_ecdsa::lindell_2017::party_one::EphKeyGenFirstMsg as Party1EphKeyGenFirstMsg;
 use protocols::two_party_ecdsa::lindell_2017::party_one::KeyGenFirstMsg as Party1KeyGenFirstMessage;
 use protocols::two_party_ecdsa::lindell_2017::party_one::KeyGenSecondMsg as Party1KeyGenSecondMessage;
+use protocols::two_party_ecdsa::lindell_2017::party_one::PDLFirstMessage as Party1PDLFirstMessage;
+use protocols::two_party_ecdsa::lindell_2017::party_one::PDLSecondMessage as Party1PDLSecondMessage;
 
 use paillier::Paillier;
 use paillier::{Add, Encrypt, Mul};
@@ -73,7 +75,7 @@ pub struct PartialSig {
 pub struct Party2Private {
     x2: FE,
 }
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug)]
 pub struct PDLchallenge {
     pub c_tag: BigInt,
     pub c_tag_tag: BigInt,
@@ -84,12 +86,22 @@ pub struct PDLchallenge {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct PDLFirstMessage {
+    pub c_tag: BigInt,
+    pub c_tag_tag: BigInt,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct PDLdecommit {
     pub a: BigInt,
     pub b: BigInt,
     pub blindness: BigInt,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PDLSecondMessage {
+    pub decommit: PDLdecommit,
+}
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct EphEcKeyPair {
     pub public_share: GE,
@@ -213,7 +225,7 @@ impl Party2Private {
 }
 
 impl PaillierPublic {
-    pub fn pdl_challenge(&self, other_share_public_share: &GE) -> PDLchallenge {
+    pub fn pdl_challenge(&self, other_share_public_share: &GE) -> (PDLFirstMessage, PDLchallenge) {
         let a_fe: FE = ECScalar::new_random();
         let a = a_fe.to_big_int();
         let q = FE::q();
@@ -234,33 +246,42 @@ impl PaillierPublic {
         let g: GE = ECPoint::generator();
         let q_tag = other_share_public_share.clone() * a_fe + g * b_fe;
 
-        PDLchallenge {
-            c_tag,
-            c_tag_tag,
-            a,
-            b,
-            blindness,
-            q_tag,
-        }
+        (
+            PDLFirstMessage {
+                c_tag: c_tag.clone(),
+                c_tag_tag: c_tag_tag.clone(),
+            },
+            PDLchallenge {
+                c_tag,
+                c_tag_tag,
+                a,
+                b,
+                blindness,
+                q_tag,
+            },
+        )
     }
 
-    pub fn pdl_decommit_c_tag_tag(pdl_chal: &PDLchallenge) -> PDLdecommit {
-        PDLdecommit {
+    pub fn pdl_decommit_c_tag_tag(pdl_chal: &PDLchallenge) -> PDLSecondMessage {
+        let decommit = PDLdecommit {
             a: pdl_chal.a.clone(),
             b: pdl_chal.b.clone(),
             blindness: pdl_chal.blindness.clone(),
-        }
+        };
+        PDLSecondMessage { decommit }
     }
 
     pub fn verify_pdl(
         pdl_chal: &PDLchallenge,
-        blindness: &BigInt,
-        q_hat: &GE,
-        c_hat: &BigInt,
+        party_one_pdl_first_message: &Party1PDLFirstMessage,
+        party_one_pdl_second_message: &Party1PDLSecondMessage,
     ) -> Result<(), ()> {
+        let c_hat = party_one_pdl_first_message.c_hat.clone();
+        let q_hat = party_one_pdl_second_message.decommit.q_hat.clone();
+        let blindness = party_one_pdl_second_message.decommit.blindness.clone();
         let c_hat_test = HashCommitment::create_commitment_with_user_defined_randomness(
             &q_hat.x_coor(),
-            blindness,
+            &blindness,
         );
         if c_hat.clone() == c_hat_test
             && q_hat.get_element().clone() == pdl_chal.q_tag.get_element().clone()
