@@ -18,10 +18,7 @@ use paillier::{Decrypt, EncryptWithChosenRandomness, KeyGeneration};
 use paillier::{DecryptionKey, EncryptionKey, Randomness, RawCiphertext, RawPlaintext};
 use std::cmp;
 use std::ops::Shl;
-use zk_paillier::zkproofs::{
-    EqualMessageProof, NICorrectKeyProof, NISigmaProof as SigmaTrait, RangeProofNi,
-    Statement as SameMessageStatement, Witness as SameMessageWitness,
-};
+use zk_paillier::zkproofs::{NICorrectKeyProof, RangeProofNi};
 
 use super::SECURITY_BITS;
 use curv::arithmetic::traits::*;
@@ -235,68 +232,49 @@ impl Party1Private {
             c_key_randomness: paillier_key.randomness.clone(),
         }
     }
-    pub fn update_private_key(party_one_private: &Party1Private, factor: &BigInt) -> Party1Private {
-        let new_randomness_bn = BigInt::mod_pow(
-            &party_one_private.c_key_randomness,
-            factor,
-            &party_one_private.paillier_priv.n,
-        );
-        let factor_fe: FE = ECScalar::from(factor);
-        Party1Private {
-            x1: party_one_private.x1.mul(&factor_fe.get_element()),
-            paillier_priv: party_one_private.paillier_priv.clone(),
-            c_key_randomness: new_randomness_bn,
-        }
-    }
-
-    pub fn paillier_refresh(
-        &self,
-        c_key_old: &BigInt,
-        ek_old: &EncryptionKey,
+    pub fn refresh_private_key(
+        party_one_private: &Party1Private,
+        factor: &BigInt,
     ) -> (
         EncryptionKey,
         BigInt,
         Party1Private,
         NICorrectKeyProof,
-        EqualMessageProof,
+        RangeProofNi,
     ) {
         let (ek_new, dk_new) = Paillier::keypair().keys();
         let randomness = Randomness::sample(&ek_new);
+        let factor_fe: FE = ECScalar::from(&factor);
+        let x1_new = party_one_private.x1.clone() * &factor_fe;
         let c_key_new = Paillier::encrypt_with_chosen_randomness(
             &ek_new,
-            RawPlaintext::from(self.x1.to_big_int().clone()),
+            RawPlaintext::from(x1_new.to_big_int().clone()),
             &randomness,
         )
         .0
         .into_owned();
         let correct_key_proof_new = NICorrectKeyProof::proof(&dk_new);
-        let witness = SameMessageWitness {
-            x: RawPlaintext::from(self.x1.to_big_int().clone()),
-            r1: Randomness::from(self.c_key_randomness.clone()),
-            r2: randomness,
+
+        let range_proof_new = RangeProofNi::prove(
+            &ek_new,
+            &FE::q(),
+            &c_key_new,
+            &x1_new.to_big_int(),
+            &randomness.0,
+        );
+
+        let party_one_private_new = Party1Private {
+            x1: x1_new.clone(),
+            paillier_priv: dk_new.clone(),
+            c_key_randomness: randomness.0,
         };
 
-        let statement = SameMessageStatement {
-            c1: RawCiphertext::from(c_key_old.clone()),
-            ek1: ek_old.clone(),
-            c2: RawCiphertext::from(c_key_new.clone()),
-            ek2: ek_new.clone(),
-        };
-
-        let equal_message_proof = EqualMessageProof::prove(&witness, &statement);
-        println!("verify : {:?}", equal_message_proof.verify(&statement));
-
-        let new_private = Party1Private {
-            x1: self.x1.clone(),
-            paillier_priv: dk_new,
-            c_key_randomness: witness.r2.0.clone(),
-        };
         (
             ek_new,
             c_key_new,
-            new_private,
+            party_one_private_new,
             correct_key_proof_new,
-            equal_message_proof,
+            range_proof_new,
         )
     }
 }
