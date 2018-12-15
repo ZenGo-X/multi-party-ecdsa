@@ -319,11 +319,14 @@ impl PaillierKeyPair {
     }
 
     pub fn pdl_first_stage(
-        &self,
+        party_one_private: &Party1Private,
         pdl_first_message: &Party2PDLFirstMessage,
     ) -> (PDLFirstMessage, PDLdecommit) {
         let c_tag = pdl_first_message.c_tag.clone();
-        let alpha = Paillier::decrypt(&self.dk, &RawCiphertext::from(c_tag.clone()));
+        let alpha = Paillier::decrypt(
+            &party_one_private.paillier_priv.clone(),
+            &RawCiphertext::from(c_tag.clone()),
+        );
         let alpha_fe: FE = ECScalar::from(&alpha.0);
         let g: GE = ECPoint::generator();
         let q_hat = g * &alpha_fe;

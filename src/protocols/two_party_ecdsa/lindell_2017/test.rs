@@ -86,7 +86,10 @@ mod tests {
             party_two_paillier.pdl_challenge(&party_one_second_message.comm_witness.public_share);
 
         let (party_one_pdl_first_message, pdl_decommit_party1) =
-            paillier_key_pair.pdl_first_stage(&party_two_pdl_first_message);
+            party_one::PaillierKeyPair::pdl_first_stage(
+                &party_one_private,
+                &party_two_pdl_first_message,
+            );
 
         let party_two_pdl_second_message =
             party_two::PaillierPublic::pdl_decommit_c_tag_tag(&pdl_chal_party2);
