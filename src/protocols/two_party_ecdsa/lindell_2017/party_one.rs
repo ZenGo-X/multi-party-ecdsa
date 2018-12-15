@@ -324,13 +324,13 @@ impl PaillierKeyPair {
 
     pub fn generate_range_proof(
         paillier_context: &PaillierKeyPair,
-        keygen: &EcKeyPair,
+        party_one_private: &Party1Private,
     ) -> RangeProofNi {
         let range_proof = RangeProofNi::prove(
             &paillier_context.ek,
             &FE::q(),
             &paillier_context.encrypted_share.clone(),
-            &keygen.secret_share.to_big_int(),
+            &party_one_private.x1.to_big_int(),
             &paillier_context.randomness,
         );
         range_proof
@@ -367,7 +367,7 @@ impl PaillierKeyPair {
         pdl_party_one_first_message: &PDLFirstMessage,
         pdl_party_two_first_message: &Party2PDLFirstMessage,
         pdl_party_two_second_message: &Party2PDLSecondMessage,
-        ec_key_pair: EcKeyPair,
+        party_one_private: Party1Private,
         pdl_decommit: PDLdecommit,
     ) -> Result<(PDLSecondMessage), ()> {
         let a = pdl_party_two_second_message.decommit.a.clone();
@@ -377,7 +377,7 @@ impl PaillierKeyPair {
         let ab_concat = a.clone() + b.clone().shl(a.bit_length());
         let c_tag_tag_test =
             HashCommitment::create_commitment_with_user_defined_randomness(&ab_concat, &blindness);
-        let ax1 = a.clone() * ec_key_pair.secret_share.to_big_int();
+        let ax1 = a.clone() * party_one_private.x1.to_big_int();
         let alpha_test = ax1 + b.clone();
         if alpha_test == pdl_party_one_first_message.alpha
             && pdl_party_two_first_message.c_tag_tag.clone() == c_tag_tag_test

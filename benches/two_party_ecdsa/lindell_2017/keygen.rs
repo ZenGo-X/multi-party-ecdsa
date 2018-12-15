@@ -40,6 +40,11 @@ mod bench {
                         &ec_key_pair_party1,
                     );
 
+                let party_one_private = party_one::Party1Private::set_private_key(
+                    &ec_key_pair_party1,
+                    &paillier_key_pair,
+                );
+
                 let party_two_paillier = party_two::PaillierPublic {
                     ek: paillier_key_pair.ek.clone(),
                     encrypted_secret_share: paillier_key_pair.encrypted_share.clone(),
@@ -57,7 +62,7 @@ mod bench {
                 // zk range proof
                 let range_proof = party_one::PaillierKeyPair::generate_range_proof(
                     &paillier_key_pair,
-                    &ec_key_pair_party1,
+                    &party_one_private,
                 );
                 let _result = party_two::PaillierPublic::verify_range_proof(
                     &party_two_paillier,
@@ -78,7 +83,7 @@ mod bench {
                     &party_one_pdl_first_message,
                     &party_two_pdl_first_message,
                     &party_two_pdl_second_message,
-                    ec_key_pair_party1,
+                    party_one_private,
                     pdl_decommit_party1,
                 )
                 .expect("pdl error party2");
