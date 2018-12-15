@@ -241,11 +241,27 @@ impl Party1Private {
         Party1Private,
         NICorrectKeyProof,
         RangeProofNi,
+        u32,
     ) {
         let (ek_new, dk_new) = Paillier::keypair().keys();
         let randomness = Randomness::sample(&ek_new);
         let factor_fe: FE = ECScalar::from(&factor);
         let x1_new = party_one_private.x1.clone() * &factor_fe;
+        let three = BigInt::from(3);
+        let two = BigInt::from(2);
+        let mut num_of_subs = 0u32;
+        if x1_new.clone().to_big_int() > FE::q() / three.clone()
+            && x1_new.clone().to_big_int() < FE::q() / three.clone() * two.clone()
+        {
+            num_of_subs = 1u32
+        }
+
+        if x1_new.clone().to_big_int() > FE::q() / three.clone() * two.clone() {
+            num_of_subs = 2u32
+        }
+        let x1_new_smaller_q3 =
+            x1_new.to_big_int() - BigInt::from(num_of_subs) * FE::q() / three.clone();
+        let x1_new: FE = ECScalar::from(&x1_new_smaller_q3);
         let c_key_new = Paillier::encrypt_with_chosen_randomness(
             &ek_new,
             RawPlaintext::from(x1_new.to_big_int().clone()),
@@ -275,6 +291,7 @@ impl Party1Private {
             party_one_private_new,
             correct_key_proof_new,
             range_proof_new,
+            num_of_subs,
         )
     }
 }
