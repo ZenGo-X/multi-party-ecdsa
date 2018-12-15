@@ -161,10 +161,8 @@ mod tests {
             &eph_party_two_second_message.comm_witness.public_share,
         );
 
-        let pubkey = party_one::compute_pubkey(
-            &ec_key_pair_party1,
-            &party_two_private_share_gen.public_share,
-        );
+        let pubkey =
+            party_one::compute_pubkey(&party1_private, &party_two_private_share_gen.public_share);
         party_one::verify(&signature, &pubkey, &message).expect("Invalid signature")
     }
 

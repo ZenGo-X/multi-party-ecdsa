@@ -220,8 +220,8 @@ impl KeyGenSecondMsg {
     }
 }
 
-pub fn compute_pubkey(local_share: &EcKeyPair, other_share_public_share: &GE) -> GE {
-    other_share_public_share * &local_share.secret_share
+pub fn compute_pubkey(party_one_private: &Party1Private, other_share_public_share: &GE) -> GE {
+    other_share_public_share * &party_one_private.x1
 }
 
 impl Party1Private {
