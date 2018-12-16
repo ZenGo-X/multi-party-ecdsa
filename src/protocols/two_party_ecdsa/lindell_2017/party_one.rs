@@ -261,7 +261,7 @@ impl Party1Private {
         }
         let x1_new_smaller_q3 =
             x1_new.to_big_int() / BigInt::from(divisor) ;
-        let x1_new: FE = ECScalar::from(&x1_new_smaller_q3);
+     //   let x1_new: FE = ECScalar::from(&x1_new_smaller_q3);
         let c_key_new = Paillier::encrypt_with_chosen_randomness(
             &ek_new,
             RawPlaintext::from(x1_new.to_big_int().clone()),
