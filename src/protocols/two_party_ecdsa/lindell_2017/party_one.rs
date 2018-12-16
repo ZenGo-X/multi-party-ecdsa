@@ -259,8 +259,11 @@ impl Party1Private {
         if x1_new.clone().to_big_int() > FE::q() / three.clone() * two.clone() {
             divisor = 3u32
         }
-        let x1_new_smaller_q3 = x1_new.to_big_int() / BigInt::from(divisor);
-        let x1_new: FE = ECScalar::from(&x1_new_smaller_q3);
+        let div_bn = BigInt::from(divisor);
+        let div_fe: FE = ECScalar::from(&div_bn);
+        let div_fe_inv = div_fe.invert();
+        let x1_new = x1_new * &div_fe_inv;
+
         let c_key_new = Paillier::encrypt_with_chosen_randomness(
             &ek_new,
             RawPlaintext::from(x1_new.to_big_int().clone()),
