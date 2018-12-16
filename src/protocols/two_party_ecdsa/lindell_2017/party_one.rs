@@ -262,7 +262,12 @@ impl Party1Private {
         let div_bn = BigInt::from(divisor);
         let div_fe: FE = ECScalar::from(&div_bn);
         let div_fe_inv = div_fe.invert();
+        println!("x1_new {:?}", x1_new.clone());
+
         let x1_new = x1_new * &div_fe_inv;
+        println!("div_fe {:?}", div_fe.clone());
+        println!("div_fe_inv {:?}", div_fe_inv.clone());
+        println!("x1_new {:?}", x1_new.clone());
 
         let c_key_new = Paillier::encrypt_with_chosen_randomness(
             &ek_new,
