@@ -295,7 +295,7 @@ impl Party1Private {
 
         let range_proof_new = RangeProofNi::prove(
             &ek_new,
-            &FE::q(),
+            &(FE::q() * three.clone()),
             &c_key_new,
             &x1_new.to_big_int(),
             &randomness.0,
