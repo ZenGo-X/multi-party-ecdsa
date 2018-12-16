@@ -278,7 +278,7 @@ impl Party1Private {
         println!("x1_new_div3 mul3 {:?}", test3 * &ECScalar::from(&three) );
         println!("x1_new_div2 mul2 {:?}", test2 * &ECScalar::from(&two) );
 
-        let x1_new = x1_new * &div_fe_inv;
+      //  let x1_new = x1_new * &div_fe_inv;
         println!("div_fe {:?}", div_fe.clone());
         println!("div_fe_inv {:?}", div_fe_inv.clone());
         println!("x1_new {:?}", x1_new.clone());
