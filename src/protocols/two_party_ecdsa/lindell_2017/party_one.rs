@@ -249,6 +249,7 @@ impl Party1Private {
         let x1_new = party_one_private.x1.clone() * &factor_fe;
         let three = BigInt::from(3);
         let two = BigInt::from(2);
+        let four = BigInt::from(4);
         let mut divisor = 1u32;
         if x1_new.clone().to_big_int() > FE::q() / three.clone()
             && x1_new.clone().to_big_int() < FE::q() / three.clone() * two.clone()
@@ -263,12 +264,17 @@ impl Party1Private {
         let div_fe: FE = ECScalar::from(&div_bn);
         let div_fe_inv = div_fe.invert();
         println!("x1_new {:?}", x1_new.clone());
+        let test4 = x1_new.to_big_int().clone() / four.clone();
+        let test4: FE = ECScalar::from(&test4);
+
         let test3 = x1_new.to_big_int().clone() / three.clone();
         let test3: FE = ECScalar::from(&test3);
         let test2 = x1_new.to_big_int().clone() / two.clone();
         let test2: FE = ECScalar::from(&test2);
+        println!("x1_new_div4 {:?}", test4.clone());
         println!("x1_new_div3 {:?}", test3.clone());
         println!("x1_new_div2 {:?}", test2.clone());
+        println!("x1_new_div4 mul4 {:?}", test4 * &ECScalar::from(&four) );
         println!("x1_new_div3 mul3 {:?}", test3 * &ECScalar::from(&three) );
         println!("x1_new_div2 mul2 {:?}", test2 * &ECScalar::from(&two) );
 
