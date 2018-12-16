@@ -249,18 +249,18 @@ impl Party1Private {
         let x1_new = party_one_private.x1.clone() * &factor_fe;
         let three = BigInt::from(3);
         let two = BigInt::from(2);
-        let mut num_of_subs = 0u32;
+        let mut divisor = 1u32;
         if x1_new.clone().to_big_int() > FE::q() / three.clone()
             && x1_new.clone().to_big_int() < FE::q() / three.clone() * two.clone()
         {
-            num_of_subs = 1u32
+            divisor = 2u32
         }
 
         if x1_new.clone().to_big_int() > FE::q() / three.clone() * two.clone() {
-            num_of_subs = 2u32
+            divisor = 3u32
         }
         let x1_new_smaller_q3 =
-            x1_new.to_big_int() - BigInt::from(num_of_subs) * FE::q() / three.clone();
+            x1_new.to_big_int() / BigInt::from(divisor) ;
         let x1_new: FE = ECScalar::from(&x1_new_smaller_q3);
         let c_key_new = Paillier::encrypt_with_chosen_randomness(
             &ek_new,
@@ -291,7 +291,7 @@ impl Party1Private {
             party_one_private_new,
             correct_key_proof_new,
             range_proof_new,
-            num_of_subs,
+            divisor,
         )
     }
 }
