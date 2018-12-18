@@ -43,6 +43,9 @@ use zk_paillier::zkproofs::{
     CorrectKeyProofError, NICorrectKeyProof, RangeProofError, RangeProofNi,
 };
 
+use centipede::juggling::segmentation::Msegmentation;
+use centipede::juggling::proof_system::{Helgamalsegmented, Witness};
+
 //****************** Begin: Party Two structs ******************//
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -216,11 +219,18 @@ impl Party2Private {
             x2: ec_key.secret_share.clone(),
         }
     }
+
     pub fn update_private_key(party_two_private: &Party2Private, factor: &BigInt) -> Party2Private {
         let factor_fe: FE = ECScalar::from(factor);
         Party2Private {
             x2: party_two_private.x2.mul(&factor_fe.get_element()),
         }
+    }
+
+    pub fn to_encrypted_segment(&self, segment_size: &usize, num_of_segments: usize, pub_ke_y: &GE, g: &GE) -> (
+        Witness, Helgamalsegmented
+    ) {
+        Msegmentation::to_encrypted_segments(&self.x2, &segment_size, num_of_segments, pub_ke_y, g)
     }
 }
 
