@@ -19,10 +19,10 @@ extern crate serde_derive;
 extern crate serde;
 extern crate serde_json;
 
+extern crate centipede;
 extern crate curv;
 extern crate paillier;
 extern crate zk_paillier;
-extern crate centipede;
 pub mod protocols;
 
 #[derive(Copy, PartialEq, Eq, Clone, Debug)]

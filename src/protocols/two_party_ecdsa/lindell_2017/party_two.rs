@@ -43,8 +43,8 @@ use zk_paillier::zkproofs::{
     CorrectKeyProofError, NICorrectKeyProof, RangeProofError, RangeProofNi,
 };
 
-use centipede::juggling::segmentation::Msegmentation;
 use centipede::juggling::proof_system::{Helgamalsegmented, Witness};
+use centipede::juggling::segmentation::Msegmentation;
 
 //****************** Begin: Party Two structs ******************//
 
@@ -74,7 +74,7 @@ pub struct PartialSig {
     pub c3: BigInt,
 }
 
-#[derive(Debug, Serialize, Deserialize ,PartialEq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct Party2Private {
     x2: FE,
 }
@@ -227,9 +227,13 @@ impl Party2Private {
         }
     }
 
-    pub fn to_encrypted_segment(&self, segment_size: &usize, num_of_segments: usize, pub_ke_y: &GE, g: &GE) -> (
-        Witness, Helgamalsegmented
-    ) {
+    pub fn to_encrypted_segment(
+        &self,
+        segment_size: &usize,
+        num_of_segments: usize,
+        pub_ke_y: &GE,
+        g: &GE,
+    ) -> (Witness, Helgamalsegmented) {
         Msegmentation::to_encrypted_segments(&self.x2, &segment_size, num_of_segments, pub_ke_y, g)
     }
 }

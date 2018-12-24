@@ -37,8 +37,8 @@ use protocols::two_party_ecdsa::lindell_2017::party_two::EphKeyGenSecondMsg as P
 use protocols::two_party_ecdsa::lindell_2017::party_two::PDLFirstMessage as Party2PDLFirstMessage;
 use protocols::two_party_ecdsa::lindell_2017::party_two::PDLSecondMessage as Party2PDLSecondMessage;
 
-use centipede::juggling::segmentation::Msegmentation;
 use centipede::juggling::proof_system::{Helgamalsegmented, Witness};
+use centipede::juggling::segmentation::Msegmentation;
 
 use curv::BigInt;
 use curv::FE;
@@ -282,9 +282,13 @@ impl Party1Private {
         )
     }
 
-    pub fn to_encrypted_segment(&self, segment_size: &usize, num_of_segments: usize, pub_ke_y: &GE, g: &GE) -> (
-        Witness, Helgamalsegmented
-    ) {
+    pub fn to_encrypted_segment(
+        &self,
+        segment_size: &usize,
+        num_of_segments: usize,
+        pub_ke_y: &GE,
+        g: &GE,
+    ) -> (Witness, Helgamalsegmented) {
         Msegmentation::to_encrypted_segments(&self.x1, &segment_size, num_of_segments, pub_ke_y, g)
     }
 }
