@@ -74,7 +74,7 @@ pub struct PartialSig {
     pub c3: BigInt,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize ,PartialEq)]
 pub struct Party2Private {
     x2: FE,
 }
