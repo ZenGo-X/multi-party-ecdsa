@@ -3,7 +3,6 @@ name = "multi-party-ecdsa"
 version = "0.1.0"
 authors = [
     "Gary <gary@kzencorp.com>",
-    "Morten Dahl <mortendahlcs@gmail.com>",
     "Omer <omer.shlomovits@gmail.com>"
 ]
 keywords = [
@@ -25,21 +24,25 @@ categories = ["cryptography"]
 crate-type = ["lib"]
 
 [dependencies]
-paillier = { git = "https://github.com/mortendahl/rust-paillier" }
+paillier = { git = "https://github.com/mortendahl/rust-paillier"}
+zk-paillier = { git = "https://github.com/KZen-networks/zk-paillier"}
+
 serde = "1.0"
 serde_derive = "1.0"
 serde_json = "1.0"
 
-[dependencies.cryptography-utils]
-git = "https://github.com/KZen-networks/cryptography-utils"
+[dependencies.curv]
+git = "https://github.com/KZen-networks/curv"
 features =  ["curvesecp256k1"]
-tag = "v0.0.1"
+
+[dependencies.centipede]
+git = "https://github.com/KZen-networks/centipede"
 
 [patch.crates-io]
 rust-gmp = { version = "0.5.0", features = ["serde_support"], git = "https://github.com/KZen-networks/rust-gmp" }
 
 [dev-dependencies]
-bencher = "0.1"
+criterion = "0.2"
 
 [[bench]]
 name = "keygen"

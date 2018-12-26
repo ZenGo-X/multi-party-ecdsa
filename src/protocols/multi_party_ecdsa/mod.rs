@@ -14,9 +14,4 @@
     @license GPL-3.0+ <https://github.com/KZen-networks/multi-party-ecdsa/blob/master/LICENSE>
 */
 
-const SECURITY_BITS: usize = 256;
-
-pub mod party_one;
-pub mod party_two;
-
-mod test;
+pub mod gg_2018;
