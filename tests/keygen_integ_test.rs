@@ -82,5 +82,4 @@ fn test_two_party_keygen() {
         &party_one_pdl_second_message,
     )
     .expect("pdl error party1")
-
 }
