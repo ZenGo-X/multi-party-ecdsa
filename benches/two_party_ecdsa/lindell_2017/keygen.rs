@@ -64,6 +64,7 @@ mod bench {
                     &paillier_key_pair,
                     &party_one_private,
                 );
+
                 let _result = party_two::PaillierPublic::verify_range_proof(
                     &party_two_paillier,
                     &range_proof,

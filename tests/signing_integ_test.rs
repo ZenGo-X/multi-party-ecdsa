@@ -35,6 +35,7 @@ fn test_two_party_sign() {
         )
         .expect("failed to verify commitments and DLog proof");
     let party2_private = party_two::Party2Private::set_private_key(&ec_key_pair_party2);
+
     let message = BigInt::from(1234);
     let partial_sig = party_two::PartialSig::compute(
         &keypair.ek,
