@@ -25,11 +25,15 @@ categories = ["cryptography"]
 crate-type = ["lib"]
 
 [dependencies]
-cryptography-utils = { git = "https://github.com/KZen-networks/cryptography-utils" , features =  ["curvesecp256k1"]}
 paillier = { git = "https://github.com/mortendahl/rust-paillier" }
 serde = "1.0"
 serde_derive = "1.0"
 serde_json = "1.0"
+
+[dependencies.cryptography-utils]
+git = "https://github.com/KZen-networks/cryptography-utils"
+features =  ["curvesecp256k1"]
+branch = "v0.0.1-no-pdl"
 
 [patch.crates-io]
 rust-gmp = { version = "0.5.0", features = ["serde_support"], git = "https://github.com/KZen-networks/rust-gmp" }
