@@ -131,7 +131,7 @@ impl Keys {
         let blind_factor = BigInt::sample(SECURITY);
         let correct_key_proof = NICorrectKeyProof::proof(&self.dk);
         let com = HashCommitment::create_commitment_with_user_defined_randomness(
-            &self.y_i.x_coor(),
+            &self.y_i.bytes_compressed_to_big_int(),
             &blind_factor,
         );
         let bcm1 = KeyGenBroadcastMessage1 {
@@ -157,7 +157,7 @@ impl Keys {
         let correct_key_correct_decom_all = (0..bc1_vec.len())
             .map(|i| {
                 HashCommitment::create_commitment_with_user_defined_randomness(
-                    &y_vec[i].x_coor(),
+                    &y_vec[i].bytes_compressed_to_big_int(),
                     &blind_vec[i],
                 ) == bc1_vec[i].com
                     && bc1_vec[i].correct_key_proof.verify(&bc1_vec[i].e).is_ok()
@@ -252,7 +252,7 @@ impl SignKeys {
         let g: GE = ECPoint::generator();
         let g_gamma_i = g * &self.gamma_i;
         let com = HashCommitment::create_commitment_with_user_defined_randomness(
-            &g_gamma_i.x_coor(),
+            &g_gamma_i.bytes_compressed_to_big_int(),
             &blind_factor,
         );
 
@@ -297,7 +297,7 @@ impl SignKeys {
             .map(|i| {
                 b_proof_vec[i].pk.get_element() == g_gamma_i_vec[i].get_element()
                     && HashCommitment::create_commitment_with_user_defined_randomness(
-                        &g_gamma_i_vec[i].x_coor(),
+                        &g_gamma_i_vec[i].bytes_compressed_to_big_int(),
                         &blind_vec[i],
                     ) == bc1_vec[i].com
             })
@@ -326,7 +326,7 @@ impl LocalSignature {
         pubkey: &GE,
     ) -> LocalSignature {
         let m_fe: FE = ECScalar::from(message);
-        let r: FE = ECScalar::from(&R.x_coor().mod_floor(&FE::q()));
+        let r: FE = ECScalar::from(&R.x_coor().unwrap().mod_floor(&FE::q()));
         let s_i = m_fe * k_i + r * sigma_i;
         let l_i: FE = ECScalar::new_random();
         let rho_i: FE = ECScalar::new_random();
@@ -426,7 +426,7 @@ impl LocalSignature {
         let tail = a_i_iter;
         let a = tail.fold((*head).clone(), |acc, x| acc.add_point(&(*x).get_element()));
 
-        let r: FE = ECScalar::from(&self.R.x_coor().mod_floor(&FE::q()));
+        let r: FE = ECScalar::from(&self.R.x_coor().unwrap().mod_floor(&FE::q()));
         let yr = &self.y * &r;
         let g: GE = ECPoint::generator();
         let m_fe: FE = ECScalar::from(&self.m);
@@ -508,7 +508,7 @@ impl LocalSignature {
     }
     pub fn output_signature(&self, s_vec: &Vec<FE>) -> Result<(FE, FE), Error> {
         let s = s_vec.iter().fold(self.s_i.clone(), |acc, x| acc + x);
-        let r: FE = ECScalar::from(&self.R.x_coor().mod_floor(&FE::q()));
+        let r: FE = ECScalar::from(&self.R.x_coor().unwrap().mod_floor(&FE::q()));
         let ver = verify(&s, &r, &self.y, &self.m).is_ok();
         match ver {
             true => Ok((s, r)),
@@ -529,7 +529,7 @@ pub fn verify(s: &FE, r: &FE, y: &GE, message: &BigInt) -> Result<(), Error> {
     // can be faster using shamir trick
 
     ;
-    if r.clone() == ECScalar::from(&(gu1 + yu2).x_coor().mod_floor(&FE::q())) {
+    if r.clone() == ECScalar::from(&(gu1 + yu2).x_coor().unwrap().mod_floor(&FE::q())) {
         Ok(())
     } else {
         Err(InvalidSig)
