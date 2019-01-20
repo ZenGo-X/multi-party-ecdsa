@@ -16,20 +16,9 @@ This library can be used to create MultiSig and ThresholdSig crypto wallet.
 
 Project Status
 -------
-* The library supports **2p-ecdsa** based on Lindell's crypto 2017 paper [1]. This implementation is being used as part of KMS-secp256k1 repo (https://github.com/KZen-networks/kms-secp256k1) for distributed key management. 
+* The library supports **2p-ecdsa** based on Lindell's crypto 2017 paper [1]. Project [Gotham-city](https://github.com/KZen-networks/gotham-city) is a proof of concept fora full two-party Bitcoin wallet that uses this library. See benchmarks and white paper there.
 
-* The library supports Gennaro and Goldfeder ccs 2018 protocol [2] for **{t,n}-threshold ECDSA**. The updated code can be found in a different branch: https://github.com/KZen-networks/multi-party-ecdsa/tree/pdl-sub-protocol/src/protocols/multi_party_ecdsa/gg_2018 and it is not yet benchmarked.  
-
-* Note - the code is not fully audited yet.
-
-Performance
--------
-for two party key generation: 
-* _Provider:_ EC2 AWS, _bench_: self::bench_full_keygen_party_one_two.
-
-| Feature    | Model     | vCPU | Mem (GiB) | SSD Storage (GB) | Dedicated EBS Bandwidth (Mbps) | Bench                                   |
-|------------|-----------|------|-----------|------------------|--------------------------------|-----------------------------------------|
-| **Keygen** | m4.xlarge | 4    | 16        | 28               | 750                            | 1,528,965,676 ns/iter (+/- 195,059,290) |
+* The library supports Gennaro and Goldfeder CCS 2018 protocol [2] for **{t,n}-threshold ECDSA**. 
 
 
 Contributions & Development Process
