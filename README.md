@@ -16,7 +16,7 @@ This library can be used to create MultiSig and ThresholdSig crypto wallet.
 
 Project Status
 -------
-* The library supports **2p-ecdsa** based on Lindell's crypto 2017 paper [1]. Project [Gotham-city](https://github.com/KZen-networks/gotham-city) is a proof of concept fora full two-party Bitcoin wallet that uses this library. See benchmarks and white paper there.
+* The library supports **2p-ecdsa** based on Lindell's crypto 2017 paper [1]. Project [Gotham-city](https://github.com/KZen-networks/gotham-city) is a proof of concept for a full two-party Bitcoin wallet that uses this library. See benchmarks and white paper there.
 
 * The library supports Gennaro and Goldfeder CCS 2018 protocol [2] for **{t,n}-threshold ECDSA**. 
 
