@@ -66,15 +66,15 @@ mod tests {
             .collect::<Vec<Keys>>();
 
         let mut bc1_vec = Vec::new();
-        let mut blind_vec = Vec::new();
+        let mut decom_vec = Vec::new();
         for i in 0..n.clone() {
-            let (bc1, blind) = party_keys_vec[i].phase1_broadcast_phase3_proof_of_correct_key();
+            let (bc1, decom1) = party_keys_vec[i].phase1_broadcast_phase3_proof_of_correct_key();
             bc1_vec.push(bc1);
-            blind_vec.push(blind);
+            decom_vec.push(decom1);
         }
 
         let y_vec = (0..n.clone())
-            .map(|i| party_keys_vec[i].y_i.clone())
+            .map(|i| decom_vec[i].y_i.clone())
             .collect::<Vec<GE>>();
         let mut y_vec_iter = y_vec.iter();
         let head = y_vec_iter.next().unwrap();
@@ -86,7 +86,7 @@ mod tests {
         for i in 0..n.clone() {
             let (vss_scheme, secret_shares, index) = party_keys_vec[i]
                 .phase1_verify_com_phase3_verify_correct_key_phase2_distribute(
-                    &parames, &blind_vec, &y_vec, &bc1_vec,
+                    &parames, &decom_vec, &bc1_vec,
                 )
                 .expect("invalid key");
             vss_scheme_vec.push(vss_scheme);

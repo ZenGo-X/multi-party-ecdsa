@@ -47,10 +47,17 @@ pub struct Keys {
     pub party_index: usize,
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct KeyGenBroadcastMessage1 {
-    e: EncryptionKey,
-    com: BigInt,
-    correct_key_proof: NICorrectKeyProof,
+    pub e: EncryptionKey,
+    pub com: BigInt,
+    pub correct_key_proof: NICorrectKeyProof,
+}
+
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+pub struct KeyGenDecommitMessage1 {
+    pub blind_factor: BigInt,
+    pub y_i: GE,
 }
 
 #[derive(Debug)]
@@ -127,7 +134,7 @@ impl Keys {
 
     pub fn phase1_broadcast_phase3_proof_of_correct_key(
         &self,
-    ) -> (KeyGenBroadcastMessage1, BigInt) {
+    ) -> (KeyGenBroadcastMessage1, KeyGenDecommitMessage1) {
         let blind_factor = BigInt::sample(SECURITY);
         let correct_key_proof = NICorrectKeyProof::proof(&self.dk);
         let com = HashCommitment::create_commitment_with_user_defined_randomness(
@@ -139,26 +146,30 @@ impl Keys {
             com,
             correct_key_proof,
         };
-        (bcm1, blind_factor)
+        let decom1 = KeyGenDecommitMessage1 {
+            blind_factor,
+            y_i: self.y_i.clone(),
+        };
+        (bcm1, decom1)
     }
 
     pub fn phase1_verify_com_phase3_verify_correct_key_phase2_distribute(
         &self,
         params: &Parameters,
-        blind_vec: &Vec<BigInt>,
-        y_vec: &Vec<GE>,
+        decom_vec: &Vec<KeyGenDecommitMessage1>,
         bc1_vec: &Vec<KeyGenBroadcastMessage1>,
     ) -> Result<(VerifiableSS, Vec<FE>, usize), Error> {
         // test length:
-        assert_eq!(blind_vec.len(), params.share_count);
+        //assert_eq!(blind_vec.len(), params.share_count);
+        assert_eq!(decom_vec.len(), params.share_count);
         assert_eq!(bc1_vec.len(), params.share_count);
-        assert_eq!(y_vec.len(), params.share_count);
+        //  assert_eq!(y_vec.len(), params.share_count);
         // test paillier correct key and test decommitments
         let correct_key_correct_decom_all = (0..bc1_vec.len())
             .map(|i| {
                 HashCommitment::create_commitment_with_user_defined_randomness(
-                    &y_vec[i].bytes_compressed_to_big_int(),
-                    &blind_vec[i],
+                    &decom_vec[i].y_i.bytes_compressed_to_big_int(),
+                    &decom_vec[i].blind_factor,
                 ) == bc1_vec[i].com
                     && bc1_vec[i].correct_key_proof.verify(&bc1_vec[i].e).is_ok()
             })
