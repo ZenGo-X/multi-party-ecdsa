@@ -1,6 +1,6 @@
 #![allow(non_snake_case)]
-extern crate curv;
 extern crate crypto;
+extern crate curv;
 /// to run:
 /// 1: go to rocket_server -> cargo run
 /// 2: cargo run from PARTIES number of terminals
@@ -13,27 +13,27 @@ extern crate serde_derive;
 #[macro_use]
 extern crate serde_json;
 
+use crypto::aead::AeadDecryptor;
+use crypto::aead::AeadEncryptor;
+use crypto::aes::KeySize::KeySize256;
+use crypto::aes_gcm::AesGcm;
+use curv::arithmetic::traits::Converter;
 use curv::cryptographic_primitives::hashing::hash_sha256::HSha256;
 use curv::cryptographic_primitives::hashing::traits::Hash;
 use curv::cryptographic_primitives::proofs::sigma_dlog::DLogProof;
 use curv::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS;
 use curv::elliptic::curves::traits::*;
-use curv::arithmetic::traits::Converter;
-use curv::{FE, GE};
 use curv::BigInt;
+use curv::{FE, GE};
 use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2018::mta::*;
 use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2018::party_i::*;
 use paillier::*;
 use reqwest::Client;
 use std::env;
 use std::fmt;
+use std::iter::repeat;
 use std::time::Duration;
 use std::{thread, time};
-use crypto::aes_gcm::AesGcm;
-use crypto::aes::KeySize::KeySize256;
-use crypto::aead::AeadEncryptor;
-use std::iter::repeat;
-use crypto::aead::AeadDecryptor;
 
 const PARTIES: u32 = 3;
 const THRESHOLD: u32 = 1;
@@ -60,7 +60,11 @@ fn pr<T: std::fmt::Debug + ?Sized>(x: &String) {
 }
 impl fmt::Display for TupleKey {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "({}, {}, {}, {})", self.first, self.second, self.third, self.fourth)
+        write!(
+            f,
+            "({}, {}, {}, {})",
+            self.first, self.second, self.third, self.fourth
+        )
     }
 }
 
@@ -69,7 +73,6 @@ pub struct AEAD {
     pub ciphertext: Vec<u8>,
     pub tag: Vec<u8>,
 }
-
 
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct PartySignup {
@@ -127,19 +130,19 @@ fn main() {
         uuid.clone(),
     );
 
-
     let mut j = 0;
-    let bc1_vec = (1..PARTIES+1).map(|i|{
-        if i == party_num_int {
-            bc_i.clone()
-
-        } else {
-            let bc1_j: KeyGenBroadcastMessage1 = serde_json::from_str(&round1_ans_vec[j]).unwrap();
-            j = j + 1;
-            bc1_j
-        }
-    }).collect::<Vec<KeyGenBroadcastMessage1>>();
-
+    let bc1_vec = (1..PARTIES + 1)
+        .map(|i| {
+            if i == party_num_int {
+                bc_i.clone()
+            } else {
+                let bc1_j: KeyGenBroadcastMessage1 =
+                    serde_json::from_str(&round1_ans_vec[j]).unwrap();
+                j = j + 1;
+                bc1_j
+            }
+        })
+        .collect::<Vec<KeyGenBroadcastMessage1>>();
 
     // round 2: send ephemeral public keys and  check commitments correctness
     assert!(broadcast(
@@ -169,50 +172,49 @@ fn main() {
         if i == party_num_int {
             y_vec.push(party_keys.y_i.clone());
             decom_vec.push(decom_i.clone());
-
         } else {
             let decom_j: KeyGenDecommitMessage1 = serde_json::from_str(&round2_ans_vec[j]).unwrap();
             y_vec.push(decom_j.y_i.clone());
             decom_vec.push(decom_j.clone());
-            enc_keys.push((party_keys.y_i.clone() + decom_j.y_i.clone()).x_coor().unwrap());
+            enc_keys.push(
+                (party_keys.y_i.clone() + decom_j.y_i.clone())
+                    .x_coor()
+                    .unwrap(),
+            );
             j = j + 1;
         }
     }
-
 
     let mut y_vec_iter = y_vec.iter();
     let head = y_vec_iter.next().unwrap();
     let tail = y_vec_iter;
     let y_sum = tail.fold(head.clone(), |acc, x| acc + x);
 
-
-        let (vss_scheme, secret_shares, index) = party_keys
-            .phase1_verify_com_phase3_verify_correct_key_phase2_distribute(
-                &parames, &decom_vec, &bc1_vec,
-            )
-            .expect("invalid key");
-
+    let (vss_scheme, secret_shares, index) = party_keys
+        .phase1_verify_com_phase3_verify_correct_key_phase2_distribute(
+            &parames, &decom_vec, &bc1_vec,
+        )
+        .expect("invalid key");
 
     //////////////////////////////////////////////////////////////////////////////
 
     let mut j = 0;
     let mut k = 0;
     let round = 3;
-    for i in 1..PARTIES + 1{
+    for i in 1..PARTIES + 1 {
         if i != party_num_int {
             // prepare encrypted ss for party i:
             let key_i = BigInt::to_vec(&enc_keys[j]);
-            let nonce : Vec<u8> =  repeat(round).take(12).collect();
-            let aad: [u8;0] = [];
-            let mut gcm = AesGcm::new(KeySize256, &key_i[..], &nonce[..], &aad );
+            let nonce: Vec<u8> = repeat(round).take(12).collect();
+            let aad: [u8; 0] = [];
+            let mut gcm = AesGcm::new(KeySize256, &key_i[..], &nonce[..], &aad);
             let plaintext = BigInt::to_vec(&secret_shares[k].to_big_int());
             let mut out: Vec<u8> = repeat(0).take(plaintext.len()).collect();
             let mut out_tag: Vec<u8> = repeat(0).take(16).collect();
-            gcm.encrypt(&plaintext[..], &mut out[..],  &mut out_tag[..]);
-            let aead_pack_i = AEAD{
+            gcm.encrypt(&plaintext[..], &mut out[..], &mut out_tag[..]);
+            let aead_pack_i = AEAD {
                 ciphertext: out.to_vec(),
                 tag: out_tag.to_vec(),
-
             };
             assert!(sendp2p(
                 &client,
@@ -222,7 +224,7 @@ fn main() {
                 serde_json::to_string(&aead_pack_i).unwrap(),
                 uuid.clone()
             )
-                .is_ok());
+            .is_ok());
             j = j + 1;
         }
         k = k + 1;
@@ -241,15 +243,14 @@ fn main() {
     let mut party_shares: Vec<FE> = Vec::new();
     for i in 1..PARTIES + 1 {
         if i == party_num_int {
-            party_shares.push(secret_shares[index-1].clone());
-
+            party_shares.push(secret_shares[index - 1].clone());
         } else {
             let aead_pack: AEAD = serde_json::from_str(&round3_ans_vec[j]).unwrap();
             let mut out: Vec<u8> = repeat(0).take(aead_pack.ciphertext.len()).collect();
             let key_i = BigInt::to_vec(&enc_keys[j]);
-            let nonce : Vec<u8> =  repeat(round).take(12).collect();
-            let aad: [u8;0] = [];
-            let mut gcm = AesGcm::new(KeySize256, &key_i[..], &nonce[..], &aad );
+            let nonce: Vec<u8> = repeat(round).take(12).collect();
+            let aad: [u8; 0] = [];
+            let mut gcm = AesGcm::new(KeySize256, &key_i[..], &nonce[..], &aad);
             let result = gcm.decrypt(&aead_pack.ciphertext[..], &mut out, &aead_pack.tag[..]);
             assert!(result);
             let out_bn = BigInt::from(&out[..]);
@@ -270,7 +271,7 @@ fn main() {
         serde_json::to_string(&vss_scheme).unwrap(),
         uuid.clone()
     )
-        .is_ok());
+    .is_ok());
     let round4_ans_vec = poll_for_broadcasts(
         &client,
         party_num_int.clone(),
@@ -285,7 +286,6 @@ fn main() {
     for i in 1..PARTIES + 1 {
         if i == party_num_int {
             vss_scheme_vec.push(vss_scheme.clone());
-
         } else {
             let vss_scheme_j: VerifiableSS = serde_json::from_str(&round4_ans_vec[j]).unwrap();
             vss_scheme_vec.push(vss_scheme_j);
@@ -312,7 +312,7 @@ fn main() {
         serde_json::to_string(&dlog_proof).unwrap(),
         uuid.clone()
     )
-        .is_ok());
+    .is_ok());
     let round5_ans_vec = poll_for_broadcasts(
         &client,
         party_num_int.clone(),
@@ -327,7 +327,6 @@ fn main() {
     for i in 1..PARTIES + 1 {
         if i == party_num_int {
             dlog_proof_vec.push(dlog_proof.clone());
-
         } else {
             let dlog_proof_j: DLogProof = serde_json::from_str(&round5_ans_vec[j]).unwrap();
             dlog_proof_vec.push(dlog_proof_j);
@@ -335,7 +334,6 @@ fn main() {
         }
     }
     Keys::verify_dlog_proofs(&parames, &dlog_proof_vec, &y_vec).expect("bad dlog proof");
-
 }
 
 pub fn postb<T>(client: &Client, path: &str, body: T) -> Option<String>
@@ -425,7 +423,6 @@ pub fn poll_for_broadcasts(
                 second: round.to_string(),
                 third: uuid.clone(),
                 fourth: "".to_string(),
-
             };
             let index = Index { key };
             loop {
@@ -460,7 +457,6 @@ pub fn poll_for_p2p(
                 second: round.to_string(),
                 third: uuid.clone(),
                 fourth: party_num.to_string(),
-
             };
             let index = Index { key };
             loop {

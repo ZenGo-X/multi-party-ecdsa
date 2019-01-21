@@ -65,7 +65,6 @@ mod tests {
             .map(|i| Keys::create(i))
             .collect::<Vec<Keys>>();
 
-
         let mut bc1_vec = Vec::new();
         let mut decom_vec = Vec::new();
         for i in 0..n.clone() {
