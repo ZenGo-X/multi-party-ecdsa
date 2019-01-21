@@ -47,7 +47,7 @@ pub struct Keys {
     pub party_index: usize,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct KeyGenBroadcastMessage1 {
     pub e: EncryptionKey,
     pub com: BigInt,
@@ -160,10 +160,8 @@ impl Keys {
         bc1_vec: &Vec<KeyGenBroadcastMessage1>,
     ) -> Result<(VerifiableSS, Vec<FE>, usize), Error> {
         // test length:
-        //assert_eq!(blind_vec.len(), params.share_count);
         assert_eq!(decom_vec.len(), params.share_count);
         assert_eq!(bc1_vec.len(), params.share_count);
-        //  assert_eq!(y_vec.len(), params.share_count);
         // test paillier correct key and test decommitments
         let correct_key_correct_decom_all = (0..bc1_vec.len())
             .map(|i| {
