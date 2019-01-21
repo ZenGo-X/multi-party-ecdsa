@@ -204,7 +204,6 @@ fn main() {
             let key_i = BigInt::to_vec(&enc_keys[j]);
             let nonce : Vec<u8> =  repeat(round).take(12).collect();
             let aad: [u8;0] = [];
-            println!("key len {:?}", key_i.len());
             let mut gcm = AesGcm::new(KeySize256, &key_i[..], &nonce[..], &aad );
             let plaintext = BigInt::to_vec(&secret_shares[k].to_big_int());
             let mut out: Vec<u8> = repeat(0).take(plaintext.len()).collect();
@@ -305,6 +304,37 @@ fn main() {
         .expect("invalid vss");
 
     //////////////////////////////////////////////////////////////////////////////
+    // round 5: send vss commitments
+    assert!(broadcast(
+        &client,
+        party_num_int.clone(),
+        "round5",
+        serde_json::to_string(&dlog_proof).unwrap(),
+        uuid.clone()
+    )
+        .is_ok());
+    let round5_ans_vec = poll_for_broadcasts(
+        &client,
+        party_num_int.clone(),
+        PARTIES,
+        ten_millis.clone(),
+        "round5",
+        uuid.clone(),
+    );
+
+    let mut j = 0;
+    let mut dlog_proof_vec: Vec<DLogProof> = Vec::new();
+    for i in 1..PARTIES + 1 {
+        if i == party_num_int {
+            dlog_proof_vec.push(dlog_proof.clone());
+
+        } else {
+            let dlog_proof_j: DLogProof = serde_json::from_str(&round5_ans_vec[j]).unwrap();
+            dlog_proof_vec.push(dlog_proof_j);
+            j = j + 1;
+        }
+    }
+    Keys::verify_dlog_proofs(&parames, &dlog_proof_vec, &y_vec).expect("bad dlog proof");
 
 }
 
