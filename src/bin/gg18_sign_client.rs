@@ -37,8 +37,8 @@ use std::iter::repeat;
 use std::time::Duration;
 use std::{thread, time};
 
-const PARTIES: u32 = 4;
-const THRESHOLD: u32 = 2;
+const PARTIES: u32 = 2;
+const THRESHOLD: u32 = 1;
 const KEYS_FILENAME: &str = "keys.data";
 
 #[derive(Hash, PartialEq, Eq, Clone, Debug, Serialize, Deserialize)]
@@ -95,6 +95,8 @@ pub struct Entry {
 }
 
 fn main() {
+    let message_str = env::args().nth(2).unwrap_or("".to_string());
+    let message = message_str.as_bytes();
     let client = Client::new();
     // delay:
     let ten_millis = time::Duration::from_millis(10);
@@ -357,8 +359,7 @@ fn main() {
     // adding local g_gamma_i
     let R = R + decomm_i.g_gamma_i * &delta_inv;
 
-    let message: [u8; 4] = [79, 77, 69, 82];
-    let message_bn = HSha256::create_hash(&vec![&BigInt::from(&message[..])]);
+    let message_bn = HSha256::create_hash(&vec![&BigInt::from(message)]);
 
     let local_sig =
         LocalSignature::phase5_local_sig(&sign_keys.k_i, &message_bn, &R, &sigma, &y_sum);
@@ -540,8 +541,6 @@ fn format_vec_from_reads<'a, T: serde::Deserialize<'a> + Clone>(
     value_i: T,
     new_vec: &'a mut Vec<T>,
 ) {
-    // let mut new_vec: Vec<T> = Vec::new();
-
     let mut j = 0;
     for i in 1..ans_vec.len() + 2 {
         if i == party_num {
@@ -552,15 +551,17 @@ fn format_vec_from_reads<'a, T: serde::Deserialize<'a> + Clone>(
             j = j + 1;
         }
     }
-    //    new_vec
 }
 
 pub fn postb<T>(client: &Client, path: &str, body: T) -> Option<String>
 where
     T: serde::ser::Serialize,
 {
+    let addr = env::args()
+        .nth(1)
+        .unwrap_or("http://127.0.0.1:8001".to_string());
     let res = client
-        .post(&format!("http://127.0.0.1:8001/{}", path))
+        .post(&format!("{}/{}", addr, path))
         .json(&body)
         .send();
     Some(res.unwrap().text().unwrap())

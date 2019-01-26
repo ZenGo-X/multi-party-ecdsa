@@ -37,8 +37,8 @@ use std::iter::repeat;
 use std::time::Duration;
 use std::{thread, time};
 
-const PARTIES: u32 = 4;
-const THRESHOLD: u32 = 2;
+const PARTIES: u32 = 2;
+const THRESHOLD: u32 = 1;
 const KEYS_FILENAME: &str = "keys.data";
 
 #[derive(Hash, PartialEq, Eq, Clone, Debug, Serialize, Deserialize)]
@@ -367,8 +367,11 @@ pub fn postb<T>(client: &Client, path: &str, body: T) -> Option<String>
 where
     T: serde::ser::Serialize,
 {
+    let addr = env::args()
+        .nth(1)
+        .unwrap_or("http://127.0.0.1:8001".to_string());
     let res = client
-        .post(&format!("http://127.0.0.1:8001/{}", path))
+        .post(&format!("{}/{}", addr, path))
         .json(&body)
         .send();
     Some(res.unwrap().text().unwrap())
