@@ -219,4 +219,3 @@ fn main() {
         .manage(db_mtx)
         .launch();
 }
-
