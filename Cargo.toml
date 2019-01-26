@@ -37,11 +37,11 @@ uuid = { version = "0.7", features = ["v4"] }
 rust-crypto = "^0.2"
 
 [dependencies.curv]
-path = "../curv"
+git = "https://github.com/KZen-networks/curv"
 features =  ["curvesecp256k1"]
 
 [dependencies.centipede]
-path = "../centipede"
+git = "https://github.com/KZen-networks/centipede"
 
 [patch.crates-io]
 rust-gmp = { version = "0.5.0", features = ["serde_support"], git = "https://github.com/KZen-networks/rust-gmp" }
