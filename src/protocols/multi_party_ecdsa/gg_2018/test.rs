@@ -186,11 +186,11 @@ mod tests {
 
         // each party computes [Ci,Di] = com(g^gamma_i) and broadcast the commitments
         let mut bc1_vec = Vec::new();
-        let mut blind_vec1 = Vec::new();
+        let mut decommit_vec1 = Vec::new();
         for i in 0..ttag.clone() {
-            let (com, blind) = sign_keys_vec[i].phase1_broadcast();
+            let (com, decommit_phase_1) = sign_keys_vec[i].phase1_broadcast();
             bc1_vec.push(com);
-            blind_vec1.push(blind);
+            decommit_vec1.push(decommit_phase_1);
         }
 
         // each party i sends encryption of k_i under her Paillier key
@@ -311,14 +311,8 @@ mod tests {
                         &b_gamma_vec[0].b_proof
                     })
                     .collect::<Vec<&DLogProof>>();
-                let R = SignKeys::phase4(
-                    &delta_inv,
-                    &b_proof_vec,
-                    &blind_vec1,
-                    &g_gamma_i_vec,
-                    &bc1_vec,
-                )
-                .expect("bad gamma_i decommit");
+                let R = SignKeys::phase4(&delta_inv, &b_proof_vec, decommit_vec1.clone(), &bc1_vec)
+                    .expect("bad gamma_i decommit");
                 R
             })
             .collect::<Vec<GE>>();

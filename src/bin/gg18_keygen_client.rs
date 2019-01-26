@@ -27,16 +27,19 @@ use curv::BigInt;
 use curv::{FE, GE};
 use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2018::mta::*;
 use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2018::party_i::*;
+use paillier::EncryptionKey;
 use paillier::*;
 use reqwest::Client;
 use std::env;
 use std::fmt;
+use std::fs;
 use std::iter::repeat;
 use std::time::Duration;
 use std::{thread, time};
 
-const PARTIES: u32 = 3;
-const THRESHOLD: u32 = 1;
+const PARTIES: u32 = 4;
+const THRESHOLD: u32 = 2;
+const KEYS_FILENAME: &str = "keys.data";
 
 #[derive(Hash, PartialEq, Eq, Clone, Debug, Serialize, Deserialize)]
 pub struct TupleKey {
@@ -243,7 +246,7 @@ fn main() {
     let mut party_shares: Vec<FE> = Vec::new();
     for i in 1..PARTIES + 1 {
         if i == party_num_int {
-            party_shares.push(secret_shares[index - 1].clone());
+            party_shares.push(secret_shares[(i - 1) as usize].clone());
         } else {
             let aead_pack: AEAD = serde_json::from_str(&round3_ans_vec[j]).unwrap();
             let mut out: Vec<u8> = repeat(0).take(aead_pack.ciphertext.len()).collect();
@@ -260,7 +263,6 @@ fn main() {
             j = j + 1;
         }
     }
-
     //////////////////////////////////////////////////////////////////////////////
 
     // round 4: send vss commitments
@@ -334,8 +336,33 @@ fn main() {
         }
     }
     Keys::verify_dlog_proofs(&parames, &dlog_proof_vec, &y_vec).expect("bad dlog proof");
+    //////////////////////////////////////////////////////////////////////////////
+    //save key to file:
+
+    let paillier_key_vec = (0..PARTIES)
+        .map(|i| bc1_vec[i as usize].e.clone())
+        .collect::<Vec<EncryptionKey>>();
+
+    let xi_com_vec = Keys::get_commitments_to_xi(&vss_scheme_vec);
+    let g: GE = ECPoint::generator();
+
+    let keygen_json = serde_json::to_string(&(
+        party_keys,
+        shared_keys,
+        party_num_int,
+        vss_scheme_vec,
+        paillier_key_vec,
+        y_sum,
+    ))
+    .unwrap();
+
+    fs::write(KEYS_FILENAME, keygen_json).expect("Unable to save !");
 }
 
+//////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////
 pub fn postb<T>(client: &Client, path: &str, body: T) -> Option<String>
 where
     T: serde::ser::Serialize,
@@ -350,12 +377,12 @@ where
 pub fn signup(client: &Client) -> Result<(PartySignup), ()> {
     let key = TupleKey {
         first: "signup".to_string(),
-        second: "".to_string(),
+        second: "keygen".to_string(),
         third: "".to_string(),
         fourth: "".to_string(),
     };
 
-    let res_body = postb(&client, "signup", key).unwrap();
+    let res_body = postb(&client, "signupkeygen", key).unwrap();
     let answer: Result<(PartySignup), ()> = serde_json::from_str(&res_body).unwrap();
     return answer;
 }
