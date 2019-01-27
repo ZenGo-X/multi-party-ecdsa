@@ -10,7 +10,6 @@ extern crate reqwest;
 #[macro_use]
 extern crate serde_derive;
 
-#[macro_use]
 extern crate serde_json;
 
 use crypto::aead::AeadDecryptor;
@@ -18,28 +17,19 @@ use crypto::aead::AeadEncryptor;
 use crypto::aes::KeySize::KeySize256;
 use crypto::aes_gcm::AesGcm;
 use curv::arithmetic::traits::Converter;
-use curv::cryptographic_primitives::hashing::hash_sha256::HSha256;
-use curv::cryptographic_primitives::hashing::traits::Hash;
 use curv::cryptographic_primitives::proofs::sigma_dlog::DLogProof;
 use curv::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS;
 use curv::elliptic::curves::traits::*;
 use curv::BigInt;
 use curv::{FE, GE};
-use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2018::mta::*;
 use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2018::party_i::*;
 use paillier::EncryptionKey;
-use paillier::*;
 use reqwest::Client;
 use std::env;
-use std::fmt;
 use std::fs;
 use std::iter::repeat;
 use std::time::Duration;
 use std::{thread, time};
-
-const PARTIES: u32 = 2;
-const THRESHOLD: u32 = 1;
-const KEYS_FILENAME: &str = "keys.data";
 
 #[derive(Hash, PartialEq, Eq, Clone, Debug, Serialize, Deserialize)]
 pub struct TupleKey {
@@ -47,28 +37,6 @@ pub struct TupleKey {
     pub second: String,
     pub third: String,
     pub fourth: String,
-}
-impl TupleKey {
-    fn new(first: String, second: String, third: String, fourth: String) -> TupleKey {
-        return TupleKey {
-            first,
-            second,
-            third,
-            fourth,
-        };
-    }
-}
-fn pr<T: std::fmt::Debug + ?Sized>(x: &String) {
-    println!("{:?}", &*x);
-}
-impl fmt::Display for TupleKey {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "({}, {}, {}, {})",
-            self.first, self.second, self.third, self.fourth
-        )
-    }
 }
 
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
@@ -94,10 +62,28 @@ pub struct Entry {
     pub value: String,
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct Params {
+    pub parties: String,
+    pub threshold: String,
+}
 fn main() {
+    if env::args().nth(3).is_some() {
+        panic!("too many arguments")
+    }
+    if env::args().nth(2).is_none() {
+        panic!("too few arguments")
+    }
+    //read parameters:
+    let data = fs::read_to_string("params")
+        .expect("Unable to read params, make sure config file is present in the same folder ");
+    let params: Params = serde_json::from_str(&data).unwrap();
+    let PARTIES: u32 = params.parties.parse::<u32>().unwrap();
+    let THRESHOLD: u32 = params.threshold.parse::<u32>().unwrap();
+
     let client = Client::new();
     // delay:
-    let ten_millis = time::Duration::from_millis(10);
+    let delay = time::Duration::from_millis(25);
     let parames = Parameters {
         threshold: THRESHOLD as usize,
         share_count: PARTIES as usize,
@@ -128,7 +114,7 @@ fn main() {
         &client,
         party_num_int.clone(),
         PARTIES,
-        ten_millis.clone(),
+        delay.clone(),
         "round1",
         uuid.clone(),
     );
@@ -160,7 +146,7 @@ fn main() {
         &client,
         party_num_int.clone(),
         PARTIES,
-        ten_millis.clone(),
+        delay.clone(),
         "round2",
         uuid.clone(),
     );
@@ -193,7 +179,7 @@ fn main() {
     let tail = y_vec_iter;
     let y_sum = tail.fold(head.clone(), |acc, x| acc + x);
 
-    let (vss_scheme, secret_shares, index) = party_keys
+    let (vss_scheme, secret_shares, _index) = party_keys
         .phase1_verify_com_phase3_verify_correct_key_phase2_distribute(
             &parames, &decom_vec, &bc1_vec,
         )
@@ -237,7 +223,7 @@ fn main() {
         &client,
         party_num_int.clone(),
         PARTIES,
-        ten_millis.clone(),
+        delay.clone(),
         "round3",
         uuid.clone(),
     );
@@ -278,7 +264,7 @@ fn main() {
         &client,
         party_num_int.clone(),
         PARTIES,
-        ten_millis.clone(),
+        delay.clone(),
         "round4",
         uuid.clone(),
     );
@@ -319,7 +305,7 @@ fn main() {
         &client,
         party_num_int.clone(),
         PARTIES,
-        ten_millis.clone(),
+        delay.clone(),
         "round5",
         uuid.clone(),
     );
@@ -343,9 +329,6 @@ fn main() {
         .map(|i| bc1_vec[i as usize].e.clone())
         .collect::<Vec<EncryptionKey>>();
 
-    let xi_com_vec = Keys::get_commitments_to_xi(&vss_scheme_vec);
-    let g: GE = ECPoint::generator();
-
     let keygen_json = serde_json::to_string(&(
         party_keys,
         shared_keys,
@@ -356,7 +339,7 @@ fn main() {
     ))
     .unwrap();
 
-    fs::write(KEYS_FILENAME, keygen_json).expect("Unable to save !");
+    fs::write(env::args().nth(2).unwrap(), keygen_json).expect("Unable to save !");
 }
 
 //////////////////////////////////////////////////////////////////////////////

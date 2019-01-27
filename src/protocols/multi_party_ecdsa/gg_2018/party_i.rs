@@ -227,7 +227,7 @@ impl Keys {
         let len = vss_scheme_vec.len();
         let xi_points_vec = (1..len + 1)
             .map(|i| {
-                let mut xij_points_vec = (0..len)
+                let xij_points_vec = (0..len)
                     .map(|j| vss_scheme_vec[j].get_point_commitment(&i))
                     .collect::<Vec<GE>>();
 

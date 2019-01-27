@@ -9,15 +9,8 @@ extern crate paillier;
 extern crate reqwest;
 #[macro_use]
 extern crate serde_derive;
-
-#[macro_use]
 extern crate serde_json;
 
-use crypto::aead::AeadDecryptor;
-use crypto::aead::AeadEncryptor;
-use crypto::aes::KeySize::KeySize256;
-use crypto::aes_gcm::AesGcm;
-use curv::arithmetic::traits::Converter;
 use curv::cryptographic_primitives::hashing::hash_sha256::HSha256;
 use curv::cryptographic_primitives::hashing::traits::Hash;
 use curv::cryptographic_primitives::proofs::sigma_correct_homomrphic_elgamal_enc::HomoELGamalProof;
@@ -31,15 +24,9 @@ use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2018::party_i::*;
 use paillier::*;
 use reqwest::Client;
 use std::env;
-use std::fmt;
 use std::fs;
-use std::iter::repeat;
 use std::time::Duration;
 use std::{thread, time};
-
-const PARTIES: u32 = 2;
-const THRESHOLD: u32 = 1;
-const KEYS_FILENAME: &str = "keys.data";
 
 #[derive(Hash, PartialEq, Eq, Clone, Debug, Serialize, Deserialize)]
 pub struct TupleKey {
@@ -47,28 +34,6 @@ pub struct TupleKey {
     pub second: String,
     pub third: String,
     pub fourth: String,
-}
-impl TupleKey {
-    fn new(first: String, second: String, third: String, fourth: String) -> TupleKey {
-        return TupleKey {
-            first,
-            second,
-            third,
-            fourth,
-        };
-    }
-}
-fn pr<T: std::fmt::Debug + ?Sized>(x: &String) {
-    println!("{:?}", &*x);
-}
-impl fmt::Display for TupleKey {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "({}, {}, {}, {})",
-            self.first, self.second, self.third, self.fourth
-        )
-    }
 }
 
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
@@ -93,16 +58,27 @@ pub struct Entry {
     pub key: TupleKey,
     pub value: String,
 }
+#[derive(Serialize, Deserialize)]
+pub struct Params {
+    pub parties: String,
+    pub threshold: String,
+}
 
 fn main() {
-    let message_str = env::args().nth(2).unwrap_or("".to_string());
+    if env::args().nth(4).is_some() {
+        panic!("too many arguments")
+    }
+    if env::args().nth(3).is_none() {
+        panic!("too few arguments")
+    }
+    let message_str = env::args().nth(3).unwrap_or("".to_string());
     let message = message_str.as_bytes();
     let client = Client::new();
     // delay:
-    let ten_millis = time::Duration::from_millis(10);
+    let delay = time::Duration::from_millis(25);
     // read key file
-    let data =
-        fs::read_to_string(KEYS_FILENAME).expect("Unable to load keys, did you run keygen first? ");
+    let data = fs::read_to_string(env::args().nth(2).unwrap())
+        .expect("Unable to load keys, did you run keygen first? ");
     let (party_keys, shared_keys, party_id, vss_scheme_vec, paillier_key_vector, y_sum): (
         Keys,
         SharedKeys,
@@ -111,6 +87,12 @@ fn main() {
         Vec<EncryptionKey>,
         GE,
     ) = serde_json::from_str(&data).unwrap();
+
+    //read parameters:
+    let data = fs::read_to_string("params")
+        .expect("Unable to read params, make sure config file is present in the same folder ");
+    let params: Params = serde_json::from_str(&data).unwrap();
+    let THRESHOLD: u32 = params.threshold.parse::<u32>().unwrap();
 
     //////////////////////////////////////////////////////////////////////////////
     //signup:
@@ -135,7 +117,7 @@ fn main() {
         &client,
         party_num_int.clone(),
         THRESHOLD + 1,
-        ten_millis.clone(),
+        delay.clone(),
         "round0",
         uuid.clone(),
     );
@@ -176,7 +158,7 @@ fn main() {
         &client,
         party_num_int.clone(),
         THRESHOLD + 1,
-        ten_millis.clone(),
+        delay.clone(),
         "round1",
         uuid.clone(),
     );
@@ -249,7 +231,7 @@ fn main() {
         &client,
         party_num_int.clone(),
         THRESHOLD + 1,
-        ten_millis.clone(),
+        delay.clone(),
         "round2",
         uuid.clone(),
     );
@@ -309,7 +291,7 @@ fn main() {
         &client,
         party_num_int.clone(),
         THRESHOLD + 1,
-        ten_millis.clone(),
+        delay.clone(),
         "round3",
         uuid.clone(),
     );
@@ -336,7 +318,7 @@ fn main() {
         &client,
         party_num_int.clone(),
         THRESHOLD + 1,
-        ten_millis.clone(),
+        delay.clone(),
         "round4",
         uuid.clone(),
     );
@@ -379,7 +361,7 @@ fn main() {
         &client,
         party_num_int.clone(),
         THRESHOLD + 1,
-        ten_millis.clone(),
+        delay.clone(),
         "round5",
         uuid.clone(),
     );
@@ -405,7 +387,7 @@ fn main() {
         &client,
         party_num_int.clone(),
         THRESHOLD + 1,
-        ten_millis.clone(),
+        delay.clone(),
         "round6",
         uuid.clone(),
     );
@@ -449,7 +431,7 @@ fn main() {
         &client,
         party_num_int.clone(),
         THRESHOLD + 1,
-        ten_millis.clone(),
+        delay.clone(),
         "round7",
         uuid.clone(),
     );
@@ -475,7 +457,7 @@ fn main() {
         &client,
         party_num_int.clone(),
         THRESHOLD + 1,
-        ten_millis.clone(),
+        delay.clone(),
         "round8",
         uuid.clone(),
     );
@@ -512,7 +494,7 @@ fn main() {
         &client,
         party_num_int.clone(),
         THRESHOLD + 1,
-        ten_millis.clone(),
+        delay.clone(),
         "round9",
         uuid.clone(),
     );

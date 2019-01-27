@@ -12,46 +12,20 @@ extern crate serde_derive;
 extern crate serde;
 extern crate serde_json;
 
-use rocket::config::Config;
 use rocket::State;
 use rocket_contrib::json::Json;
 use std::collections::HashMap;
-use std::fmt;
+use std::fs;
 use std::str;
-use std::sync::Arc;
 use std::sync::RwLock;
 use uuid::Uuid;
 
-const PARTIES: u32 = 2;
-const THRESHOLD: u32 = 1;
 #[derive(Hash, PartialEq, Eq, Clone, Debug, Serialize, Deserialize)]
 pub struct TupleKey {
     pub first: String,
     pub second: String,
     pub third: String,
     pub fourth: String,
-}
-impl TupleKey {
-    fn new(first: String, second: String, third: String, fourth: String) -> TupleKey {
-        return TupleKey {
-            first,
-            second,
-            third,
-            fourth,
-        };
-    }
-}
-fn pr<T: std::fmt::Debug + ?Sized>(x: &String) {
-    println!("{:?}", &*x);
-}
-impl fmt::Display for TupleKey {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "({}, {}, {}, {})",
-            self.first, self.second, self.third, self.fourth
-        )
-    }
 }
 
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
@@ -69,6 +43,11 @@ pub struct Index {
 pub struct Entry {
     pub key: TupleKey,
     pub value: String,
+}
+#[derive(Serialize, Deserialize)]
+pub struct Params {
+    pub parties: String,
+    pub threshold: String,
 }
 #[post("/get", format = "json", data = "<request>")]
 fn get(
@@ -104,18 +83,22 @@ fn set(
 fn signup_keygen(
     db_mtx: State<RwLock<HashMap<TupleKey, String>>>,
 ) -> Json<Result<PartySignup, ()>> {
+    let data = fs::read_to_string("params")
+        .expect("Unable to read params, make sure config file is present in the same folder ");
+    let params: Params = serde_json::from_str(&data).unwrap();
+    let parties: u32 = params.parties.parse::<u32>().unwrap();
     let key = TupleKey {
         first: "signup".to_string(),
         second: "keygen".to_string(),
         third: "".to_string(),
         fourth: "".to_string(),
     };
-    let mut party_signup: PartySignup;
+    let party_signup: PartySignup;
     {
         let hm = db_mtx.read().unwrap();
         let value = hm.get(&key).unwrap();
         let party_i_minus1_signup: PartySignup = serde_json::from_str(&value).unwrap();
-        if party_i_minus1_signup.number < PARTIES {
+        if party_i_minus1_signup.number < parties {
             let party_num = party_i_minus1_signup.number + 1;
             party_signup = PartySignup {
                 number: party_num.clone(),
@@ -137,18 +120,23 @@ fn signup_keygen(
 
 #[post("/signupsign", format = "json")]
 fn signup_sign(db_mtx: State<RwLock<HashMap<TupleKey, String>>>) -> Json<Result<PartySignup, ()>> {
+    //read parameters:
+    let data = fs::read_to_string("params")
+        .expect("Unable to read params, make sure config file is present in the same folder ");
+    let params: Params = serde_json::from_str(&data).unwrap();
+    let threshold: u32 = params.threshold.parse::<u32>().unwrap();
     let key = TupleKey {
         first: "signup".to_string(),
         second: "sign".to_string(),
         third: "".to_string(),
         fourth: "".to_string(),
     };
-    let mut party_signup: PartySignup;
+    let party_signup: PartySignup;
     {
         let hm = db_mtx.read().unwrap();
         let value = hm.get(&key).unwrap();
         let party_i_minus1_signup: PartySignup = serde_json::from_str(&value).unwrap();
-        if party_i_minus1_signup.number < THRESHOLD + 1 {
+        if party_i_minus1_signup.number < threshold + 1 {
             let party_num = party_i_minus1_signup.number + 1;
             party_signup = PartySignup {
                 number: party_num.clone(),
