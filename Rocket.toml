@@ -8,8 +8,8 @@ hi = "Hello!" # this is an unused extra; maybe application specific?
 is_extra = true # this is an unused extra; maybe application specific?
 
 [staging]
-address = "0.0.0.0"
-port = 8000
+address = "127.0.0.1"
+port = 8001
 workers = 8
 keep_alive = 5
 log = "normal"
@@ -17,8 +17,8 @@ log = "normal"
 secret_key = "8Xui8SN4mI+7egV/9dlfYYLGQJeEx4+DwmSQLwDVXJg="
 
 [production]
-address = "0.0.0.0"
-port = 8000
+address = "127.0.0.1"
+port = 8001
 workers = 12
 keep_alive = 5
 log = "critical"
