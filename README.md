@@ -25,17 +25,17 @@ Run
 The following steps are for setup, key generation with `n` parties and signing with `t+1` parties. 
 
 **Setup** 
-1) We use shared state machine architecture (see [white city](https://github.com/KZen-networks/white-city)). Currently the parameters PARTIES and THRESHOLD are hard coded constants. 
-They can be changed easilly. Just replace the values in all files in `src/bin` folder. 
-2) Run the shared state machine: just cargo run `sm_manager`. Currently configured to be in `127.0.0.1:8001`, this can be changed in `Rocket.toml` file.
+1) We use shared state machine architecture (see [white city](https://github.com/KZen-networks/white-city)). The parameters `parties` and `threshold` can be configured by changing the file: `param`. a keygen will run with `parties` parties and signing will run with any subset of `threshold + 1` parties. 
+2) Install [Rust](https://www.rust-lang.org/en-US/install.html),[Nightly Rust](https://doc.rust-lang.org/1.5.0/book/nightly-rust.html).  Run `cargo build --release` 
+2) Run the shared state machine: `./sm_manager`. Currently configured to be in `127.0.0.1:8001`, this can be changed in `Rocket.toml` file.
 
 **KeyGen**
 
-After building, run `gg18_keygen_client` as follows: `./gg18_keygen_client http://127.0.0.1:8001`. Replace IP and port with the ones configured in setup. Once `n` parties join the application will run till finish. At the end each party will get a local keys file `keys.data`. This contain secret and public data of the party after keygen. The file therefore should remain private. 
+run `gg18_keygen_client` as follows: `./gg18_keygen_client http://127.0.0.1:8001 keys.store`. Replace IP and port with the ones configured in setup. Once `n` parties join the application will run till finish. At the end each party will get a local keys file `keys.store` (change filename in command line). This contain secret and public data of the party after keygen. The file therefore should remain private. 
 
 **Sign**
 
-Run `gg18_sign_client`. The application should be in the same folder as the `keys.data` file. the application takes two arguments: `IP:port` as in keygen and message to be signed: `./gg18_keygen_client http://127.0.0.1:8001 "KZen Networks"`. Once `t+1` parties join the protocol will run and will output to screen signatue (R,s). 
+Run `./gg18_sign_client`. The application should be in the same folder as the `keys.store` file (or custom filename generated in keygen). the application takes three arguments: `IP:port` as in keygen, `filename` and message to be signed: `./gg18_keygen_client http://127.0.0.1:8001 keys.store "KZen Networks"`. Once `t+1` parties join the protocol will run and will output to screen signatue (R,s). 
 
 
 Contributions & Development Process
