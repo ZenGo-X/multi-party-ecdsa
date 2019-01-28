@@ -512,7 +512,7 @@ fn main() {
         .output_signature(&s_i_vec)
         .expect("verification failed");
     println!(" \n");
-    println!("Output Signature: \n");
+    println!("party {:?} Output Signature: \n", party_num_int);
     println!("R: {:?}", r.get_element());
     println!("s: {:?} \n", s.get_element());
 }
