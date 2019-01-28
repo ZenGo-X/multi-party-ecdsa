@@ -27,7 +27,7 @@ The following steps are for setup, key generation with `n` parties and signing w
 **Setup** 
 1) We use shared state machine architecture (see [white city](https://github.com/KZen-networks/white-city)). The parameters `parties` and `threshold` can be configured by changing the file: `param`. a keygen will run with `parties` parties and signing will run with any subset of `threshold + 1` parties. `param` file should be located in the same path of the client softwares.
 2) Install [Rust](https://www.rust-lang.org/en-US/install.html),[Nightly Rust](https://doc.rust-lang.org/1.5.0/book/nightly-rust.html).  Run `cargo build --release` 
-2) Run the shared state machine: `./sm_manager`. Currently configured to be in `127.0.0.1:8001`, this can be changed in `Rocket.toml` file. The `Rocket.toml` file should be in the same folder you run `sm_manager` from. 
+3) Run the shared state machine: `./sm_manager`. Currently configured to be in `127.0.0.1:8001`, this can be changed in `Rocket.toml` file. The `Rocket.toml` file should be in the same folder you run `sm_manager` from. 
 
 **KeyGen**
 
@@ -37,6 +37,8 @@ run `gg18_keygen_client` as follows: `./gg18_keygen_client http://127.0.0.1:8001
 
 Run `./gg18_sign_client`. The application should be in the same folder as the `keys.store` file (or custom filename generated in keygen). the application takes three arguments: `IP:port` as in keygen, `filename` and message to be signed: `./gg18_sign_client http://127.0.0.1:8001 keys.store "KZen Networks"`. The same message should be used by all signers. Once `t+1` parties join the protocol will run and will output to screen signatue (R,s). 
 
+**Full demo**
+Run `./run.sh` in the same folder as the excutables (usually `/target/release`). It will spawn a shared state machine, clients in the number of parties and signing requests for the t+1 first parties.
 
 Contributions & Development Process
 -------------------
