@@ -25,7 +25,7 @@ crate-type = ["lib"]
 
 [dependencies]
 paillier = { git = "https://github.com/mortendahl/rust-paillier"}
-zk-paillier = { git = "https://github.com/KZen-networks/zk-paillier"}
+zk-paillier = { git = "https://github.com/KZen-networks/zk-paillier", branch = "des"}
 
 serde = "1.0"
 serde_derive = "1.0"
