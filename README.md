@@ -43,8 +43,10 @@ Run `./run.sh` (located in `/demo` folder) in the same folder as the excutables 
 
 
 
-![Demo](https://raw.githubusercontent.com/KZen-networks/multi-party-ecdsa/master/demo/MP-ECDSA%20demo.gif "Multiparty ECDSA Demo")
-*A 5 parties setup with 3 signers (threshold = 2)*
+|![Demo](https://raw.githubusercontent.com/KZen-networks/multi-party-ecdsa/master/demo/MP-ECDSA%20demo.gif "Multiparty ECDSA Demo")|
+|:--:| 
+| *A 5 parties setup with 3 signers (threshold = 2)* |
+
 
 Contributions & Development Process
 -------------------
