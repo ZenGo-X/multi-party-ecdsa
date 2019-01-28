@@ -39,9 +39,11 @@ rust-crypto = "^0.2"
 [dependencies.curv]
 git = "https://github.com/KZen-networks/curv"
 features =  ["curvesecp256k1"]
+branch = "des"
 
 [dependencies.centipede]
 git = "https://github.com/KZen-networks/centipede"
+branch = "des"
 
 [patch.crates-io]
 rust-gmp = { version = "0.5.0", features = ["serde_support"], git = "https://github.com/KZen-networks/rust-gmp" }
