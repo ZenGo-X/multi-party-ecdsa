@@ -41,6 +41,8 @@ Run `./gg18_sign_client`. The application should be in the same folder as the `k
 
 Run `./run.sh` (located in `/demo` folder) in the same folder as the excutables (usually `/target/release`). It will spawn a shared state machine, clients in the number of parties and signing requests for the `threshold + 1` first parties.
 
+In the GIF below a 5 parties setup with 3 signers (threshold = 2) is demoed
+
 ![Demo](https://raw.githubusercontent.com/KZen-networks/multi-party-ecdsa/master/demo/MP-ECDSA%20demo.gif "Multiparty ECDSA Demo")
 
 Contributions & Development Process
