@@ -1,13 +1,13 @@
 #[macro_use]
 extern crate criterion;
-extern crate cryptography_utils;
+extern crate curv;
 extern crate multi_party_ecdsa;
 
 mod bench {
     use criterion::Criterion;
-    use cryptography_utils::arithmetic::traits::Samplable;
-    use cryptography_utils::elliptic::curves::traits::*;
-    use cryptography_utils::BigInt;
+    // use curv::arithmetic::traits::Samplable;
+    // use curv::elliptic::curves::traits::*;
+    // use curv::BigInt;
     use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2018::party_i::*;
     pub fn bench_full_keygen_party_one_two(c: &mut Criterion) {
         c.bench_function("keygen", move |b| {
@@ -35,12 +35,14 @@ mod bench {
                 //phase2 (including varifying correct paillier):
                 let (vss_scheme_1, secret_shares_1, index1) = party1_keys
                     .phase1_verify_com_phase3_verify_correct_key_phase2_distribute(
-                        &parames, &blind_vec, &y_vec, &bc1_vec,
+                        &parames, &blind_vec, //&y_vec, 
+                        &bc1_vec,
                     )
                     .expect("invalid key");
                 let (vss_scheme_2, secret_shares_2, index2) = party2_keys
                     .phase1_verify_com_phase3_verify_correct_key_phase2_distribute(
-                        &parames, &blind_vec, &y_vec, &bc1_vec,
+                        &parames, &blind_vec, //&y_vec, 
+                        &bc1_vec,
                     )
                     .expect("invalid key");
 

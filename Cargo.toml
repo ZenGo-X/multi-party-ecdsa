@@ -50,6 +50,12 @@ rust-gmp = { version = "0.5.0", features = ["serde_support"], git = "https://git
 criterion = "0.2"
 
 [[bench]]
-name = "keygen"
+name = "keygen_two_party_ecdsa"
 path = "benches/two_party_ecdsa/lindell_2017/keygen.rs"
 harness = false
+
+[[bench]]
+name = "keygen_multi_party_ecdsa"
+path = "benches/multi_party_ecdsa/gg18/keygen.rs"
+harness = false
+
