@@ -65,4 +65,4 @@ References
 
 [1] https://eprint.iacr.org/2017/552.pdf
 
-[2] http://stevengoldfeder.com/papers/GG18.pdf
+[2] https://eprint.iacr.org/2019/114.pdf
