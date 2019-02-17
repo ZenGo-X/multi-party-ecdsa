@@ -65,6 +65,7 @@ pub struct PaillierKeyPair {
 pub struct Signature {
     pub s: BigInt,
     pub r: BigInt,
+    pub recid: u8,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -239,6 +240,7 @@ impl Signature {
         r = r.scalar_mul(&ephemeral_local_share.secret_share.get_element());
 
         let rx = r.x_coor().mod_floor(&temp.q());
+        let ry = r.y_coor().mod_floor(&temp.q());
         let k1_inv = &ephemeral_local_share
             .secret_share
             .to_big_int()
@@ -251,7 +253,10 @@ impl Signature {
         let s_tag_tag = BigInt::mod_mul(&k1_inv, &s_tag.0, &temp.q());
         let s = cmp::min(s_tag_tag.clone(), &temp.q().clone() - s_tag_tag.clone());
 
-        Signature { s, r: rx }
+        let is_ry_odd = !ry.modulus(&BigInt::from(2)).is_zero();
+        let recid = if is_ry_odd {1} else {0};
+
+        Signature { s, r: rx, recid }
     }
 }
 
