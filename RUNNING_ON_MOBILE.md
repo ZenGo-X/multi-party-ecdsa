@@ -56,6 +56,11 @@ Prerequisites
 Running Tests and Benchmarks
 --
 
+* Set lib type in `Cargo.toml` to 
+  ```toml
+  crate-type = ["staticlib", "rlib"]
+  ```
+
 * Tests
 
       cargo dinghy -d 'YourDeviceName' --platform auto-ios-aarch64 -vvv test
