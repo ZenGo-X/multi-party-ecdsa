@@ -1,93 +1,131 @@
 #[macro_use]
 extern crate criterion;
-extern crate cryptography_utils;
+extern crate curv;
 extern crate multi_party_ecdsa;
 
 mod bench {
     use criterion::Criterion;
-    use cryptography_utils::arithmetic::traits::Samplable;
-    use cryptography_utils::elliptic::curves::traits::*;
-    use cryptography_utils::BigInt;
+    use curv::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS;
+    use curv::elliptic::curves::traits::*;
+    use curv::{FE, GE};
     use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2018::party_i::*;
     pub fn bench_full_keygen_party_one_two(c: &mut Criterion) {
-        c.bench_function("keygen", move |b| {
+        c.bench_function("keygen t=1 n=2", move |b| {
             b.iter(|| {
-                let parames = Parameters {
-                    threshold: 1,
-                    share_count: 2,
-                };
-                let party1_keys = Keys::create(0);
-                let party2_keys = Keys::create(1);
-
-                let (to_broadcast_from_party1, blind_1) =
-                    party1_keys.phase1_broadcast_phase3_proof_of_correct_key();
-                let (to_broadcast_from_party2, blind_2) =
-                    party2_keys.phase1_broadcast_phase3_proof_of_correct_key();
-
-                // to_broadcast_from_party1/2 is broadcasted.
-                // then blind_i and y_i are broadcasted.
-                // each party assembles the following vectors:
-                let y_vec = vec![party1_keys.y_i.clone(), party2_keys.y_i.clone()];
-                let blind_vec = vec![blind_1.clone(), blind_2.clone()];
-                let bc1_vec = vec![to_broadcast_from_party1, to_broadcast_from_party2];
-
-                // TODO: make each party verify only proofs of other parties
-                //phase2 (including varifying correct paillier):
-                let (vss_scheme_1, secret_shares_1, index1) = party1_keys
-                    .phase1_verify_com_phase3_verify_correct_key_phase2_distribute(
-                        &parames, &blind_vec, &y_vec, &bc1_vec,
-                    )
-                    .expect("invalid key");
-                let (vss_scheme_2, secret_shares_2, index2) = party2_keys
-                    .phase1_verify_com_phase3_verify_correct_key_phase2_distribute(
-                        &parames, &blind_vec, &y_vec, &bc1_vec,
-                    )
-                    .expect("invalid key");
-
-                // each party assembles her secret share vector:
-                let vss_scheme_for_test = vss_scheme_1.clone();
-                let vss_vec = vec![vss_scheme_1, vss_scheme_2];
-                let party1_ss_vec = vec![
-                    secret_shares_1[index1].clone(),
-                    secret_shares_2[index1].clone(),
-                ];
-                let party2_ss_vec = vec![
-                    secret_shares_1[index2].clone(),
-                    secret_shares_2[index2].clone(),
-                ];
-
-                let (_shared_keys_1, dlog_proof_1) = party1_keys
-                    .phase2_verify_vss_construct_keypair_phase3_pok_dlog(
-                        &parames,
-                        &y_vec,
-                        &party1_ss_vec,
-                        &vss_vec,
-                        &(index1 + 1),
-                    )
-                    .expect("invalid vss");
-                let (_shared_keys_2, dlog_proof_2) = party2_keys
-                    .phase2_verify_vss_construct_keypair_phase3_pok_dlog(
-                        &parames,
-                        &y_vec,
-                        &party2_ss_vec,
-                        &vss_vec,
-                        &(index2 + 1),
-                    )
-                    .expect("invalid vss");
-                ;
-
-                let _pk_vec = vec![dlog_proof_1.pk.clone(), dlog_proof_2.pk.clone()];
-                let dlog_proof_vec = vec![dlog_proof_1, dlog_proof_2];
-
-                //both parties run:
-                Keys::verify_dlog_proofs(&parames, &dlog_proof_vec, &y_vec).expect("bad dlog proof");
+                keygen_t_n_parties(1, 2);
             })
         });
     }
-    criterion_group!{
+    pub fn bench_full_keygen_party_two_three(c: &mut Criterion) {
+        c.bench_function("keygen t=2 n=3", move |b| {
+            b.iter(|| {
+                keygen_t_n_parties(2, 3);
+            })
+        });
+    }
+    pub fn keygen_t_n_parties(
+        t: usize,
+        n: usize,
+    ) -> (Vec<Keys>, Vec<SharedKeys>, Vec<GE>, GE, VerifiableSS) {
+        let parames = Parameters {
+            threshold: t,
+            share_count: n.clone(),
+        };
+        let party_keys_vec = (0..n.clone())
+            .map(|i| Keys::create(i))
+            .collect::<Vec<Keys>>();
+
+        let mut bc1_vec = Vec::new();
+        let mut decom_vec = Vec::new();
+        for i in 0..n.clone() {
+            let (bc1, decom1) = party_keys_vec[i].phase1_broadcast_phase3_proof_of_correct_key();
+            bc1_vec.push(bc1);
+            decom_vec.push(decom1);
+        }
+
+        let y_vec = (0..n.clone())
+            .map(|i| decom_vec[i].y_i.clone())
+            .collect::<Vec<GE>>();
+        let mut y_vec_iter = y_vec.iter();
+        let head = y_vec_iter.next().unwrap();
+        let tail = y_vec_iter;
+        let y_sum = tail.fold(head.clone(), |acc, x| acc + x);
+        let mut vss_scheme_vec = Vec::new();
+        let mut secret_shares_vec = Vec::new();
+        let mut index_vec = Vec::new();
+        for i in 0..n.clone() {
+            let (vss_scheme, secret_shares, index) = party_keys_vec[i]
+                .phase1_verify_com_phase3_verify_correct_key_phase2_distribute(
+                    &parames, &decom_vec, &bc1_vec,
+                )
+                .expect("invalid key");
+            vss_scheme_vec.push(vss_scheme);
+            secret_shares_vec.push(secret_shares);
+            index_vec.push(index);
+        }
+        let vss_scheme_for_test = vss_scheme_vec.clone();
+
+        let party_shares = (0..n.clone())
+            .map(|i| {
+                (0..n.clone())
+                    .map(|j| {
+                        let vec_j = &secret_shares_vec[j];
+                        vec_j[i].clone()
+                    })
+                    .collect::<Vec<FE>>()
+            })
+            .collect::<Vec<Vec<FE>>>();
+
+        let mut shared_keys_vec = Vec::new();
+        let mut dlog_proof_vec = Vec::new();
+        for i in 0..n.clone() {
+            let (shared_keys, dlog_proof) = party_keys_vec[i]
+                .phase2_verify_vss_construct_keypair_phase3_pok_dlog(
+                    &parames,
+                    &y_vec,
+                    &party_shares[i],
+                    &vss_scheme_vec,
+                    &(&index_vec[i] + 1),
+                )
+                .expect("invalid vss");
+            shared_keys_vec.push(shared_keys);
+            dlog_proof_vec.push(dlog_proof);
+        }
+
+        let pk_vec = (0..n.clone())
+            .map(|i| dlog_proof_vec[i].pk.clone())
+            .collect::<Vec<GE>>();
+
+        //both parties run:
+        Keys::verify_dlog_proofs(&parames, &dlog_proof_vec, &y_vec).expect("bad dlog proof");
+
+        //test
+        let xi_vec = (0..t.clone() + 1)
+            .map(|i| shared_keys_vec[i].x_i.clone())
+            .collect::<Vec<FE>>();
+        let x = vss_scheme_for_test[0]
+            .clone()
+            .reconstruct(&index_vec[0..t.clone() + 1], &xi_vec);
+        let sum_u_i = party_keys_vec
+            .iter()
+            .fold(FE::zero(), |acc, x| acc + &x.u_i);
+        assert_eq!(x, sum_u_i);
+
+        (
+            party_keys_vec,
+            shared_keys_vec,
+            pk_vec,
+            y_sum,
+            vss_scheme_for_test[0].clone(),
+        )
+    }
+
+    criterion_group! {
     name = keygen;
     config = Criterion::default().sample_size(10);
-    targets =self::bench_full_keygen_party_one_two}
+    targets =
+    self::bench_full_keygen_party_one_two,
+    self::bench_full_keygen_party_two_three}
 }
 
 criterion_main!(bench::keygen);
