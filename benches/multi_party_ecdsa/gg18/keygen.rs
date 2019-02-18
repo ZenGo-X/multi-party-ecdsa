@@ -47,7 +47,7 @@ mod bench {
                     .expect("invalid key");
 
                 // each party assembles her secret share vector:
-                let vss_scheme_for_test = vss_scheme_1.clone();
+                let _vss_scheme_for_test = vss_scheme_1.clone();
                 let vss_vec = vec![vss_scheme_1, vss_scheme_2];
                 let party1_ss_vec = vec![
                     secret_shares_1[index1].clone(),
