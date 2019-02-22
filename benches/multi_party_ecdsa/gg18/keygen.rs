@@ -23,6 +23,13 @@ mod bench {
             })
         });
     }
+    pub fn bench_full_keygen_party_five_eight(c: &mut Criterion) {
+        c.bench_function("keygen t=5 n=8", move |b| {
+            b.iter(|| {
+                keygen_t_n_parties(5, 8);
+            })
+        });
+    }
     pub fn keygen_t_n_parties(
         t: usize,
         n: usize,
@@ -125,7 +132,8 @@ mod bench {
     config = Criterion::default().sample_size(10);
     targets =
     self::bench_full_keygen_party_one_two,
-    self::bench_full_keygen_party_two_three}
+    self::bench_full_keygen_party_two_three,
+    self::bench_full_keygen_party_five_eight}
 }
 
 criterion_main!(bench::keygen);
