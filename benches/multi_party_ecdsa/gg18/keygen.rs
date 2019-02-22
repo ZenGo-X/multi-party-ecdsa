@@ -129,7 +129,7 @@ mod bench {
 
     criterion_group! {
     name = keygen;
-    config = Criterion::default().sample_size(10);
+    config = Criterion::default().sample_size(5);
     targets =
     self::bench_full_keygen_party_one_two,
     self::bench_full_keygen_party_two_three,
