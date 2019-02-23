@@ -1,0 +1,128 @@
+{\rtf1\ansi\ansicpg1252\deff0\nouicompat\deflang1033{\fonttbl{\f0\fnil\fcharset0 Menlo-Regular;}{\f1\fnil\fcharset0 Verdana;}{\f2\fnil\fcharset0 Menlo-Bold;}{\f3\fnil\fcharset0 Calibri;}}
+{\colortbl ;\red0\green0\blue0;\red47\green180\blue29;\red153\green153\blue153;\red159\green160\blue28;\red74\green0\blue255;}
+{\*\generator Riched20 10.0.17134}\viewkind4\uc1 
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\cf1\f0\fs22\lang9 Log hilights for running \f1\fs16\lang1033 516e6bf\f0\fs22\lang9\par
+on host (Mac Mini A1347 Late 2012 MD387LL/A 16GB RAM) and phone (iPhone 6S A1633)\par
+\par
+Last login: Wed Feb 20 22:29:28 on ttys004\par
+macmini31:multi-party-ecdsa vl$ cargo dinghy -d 'iPhone John' --platform auto-ios-aarch64 bench\par
+ \cf2 INFO \cf1  \b\f2 cargo_dinghy\b0\f0  > Targeting platform 'auto-ios-aarch64' and device '91b2f0d3359d4df4ea35b3cd30d54550daa56b22'\par
+\cf2\b\f2    Compiling\cf1\b0\f0  multi-party-ecdsa v0.1.0 (/Users/vl/repo/multi-party-ecdsa)                                                                                                                                                                                           \par
+\cf2\b\f2     Finished\cf1\b0\f0  release [optimized] target(s) in 3.32s                                                                                                                                                                                                                \par
+(lldb) command source -s 1 '/var/folders/4q/r3_2znqd3pz_zdh740tcv60m0000gr/T/mobiledevice-rs-lldb.zhpd0LE2t8t6/lldb-script'\par
+\par
+running 9 tests\par
+test protocols::multi_party_ecdsa::gg_2018::test::tests::test_keygen_t1_n2 ... ok\par
+test protocols::multi_party_ecdsa::gg_2018::test::tests::test_keygen_t2_n3 ... ok\par
+test protocols::multi_party_ecdsa::gg_2018::test::tests::test_mta ... ok\par
+test protocols::multi_party_ecdsa::gg_2018::test::tests::test_keygen_t2_n4 ... ok\par
+test protocols::multi_party_ecdsa::gg_2018::test::tests::test_sign_n5_t2_ttag4 ... ok\par
+test protocols::two_party_ecdsa::lindell_2017::test::tests::test_d_log_proof_party_two_party_one ... ok\par
+test protocols::multi_party_ecdsa::gg_2018::test::tests::test_sign_n8_t4_ttag6 ... test protocols::multi_party_ecdsa::gg_2018::test::tests::test_sign_n8_t4_ttag6 has been running for over 60 seconds\par
+test protocols::two_party_ecdsa::lindell_2017::test::tests::test_full_key_gen ... ok\par
+test protocols::two_party_ecdsa::lindell_2017::test::tests::test_two_party_sign ... ok\par
+test protocols::multi_party_ecdsa::gg_2018::test::tests::test_sign_n8_t4_ttag6 ... ok\par
+\par
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out\par
+\par
+(lldb) command source -s 1 '/var/folders/4q/r3_2znqd3pz_zdh740tcv60m0000gr/T/mobiledevice-rs-lldb.vdrhGFEolBYj/lldb-script'\par
+\par
+running 0 tests\par
+\par
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out\par
+\par
+(lldb) command source -s 1 '/var/folders/4q/r3_2znqd3pz_zdh740tcv60m0000gr/T/mobiledevice-rs-lldb.b1FjwpunlIWi/lldb-script'\par
+\par
+running 0 tests\par
+\par
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out\par
+\par
+(lldb) command source -s 1 '/var/folders/4q/r3_2znqd3pz_zdh740tcv60m0000gr/T/mobiledevice-rs-lldb.djjPzgIF1KEV/lldb-script'\par
+Warning: Sample sizes < 10 will be disallowed in Criterion.rs 0.3.0.\par
+\par
+Benchmarking keygen: AnalyzingCriterion.rs \par
+\cf2 keygen\cf1                   time:   [\cf3 31.155 s\cf1  \b\f2 31.889 s\b0\f0  \cf3 32.171 s\cf1 ]\par
+\par
+(lldb) command source -s 1 '/var/folders/4q/r3_2znqd3pz_zdh740tcv60m0000gr/T/mobiledevice-rs-lldb.WVmWsV0qxlf5/lldb-script'\par
+Warning: Sample sizes < 10 will be disallowed in Criterion.rs 0.3.0.\par
+\par
+Benchmarking keygen t=1 n=2: AnalyzingCriterion.rs \par
+\cf2 keygen t=1 n=2\cf1           time:   [\cf3 2.6533 s\cf1  \b\f2 2.8052 s\b0\f0  \cf3 3.3143 s\cf1 ]\par
+\par
+Benchmarking keygen t=2 n=3: AnalyzingCriterion.rs \par
+\cf2 keygen t=2 n=3\cf1           time:   [\cf3 4.4918 s\cf1  \b\f2 5.1433 s\b0\f0  \cf3 5.4888 s\cf1 ]\par
+\par
+Benchmarking keygen t=5 n=8: AnalyzingCriterion.rs \par
+\cf2 keygen t=5 n=8\cf1           time:   [\cf3 25.638 s\cf1  \b\f2 26.298 s\b0\f0  \cf3 26.932 s\cf1 ]\par
+running 0 tests\par
+\par
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out\par
+\par
+macmini31:multi-party-ecdsa vl$ cargo bench\par
+\cf2\b\f2    Compiling\cf1\b0\f0  multi-party-ecdsa v0.1.0 (/Users/vl/repo/multi-party-ecdsa)\par
+\cf4\b\f2 warning\cf1 : unused variable: `g_gamma_i_vec`\b0\f0\par
+   \cf5\b\f2 --> \cf1\b0\f0 src/protocols/multi_party_ecdsa/gg_2018/test.rs:301:13\par
+    \cf5\b\f2 |\cf1\b0\f0\par
+\cf5\b\f2 301\cf1\b0\f0  \cf5\b\f2 | \cf1\b0\f0         let g_gamma_i_vec = (0..ttag)\par
+    \cf5\b\f2 | \cf1\b0\f0             \cf4\b\f2 ^^^^^^^^^^^^^\cf1\b0\f0  \cf4\b\f2 help: consider prefixing with an underscore: `_g_gamma_i_vec`\cf1\b0\f0\par
+    \cf5\b\f2 |\cf1\b0\f0\par
+    \cf5\b\f2 = \cf1 note\b0\f0 : #[warn(unused_variables)] on by default\par
+\par
+\cf2\b\f2     Finished\cf1\b0\f0  release [optimized] target(s) in 38.42s\par
+\cf2\b\f2      Running\cf1\b0\f0  target/release/deps/multi_party_ecdsa-5e00dae7db842f11\par
+\par
+running 9 tests\par
+test protocols::multi_party_ecdsa::gg_2018::test::tests::test_keygen_t1_n2 ... \cf4 ignored\cf1\par
+test protocols::multi_party_ecdsa::gg_2018::test::tests::test_keygen_t2_n3 ... \cf4 ignored\cf1\par
+test protocols::multi_party_ecdsa::gg_2018::test::tests::test_keygen_t2_n4 ... \cf4 ignored\cf1\par
+test protocols::multi_party_ecdsa::gg_2018::test::tests::test_mta ... \cf4 ignored\cf1\par
+test protocols::multi_party_ecdsa::gg_2018::test::tests::test_sign_n5_t2_ttag4 ... \cf4 ignored\cf1\par
+test protocols::multi_party_ecdsa::gg_2018::test::tests::test_sign_n8_t4_ttag6 ... \cf4 ignored\cf1\par
+test protocols::two_party_ecdsa::lindell_2017::test::tests::test_d_log_proof_party_two_party_one ... \cf4 ignored\cf1\par
+test protocols::two_party_ecdsa::lindell_2017::test::tests::test_full_key_gen ... \cf4 ignored\cf1\par
+test protocols::two_party_ecdsa::lindell_2017::test::tests::test_two_party_sign ... \cf4 ignored\cf1\par
+\par
+test result: \cf2 ok\cf1 . 0 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out\par
+\par
+\cf2\b\f2      Running\cf1\b0\f0  target/release/deps/gg18_keygen_client-c3798a39fed615f4\par
+\par
+running 0 tests\par
+\par
+test result: \cf2 ok\cf1 . 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out\par
+\par
+\cf2\b\f2      Running\cf1\b0\f0  target/release/deps/gg18_sign_client-22ee6ba599207a77\par
+\par
+running 0 tests\par
+\par
+test result: \cf2 ok\cf1 . 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out\par
+\par
+\cf2\b\f2      Running\cf1\b0\f0  target/release/deps/sm_manager-19f5a2e7ced714c6\par
+\par
+running 0 tests\par
+\par
+test result: \cf2 ok\cf1 . 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out\par
+\par
+\cf2\b\f2      Running\cf1\b0\f0  target/release/deps/keygen_2p-8c2b7205cf37797e\par
+Warning: Sample sizes < 10 will be disallowed in Criterion.rs 0.3.0.\par
+Gnuplot not found, disabling plotting\par
+\cf2 keygen\cf1                   time:   [\cf3 4.0675 s\cf1  \b\f2 4.0988 s\b0\f0  \cf3 4.1749 s\cf1 ]                   \par
+\par
+Gnuplot not found, disabling plotting\par
+\cf2\b\f2      Running\cf1\b0\f0  target/release/deps/keygen_mp-825db48f22ae04d4\par
+Warning: Sample sizes < 10 will be disallowed in Criterion.rs 0.3.0.\par
+Gnuplot not found, disabling plotting\par
+\cf2 keygen t=1 n=2\cf1           time:   [\cf3 816.58 ms\cf1  \b\f2 1.0185 s\b0\f0  \cf3 1.2034 s\cf1 ]                          \par
+\par
+\cf2 keygen t=2 n=3\cf1           time:   [\cf3 1.4682 s\cf1  \b\f2 1.5835 s\b0\f0  \cf3 1.8026 s\cf1 ]                           \par
+\cf4 Found 1 outliers among 5 measurements (20.00%)\cf1\par
+  1 (20.00%) high severe\par
+\par
+\cf2 keygen t=5 n=8\cf1           time:   [\cf3 9.1888 s\cf1  \b\f2 9.5256 s\b0\f0  \cf3 9.9273 s\cf1 ]                           \par
+\cf4 Found 1 outliers among 5 measurements (20.00%)\cf1\par
+  1 (20.00%) low mild\par
+\par
+macmini31:multi-party-ecdsa vl$ \par
+
+\pard\sa200\sl276\slmult1\cf0\f3\par
+}
+ 
