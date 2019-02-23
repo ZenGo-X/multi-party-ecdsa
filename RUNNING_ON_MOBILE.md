@@ -74,7 +74,7 @@ Yes!) If you performed all the steps for required prerequisites correctly - it b
 Results
 --
 
-As you may see from [log highlights](./doc/bench_logs_highlights.rtf) Mac Mini host with **2.5-3GHz dual-core 64-bit Intel Core i5-3210M** CPU is on average **_just 3x faster_** then iPhone 6S with **1.85 GHz dual-core 64-bit ARMv8-A "Twister"** CPU.
+As you may see from [log highlights](./doc/bench_logs_highlights.rtf) Mac Mini host with **2.5-3GHz dual-core 64-bit Intel Core i5-3210M** CPU is on average **_just ~3x faster_** for Multi-Party keygen bench and **~8x faster** for 2Party keygen bench then iPhone 6S with **1.85 GHz dual-core 64-bit ARMv8-A "Twister"** CPU - that is still fairly **acceptable and practical waiting times for mobile users** as well.
 
 **Log highlights** for comparison on running **on phone (iPhone 6S A1633)**
 ```
