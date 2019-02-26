@@ -254,8 +254,11 @@ impl Signature {
         let s = cmp::min(s_tag_tag.clone(), &temp.q().clone() - s_tag_tag.clone());
 
         let is_ry_odd = ry.tstbit(0);
-        let recid = if is_ry_odd { 1 } else { 0 };
-
+        let mut recid = if is_ry_odd { 1 } else { 0 };
+        let half_q = &temp.q().div_floor(&BigInt::from(2));
+        if s_tag_tag.gt(half_q) {
+            recid ^= 1;
+        }
 
         Signature { s, r: rx, recid }
     }
