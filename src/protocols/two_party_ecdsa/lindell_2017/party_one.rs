@@ -254,10 +254,15 @@ impl Signature {
         let s_tag_tag = BigInt::mod_mul(&k1_inv, &s_tag.0, &temp.q());
         let s = cmp::min(s_tag_tag.clone(), &temp.q().clone() - s_tag_tag.clone());
 
+        /*
+         Calculate recovery id - it is not possible to compute the public key out of the signature
+         itself. Recovery id is used to enable extracting the public key uniquely.
+         1. id = R.y & 1
+         2. if (s > curve.q) id = id ^ 1
+        */
         let is_ry_odd = ry.tstbit(0);
         let mut recid = if is_ry_odd { 1 } else { 0 };
-        let half_q = &temp.q().div_floor(&BigInt::from(2));
-        if s_tag_tag.gt(half_q) {
+        if s_tag_tag.gt(&temp.q().div_floor(&BigInt::from(2))) {
             recid ^= 1;
         }
 
