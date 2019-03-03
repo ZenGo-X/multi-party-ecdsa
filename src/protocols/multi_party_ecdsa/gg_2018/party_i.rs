@@ -30,7 +30,7 @@ use curv::cryptographic_primitives::commitments::hash_commitment::HashCommitment
 use curv::cryptographic_primitives::commitments::traits::Commitment;
 use curv::cryptographic_primitives::hashing::hash_sha256::HSha256;
 use curv::cryptographic_primitives::hashing::traits::Hash;
-use curv::cryptographic_primitives::proofs::sigma_correct_homomrphic_elgamal_enc::*;
+use curv::cryptographic_primitives::proofs::sigma_correct_homomorphic_elgamal_enc::*;
 use curv::cryptographic_primitives::proofs::sigma_dlog::{DLogProof, ProveDLog};
 use curv::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS;
 use curv::BigInt;
@@ -204,7 +204,7 @@ impl Keys {
         let correct_ss_verify = (0..y_vec.len())
             .map(|i| {
                 vss_scheme_vec[i]
-                    .validate_share(&secret_shares_vec[i], &index)
+                    .validate_share(&secret_shares_vec[i], *index)
                     .is_ok()
                     && vss_scheme_vec[i].commitments[0].get_element() == y_vec[i].get_element()
             })
@@ -228,7 +228,7 @@ impl Keys {
         let xi_points_vec = (1..len + 1)
             .map(|i| {
                 let xij_points_vec = (0..len)
-                    .map(|j| vss_scheme_vec[j].get_point_commitment(&i))
+                    .map(|j| vss_scheme_vec[j].get_point_commitment(i))
                     .collect::<Vec<GE>>();
 
                 let mut xij_points_iter = xij_points_vec.iter();
@@ -248,7 +248,7 @@ impl Keys {
         index: usize,
         s: &Vec<usize>,
     ) -> GE {
-        let li = vss_scheme.map_share_to_new_params(&index, s);
+        let li = vss_scheme.map_share_to_new_params(index, s);
         comm * &li
     }
 
@@ -277,7 +277,7 @@ impl SignKeys {
         index: usize,
         s: &Vec<usize>,
     ) -> SignKeys {
-        let li = vss_scheme.map_share_to_new_params(&index, s);
+        let li = vss_scheme.map_share_to_new_params(index, s);
         let w_i = li * &shared_keys.x_i;
         let g: GE = ECPoint::generator();
         let g_w_i = &g * &w_i;
