@@ -1,128 +1,378 @@
-{\rtf1\ansi\ansicpg1252\deff0\nouicompat\deflang1033{\fonttbl{\f0\fnil\fcharset0 Menlo-Regular;}{\f1\fnil\fcharset0 Verdana;}{\f2\fnil\fcharset0 Menlo-Bold;}{\f3\fnil\fcharset0 Calibri;}}
-{\colortbl ;\red0\green0\blue0;\red47\green180\blue29;\red153\green153\blue153;\red159\green160\blue28;\red74\green0\blue255;}
-{\*\generator Riched20 10.0.17134}\viewkind4\uc1 
-\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\cf1\f0\fs22\lang9 Log hilights for running \f1\fs16\lang1033 516e6bf\f0\fs22\lang9\par
-on host (Mac Mini A1347 Late 2012 MD387LL/A 16GB RAM) and phone (iPhone 6S A1633)\par
-\par
-Last login: Wed Feb 20 22:29:28 on ttys004\par
-macmini31:multi-party-ecdsa vl$ cargo dinghy -d 'iPhone John' --platform auto-ios-aarch64 bench\par
- \cf2 INFO \cf1  \b\f2 cargo_dinghy\b0\f0  > Targeting platform 'auto-ios-aarch64' and device '91b2f0d3359d4df4ea35b3cd30d54550daa56b22'\par
-\cf2\b\f2    Compiling\cf1\b0\f0  multi-party-ecdsa v0.1.0 (/Users/vl/repo/multi-party-ecdsa)                                                                                                                                                                                           \par
-\cf2\b\f2     Finished\cf1\b0\f0  release [optimized] target(s) in 3.32s                                                                                                                                                                                                                \par
-(lldb) command source -s 1 '/var/folders/4q/r3_2znqd3pz_zdh740tcv60m0000gr/T/mobiledevice-rs-lldb.zhpd0LE2t8t6/lldb-script'\par
-\par
-running 9 tests\par
-test protocols::multi_party_ecdsa::gg_2018::test::tests::test_keygen_t1_n2 ... ok\par
-test protocols::multi_party_ecdsa::gg_2018::test::tests::test_keygen_t2_n3 ... ok\par
-test protocols::multi_party_ecdsa::gg_2018::test::tests::test_mta ... ok\par
-test protocols::multi_party_ecdsa::gg_2018::test::tests::test_keygen_t2_n4 ... ok\par
-test protocols::multi_party_ecdsa::gg_2018::test::tests::test_sign_n5_t2_ttag4 ... ok\par
-test protocols::two_party_ecdsa::lindell_2017::test::tests::test_d_log_proof_party_two_party_one ... ok\par
-test protocols::multi_party_ecdsa::gg_2018::test::tests::test_sign_n8_t4_ttag6 ... test protocols::multi_party_ecdsa::gg_2018::test::tests::test_sign_n8_t4_ttag6 has been running for over 60 seconds\par
-test protocols::two_party_ecdsa::lindell_2017::test::tests::test_full_key_gen ... ok\par
-test protocols::two_party_ecdsa::lindell_2017::test::tests::test_two_party_sign ... ok\par
-test protocols::multi_party_ecdsa::gg_2018::test::tests::test_sign_n8_t4_ttag6 ... ok\par
-\par
-test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out\par
-\par
-(lldb) command source -s 1 '/var/folders/4q/r3_2znqd3pz_zdh740tcv60m0000gr/T/mobiledevice-rs-lldb.vdrhGFEolBYj/lldb-script'\par
-\par
-running 0 tests\par
-\par
-test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out\par
-\par
-(lldb) command source -s 1 '/var/folders/4q/r3_2znqd3pz_zdh740tcv60m0000gr/T/mobiledevice-rs-lldb.b1FjwpunlIWi/lldb-script'\par
-\par
-running 0 tests\par
-\par
-test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out\par
-\par
-(lldb) command source -s 1 '/var/folders/4q/r3_2znqd3pz_zdh740tcv60m0000gr/T/mobiledevice-rs-lldb.djjPzgIF1KEV/lldb-script'\par
-Warning: Sample sizes < 10 will be disallowed in Criterion.rs 0.3.0.\par
-\par
-Benchmarking keygen: AnalyzingCriterion.rs \par
-\cf2 keygen\cf1                   time:   [\cf3 31.155 s\cf1  \b\f2 31.889 s\b0\f0  \cf3 32.171 s\cf1 ]\par
-\par
-(lldb) command source -s 1 '/var/folders/4q/r3_2znqd3pz_zdh740tcv60m0000gr/T/mobiledevice-rs-lldb.WVmWsV0qxlf5/lldb-script'\par
-Warning: Sample sizes < 10 will be disallowed in Criterion.rs 0.3.0.\par
-\par
-Benchmarking keygen t=1 n=2: AnalyzingCriterion.rs \par
-\cf2 keygen t=1 n=2\cf1           time:   [\cf3 2.6533 s\cf1  \b\f2 2.8052 s\b0\f0  \cf3 3.3143 s\cf1 ]\par
-\par
-Benchmarking keygen t=2 n=3: AnalyzingCriterion.rs \par
-\cf2 keygen t=2 n=3\cf1           time:   [\cf3 4.4918 s\cf1  \b\f2 5.1433 s\b0\f0  \cf3 5.4888 s\cf1 ]\par
-\par
-Benchmarking keygen t=5 n=8: AnalyzingCriterion.rs \par
-\cf2 keygen t=5 n=8\cf1           time:   [\cf3 25.638 s\cf1  \b\f2 26.298 s\b0\f0  \cf3 26.932 s\cf1 ]\par
-running 0 tests\par
-\par
-test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out\par
-\par
-macmini31:multi-party-ecdsa vl$ cargo bench\par
-\cf2\b\f2    Compiling\cf1\b0\f0  multi-party-ecdsa v0.1.0 (/Users/vl/repo/multi-party-ecdsa)\par
-\cf4\b\f2 warning\cf1 : unused variable: `g_gamma_i_vec`\b0\f0\par
-   \cf5\b\f2 --> \cf1\b0\f0 src/protocols/multi_party_ecdsa/gg_2018/test.rs:301:13\par
-    \cf5\b\f2 |\cf1\b0\f0\par
-\cf5\b\f2 301\cf1\b0\f0  \cf5\b\f2 | \cf1\b0\f0         let g_gamma_i_vec = (0..ttag)\par
-    \cf5\b\f2 | \cf1\b0\f0             \cf4\b\f2 ^^^^^^^^^^^^^\cf1\b0\f0  \cf4\b\f2 help: consider prefixing with an underscore: `_g_gamma_i_vec`\cf1\b0\f0\par
-    \cf5\b\f2 |\cf1\b0\f0\par
-    \cf5\b\f2 = \cf1 note\b0\f0 : #[warn(unused_variables)] on by default\par
-\par
-\cf2\b\f2     Finished\cf1\b0\f0  release [optimized] target(s) in 38.42s\par
-\cf2\b\f2      Running\cf1\b0\f0  target/release/deps/multi_party_ecdsa-5e00dae7db842f11\par
-\par
-running 9 tests\par
-test protocols::multi_party_ecdsa::gg_2018::test::tests::test_keygen_t1_n2 ... \cf4 ignored\cf1\par
-test protocols::multi_party_ecdsa::gg_2018::test::tests::test_keygen_t2_n3 ... \cf4 ignored\cf1\par
-test protocols::multi_party_ecdsa::gg_2018::test::tests::test_keygen_t2_n4 ... \cf4 ignored\cf1\par
-test protocols::multi_party_ecdsa::gg_2018::test::tests::test_mta ... \cf4 ignored\cf1\par
-test protocols::multi_party_ecdsa::gg_2018::test::tests::test_sign_n5_t2_ttag4 ... \cf4 ignored\cf1\par
-test protocols::multi_party_ecdsa::gg_2018::test::tests::test_sign_n8_t4_ttag6 ... \cf4 ignored\cf1\par
-test protocols::two_party_ecdsa::lindell_2017::test::tests::test_d_log_proof_party_two_party_one ... \cf4 ignored\cf1\par
-test protocols::two_party_ecdsa::lindell_2017::test::tests::test_full_key_gen ... \cf4 ignored\cf1\par
-test protocols::two_party_ecdsa::lindell_2017::test::tests::test_two_party_sign ... \cf4 ignored\cf1\par
-\par
-test result: \cf2 ok\cf1 . 0 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out\par
-\par
-\cf2\b\f2      Running\cf1\b0\f0  target/release/deps/gg18_keygen_client-c3798a39fed615f4\par
-\par
-running 0 tests\par
-\par
-test result: \cf2 ok\cf1 . 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out\par
-\par
-\cf2\b\f2      Running\cf1\b0\f0  target/release/deps/gg18_sign_client-22ee6ba599207a77\par
-\par
-running 0 tests\par
-\par
-test result: \cf2 ok\cf1 . 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out\par
-\par
-\cf2\b\f2      Running\cf1\b0\f0  target/release/deps/sm_manager-19f5a2e7ced714c6\par
-\par
-running 0 tests\par
-\par
-test result: \cf2 ok\cf1 . 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out\par
-\par
-\cf2\b\f2      Running\cf1\b0\f0  target/release/deps/keygen_2p-8c2b7205cf37797e\par
-Warning: Sample sizes < 10 will be disallowed in Criterion.rs 0.3.0.\par
-Gnuplot not found, disabling plotting\par
-\cf2 keygen\cf1                   time:   [\cf3 4.0675 s\cf1  \b\f2 4.0988 s\b0\f0  \cf3 4.1749 s\cf1 ]                   \par
-\par
-Gnuplot not found, disabling plotting\par
-\cf2\b\f2      Running\cf1\b0\f0  target/release/deps/keygen_mp-825db48f22ae04d4\par
-Warning: Sample sizes < 10 will be disallowed in Criterion.rs 0.3.0.\par
-Gnuplot not found, disabling plotting\par
-\cf2 keygen t=1 n=2\cf1           time:   [\cf3 816.58 ms\cf1  \b\f2 1.0185 s\b0\f0  \cf3 1.2034 s\cf1 ]                          \par
-\par
-\cf2 keygen t=2 n=3\cf1           time:   [\cf3 1.4682 s\cf1  \b\f2 1.5835 s\b0\f0  \cf3 1.8026 s\cf1 ]                           \par
-\cf4 Found 1 outliers among 5 measurements (20.00%)\cf1\par
-  1 (20.00%) high severe\par
-\par
-\cf2 keygen t=5 n=8\cf1           time:   [\cf3 9.1888 s\cf1  \b\f2 9.5256 s\b0\f0  \cf3 9.9273 s\cf1 ]                           \par
-\cf4 Found 1 outliers among 5 measurements (20.00%)\cf1\par
-  1 (20.00%) low mild\par
-\par
-macmini31:multi-party-ecdsa vl$ \par
+{\rtf1\ansi\deff3\adeflang1025
+{\fonttbl{\f0\froman\fprq2\fcharset0 Times New Roman;}{\f1\froman\fprq2\fcharset2 Symbol;}{\f2\fswiss\fprq2\fcharset0 Arial;}{\f3\froman\fprq2\fcharset0 Liberation Serif{\*\falt Times New Roman};}{\f4\fswiss\fprq2\fcharset0 Liberation Sans{\*\falt Arial};}{\f5\froman\fprq2\fcharset0 Menlo-Regular;}{\f6\froman\fprq2\fcharset0 Verdana;}{\f7\froman\fprq2\fcharset0 Menlo-Bold;}{\f8\froman\fprq2\fcharset0 Calibri;}{\f9\fnil\fprq2\fcharset0 Noto Sans CJK SC Regular;}{\f10\fnil\fprq2\fcharset0 Lohit Devanagari;}{\f11\fnil\fprq0\fcharset128 Lohit Devanagari;}}
+{\colortbl;\red0\green0\blue0;\red0\green0\blue255;\red0\green255\blue255;\red0\green255\blue0;\red255\green0\blue255;\red255\green0\blue0;\red255\green255\blue0;\red255\green255\blue255;\red0\green0\blue128;\red0\green128\blue128;\red0\green128\blue0;\red128\green0\blue128;\red128\green0\blue0;\red128\green128\blue0;\red128\green128\blue128;\red192\green192\blue192;\red47\green180\blue29;\red153\green153\blue153;\red159\green160\blue28;\red74\green0\blue255;\red206\green24\blue30;}
+{\stylesheet{\s0\snext0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033 Normal;}
+{\s15\sbasedon0\snext16\sb240\sa120\keepn\dbch\af9\dbch\af10\afs28\loch\f4\fs28 Heading;}
+{\s16\sbasedon0\snext16\sl276\slmult1\sb0\sa140 Text Body;}
+{\s17\sbasedon16\snext17\sl276\slmult1\sb0\sa140\dbch\af11 List;}
+{\s18\sbasedon0\snext18\sb120\sa120\noline\i\dbch\af11\afs24\ai\fs24 Caption;}
+{\s19\sbasedon0\snext19\noline\dbch\af11 Index;}
+}{\*\generator LibreOffice/6.1.4.2$Linux_X86_64 LibreOffice_project/10$Build-2}{\info{\creatim\yr0\mo0\dy0\hr0\min0}{\revtim\yr2019\mo3\dy13\hr23\min54}{\printim\yr0\mo0\dy0\hr0\min0}}{\*\userprops}\deftab720
+\viewscale100
+{\*\pgdsctbl
+{\pgdsc0\pgdscuse451\pgwsxn12240\pghsxn15840\marglsxn1800\margrsxn1800\margtsxn1440\margbsxn1440\pgdscnxt0 Default Style;}}
+\formshade{\*\pgdscno0}\paperh15840\paperw12240\margl1800\margr1800\margt1440\margb1440\sectd\sbknone\sectunlocked1\pgndec\pgwsxn12240\pghsxn15840\marglsxn1800\margrsxn1800\margtsxn1440\margbsxn1440\ftnbj\ftnstart1\ftnrstcont\ftnnar\aenddoc\aftnrstcont\aftnstart1\aftnnrlc
+{\*\ftnsep\chftnsep}\pgndec\pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf21\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+Log hilights for running }{\cf21\rtlch \ltrch\loch\fs16\lang1033\loch\f6\hich\af6
+516e6bf}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf21\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+on phone (iPhone 6S A1633)}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\cf1\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
 
-\pard\sa200\sl276\slmult1\cf0\f3\par
-}
- 
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+Last login: Wed Feb 20 22:29:28 on ttys004}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+macmini31:multi-party-ecdsa vl$ cargo dinghy -d 'iPhone John' --platform auto-ios-aarch64 bench}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\rtlch \ltrch\fs22\lang9\loch\f5\hich\af5
+ }{\cf17\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+INFO }{\cf1\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+ }{\cf1\b\rtlch \ltrch\loch\fs22\lang9\loch\f7\hich\af7
+cargo_dinghy}{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+ > Targeting platform 'auto-ios-aarch64' and device '91b2f0d3359d4df4ea35b3cd30d54550daa56b22'}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf17\b\rtlch \ltrch\fs22\lang9\loch\f7\hich\af7
+   }{\cf17\b\rtlch \ltrch\loch\fs22\lang9\loch\f7\hich\af7
+Compiling}{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+ multi-party-ecdsa v0.1.0 (/Users/vl/repo/multi-party-ecdsa)                                                                                                                                                                                           }
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf17\b\rtlch \ltrch\fs22\lang9\loch\f7\hich\af7
+    }{\cf17\b\rtlch \ltrch\loch\fs22\lang9\loch\f7\hich\af7
+Finished}{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+ release [optimized] target(s) in 3.32s                                                                                                                                                                                                                }
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+(lldb) command source -s 1 '/var/folders/4q/r3_2znqd3pz_zdh740tcv60m0000gr/T/mobiledevice-rs-lldb.zhpd0LE2t8t6/lldb-script'}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+running 9 tests}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+test protocols::multi_party_ecdsa::gg_2018::test::tests::test_keygen_t1_n2 ... ok}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+test protocols::multi_party_ecdsa::gg_2018::test::tests::test_keygen_t2_n3 ... ok}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+test protocols::multi_party_ecdsa::gg_2018::test::tests::test_mta ... ok}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+test protocols::multi_party_ecdsa::gg_2018::test::tests::test_keygen_t2_n4 ... ok}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+test protocols::multi_party_ecdsa::gg_2018::test::tests::test_sign_n5_t2_ttag4 ... ok}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+test protocols::two_party_ecdsa::lindell_2017::test::tests::test_d_log_proof_party_two_party_one ... ok}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+test protocols::multi_party_ecdsa::gg_2018::test::tests::test_sign_n8_t4_ttag6 ... test protocols::multi_party_ecdsa::gg_2018::test::tests::test_sign_n8_t4_ttag6 has been running for over 60 seconds}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+test protocols::two_party_ecdsa::lindell_2017::test::tests::test_full_key_gen ... ok}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+test protocols::two_party_ecdsa::lindell_2017::test::tests::test_two_party_sign ... ok}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+test protocols::multi_party_ecdsa::gg_2018::test::tests::test_sign_n8_t4_ttag6 ... ok}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+(lldb) command source -s 1 '/var/folders/4q/r3_2znqd3pz_zdh740tcv60m0000gr/T/mobiledevice-rs-lldb.vdrhGFEolBYj/lldb-script'}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+running 0 tests}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+(lldb) command source -s 1 '/var/folders/4q/r3_2znqd3pz_zdh740tcv60m0000gr/T/mobiledevice-rs-lldb.b1FjwpunlIWi/lldb-script'}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+running 0 tests}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+(lldb) command source -s 1 '/var/folders/4q/r3_2znqd3pz_zdh740tcv60m0000gr/T/mobiledevice-rs-lldb.djjPzgIF1KEV/lldb-script'}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+Warning: Sample sizes < 10 will be disallowed in Criterion.rs 0.3.0.}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+Benchmarking keygen: AnalyzingCriterion.rs }
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf17\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+keygen}{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+                  time:   [}{\cf18\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+31.155 s}{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+ }{\cf1\b\rtlch \ltrch\loch\fs22\lang9\loch\f7\hich\af7
+31.889 s}{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+ }{\cf18\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+32.171 s}{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+]}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+(lldb) command source -s 1 '/var/folders/4q/r3_2znqd3pz_zdh740tcv60m0000gr/T/mobiledevice-rs-lldb.WVmWsV0qxlf5/lldb-script'}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+Warning: Sample sizes < 10 will be disallowed in Criterion.rs 0.3.0.}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+Benchmarking keygen t=1 n=2: AnalyzingCriterion.rs }
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf17\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+keygen t=1 n=2}{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+          time:   [}{\cf18\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+2.6533 s}{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+ }{\cf1\b\rtlch \ltrch\loch\fs22\lang9\loch\f7\hich\af7
+2.8052 s}{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+ }{\cf18\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+3.3143 s}{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+]}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+Benchmarking keygen t=2 n=3: AnalyzingCriterion.rs }
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf17\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+keygen t=2 n=3}{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+          time:   [}{\cf18\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+4.4918 s}{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+ }{\cf1\b\rtlch \ltrch\loch\fs22\lang9\loch\f7\hich\af7
+5.1433 s}{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+ }{\cf18\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+5.4888 s}{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+]}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+Benchmarking keygen t=5 n=8: AnalyzingCriterion.rs }
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf17\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+keygen t=5 n=8}{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+          time:   [}{\cf18\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+25.638 s}{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+ }{\cf1\b\rtlch \ltrch\loch\fs22\lang9\loch\f7\hich\af7
+26.298 s}{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+ }{\cf18\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+26.932 s}{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+]}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+running 0 tests}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf21\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+and }{\cf21\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+host (Mac Mini A1347 Late 2012 MD387LL/A 16GB RAM)}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+macmini31:multi-party-ecdsa vl$ cargo bench}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf17\b\rtlch \ltrch\fs22\lang9\loch\f7\hich\af7
+   }{\cf17\b\rtlch \ltrch\loch\fs22\lang9\loch\f7\hich\af7
+Compiling}{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+ multi-party-ecdsa v0.1.0 (/Users/vl/repo/multi-party-ecdsa)}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf19\b\rtlch \ltrch\loch\fs22\lang9\loch\f7\hich\af7
+warning}{\cf1\b\rtlch \ltrch\loch\fs22\lang9\loch\f7\hich\af7
+: unused variable: `g_gamma_i_vec`}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\b0\rtlch \ltrch\fs22\lang9\loch\f5\hich\af5
+   }{\cf20\b\rtlch \ltrch\loch\fs22\lang9\loch\f7\hich\af7
+--> }{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+src/protocols/multi_party_ecdsa/gg_2018/test.rs:301:13}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\b0\rtlch \ltrch\fs22\lang9\loch\f5\hich\af5
+    }{\cf20\b\rtlch \ltrch\loch\fs22\lang9\loch\f7\hich\af7
+|}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf20\b\rtlch \ltrch\loch\fs22\lang9\loch\f7\hich\af7
+301}{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+ }{\cf20\b\rtlch \ltrch\loch\fs22\lang9\loch\f7\hich\af7
+| }{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+        let g_gamma_i_vec = (0..ttag)}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\b0\rtlch \ltrch\fs22\lang9\loch\f5\hich\af5
+    }{\cf20\b\rtlch \ltrch\loch\fs22\lang9\loch\f7\hich\af7
+| }{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+            }{\cf19\b\rtlch \ltrch\loch\fs22\lang9\loch\f7\hich\af7
+^^^^^^^^^^^^^}{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+ }{\cf19\b\rtlch \ltrch\loch\fs22\lang9\loch\f7\hich\af7
+help: consider prefixing with an underscore: `_g_gamma_i_vec`}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\b0\rtlch \ltrch\fs22\lang9\loch\f5\hich\af5
+    }{\cf20\b\rtlch \ltrch\loch\fs22\lang9\loch\f7\hich\af7
+|}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\b0\rtlch \ltrch\fs22\lang9\loch\f5\hich\af5
+    }{\cf20\b\rtlch \ltrch\loch\fs22\lang9\loch\f7\hich\af7
+= }{\cf1\b\rtlch \ltrch\loch\fs22\lang9\loch\f7\hich\af7
+note}{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+: #[warn(unused_variables)] on by default}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf17\b\rtlch \ltrch\fs22\lang9\loch\f7\hich\af7
+    }{\cf17\b\rtlch \ltrch\loch\fs22\lang9\loch\f7\hich\af7
+Finished}{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+ release [optimized] target(s) in 38.42s}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf17\b\rtlch \ltrch\fs22\lang9\loch\f7\hich\af7
+     }{\cf17\b\rtlch \ltrch\loch\fs22\lang9\loch\f7\hich\af7
+Running}{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+ target/release/deps/multi_party_ecdsa-5e00dae7db842f11}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+running 9 tests}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+test protocols::multi_party_ecdsa::gg_2018::test::tests::test_keygen_t1_n2 ... }{\cf19\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+ignored}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+test protocols::multi_party_ecdsa::gg_2018::test::tests::test_keygen_t2_n3 ... }{\cf19\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+ignored}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+test protocols::multi_party_ecdsa::gg_2018::test::tests::test_keygen_t2_n4 ... }{\cf19\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+ignored}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+test protocols::multi_party_ecdsa::gg_2018::test::tests::test_mta ... }{\cf19\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+ignored}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+test protocols::multi_party_ecdsa::gg_2018::test::tests::test_sign_n5_t2_ttag4 ... }{\cf19\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+ignored}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+test protocols::multi_party_ecdsa::gg_2018::test::tests::test_sign_n8_t4_ttag6 ... }{\cf19\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+ignored}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+test protocols::two_party_ecdsa::lindell_2017::test::tests::test_d_log_proof_party_two_party_one ... }{\cf19\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+ignored}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+test protocols::two_party_ecdsa::lindell_2017::test::tests::test_full_key_gen ... }{\cf19\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+ignored}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+test protocols::two_party_ecdsa::lindell_2017::test::tests::test_two_party_sign ... }{\cf19\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+ignored}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+test result: }{\cf17\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+ok}{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+. 0 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf17\b\rtlch \ltrch\fs22\lang9\loch\f7\hich\af7
+     }{\cf17\b\rtlch \ltrch\loch\fs22\lang9\loch\f7\hich\af7
+Running}{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+ target/release/deps/gg18_keygen_client-c3798a39fed615f4}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+running 0 tests}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+test result: }{\cf17\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+ok}{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf17\b\rtlch \ltrch\fs22\lang9\loch\f7\hich\af7
+     }{\cf17\b\rtlch \ltrch\loch\fs22\lang9\loch\f7\hich\af7
+Running}{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+ target/release/deps/gg18_sign_client-22ee6ba599207a77}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+running 0 tests}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+test result: }{\cf17\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+ok}{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf17\b\rtlch \ltrch\fs22\lang9\loch\f7\hich\af7
+     }{\cf17\b\rtlch \ltrch\loch\fs22\lang9\loch\f7\hich\af7
+Running}{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+ target/release/deps/sm_manager-19f5a2e7ced714c6}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+running 0 tests}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+test result: }{\cf17\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+ok}{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf17\b\rtlch \ltrch\fs22\lang9\loch\f7\hich\af7
+     }{\cf17\b\rtlch \ltrch\loch\fs22\lang9\loch\f7\hich\af7
+Running}{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+ target/release/deps/keygen_2p-8c2b7205cf37797e}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+Warning: Sample sizes < 10 will be disallowed in Criterion.rs 0.3.0.}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+Gnuplot not found, disabling plotting}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf17\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+keygen}{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+                  time:   [}{\cf18\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+4.0675 s}{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+ }{\cf1\b\rtlch \ltrch\loch\fs22\lang9\loch\f7\hich\af7
+4.0988 s}{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+ }{\cf18\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+4.1749 s}{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+]                   }
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+Gnuplot not found, disabling plotting}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf17\b\rtlch \ltrch\fs22\lang9\loch\f7\hich\af7
+     }{\cf17\b\rtlch \ltrch\loch\fs22\lang9\loch\f7\hich\af7
+Running}{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+ target/release/deps/keygen_mp-825db48f22ae04d4}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+Warning: Sample sizes < 10 will be disallowed in Criterion.rs 0.3.0.}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+Gnuplot not found, disabling plotting}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf17\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+keygen t=1 n=2}{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+          time:   [}{\cf18\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+816.58 ms}{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+ }{\cf1\b\rtlch \ltrch\loch\fs22\lang9\loch\f7\hich\af7
+1.0185 s}{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+ }{\cf18\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+1.2034 s}{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+]                          }
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf17\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+keygen t=2 n=3}{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+          time:   [}{\cf18\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+1.4682 s}{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+ }{\cf1\b\rtlch \ltrch\loch\fs22\lang9\loch\f7\hich\af7
+1.5835 s}{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+ }{\cf18\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+1.8026 s}{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+]                           }
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf19\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+Found 1 outliers among 5 measurements (20.00%)}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\b0\rtlch \ltrch\fs22\lang9\loch\f5\hich\af5
+  }{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+1 (20.00%) high severe}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf17\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+keygen t=5 n=8}{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+          time:   [}{\cf18\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+9.1888 s}{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+ }{\cf1\b\rtlch \ltrch\loch\fs22\lang9\loch\f7\hich\af7
+9.5256 s}{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+ }{\cf18\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+9.9273 s}{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+]                           }
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf19\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+Found 1 outliers among 5 measurements (20.00%)}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\b0\rtlch \ltrch\fs22\lang9\loch\f5\hich\af5
+  }{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+1 (20.00%) low mild}
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720{\cf1\b0\rtlch \ltrch\loch\fs22\lang9\loch\f5\hich\af5
+macmini31:multi-party-ecdsa vl$ }
+\par \pard\plain \s0\nowidctlpar\hyphpar0\cf0\kerning1\dbch\af12\langfe2052\dbch\af10\afs24\alang1081\loch\f3\hich\af3\fs24\lang1033\sl276\slmult1\sb0\sa200\rtlch \ltrch\loch
+
+\par }

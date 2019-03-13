@@ -1,0 +1,3 @@
+##override for iOS
+[lib]
+crate-type = ["staticlib", "rlib"]

@@ -14,13 +14,13 @@ Prerequisites
 
 * [**GMP**](https://gmplib.org/) (The GNU Multiple Precision Arithmetic Library)
 
-    You will need to have architecture specific version of GMP for your device's platform. You can use [this prebuilt binary](./bin/gmp_ios.zip) for iOS on  Mac OSX. It's a static library that has following architectures:
+    You will need to have architecture specific version of GMP for your device's platform. You can use prebuilt binary for iOS on  Mac OSX. You will need static library that has one or all of the following architectures:
   
   * `arm64` - for 64bit mobile processors starting for Apple A7 (ARMv8 instruction set)
   * `armv7` - for earlier 32bit mobile processors (not very usable on older devices due to low performance)
   * `x86_64` - for 64bit host processors to run on iOS device simulators
   
-  But it's **_strongly recommended to build GMP on your system yourself_**. Otherwise you will have to install prebuilt binaries to your `lib` folder at `\<root>⁩\⁨usr⁩\local⁩\lib⁩` and [gmp.h](./bin/gmp_ios.zip) to your `include` folder at `\<root>⁩\⁨usr⁩\local⁩\include⁩` and something may not go wright:)
+  But it's **_strongly recommended to build GMP on your system yourself_**. Otherwise you will have to install prebuilt binaries to your `lib` folder at `\<root>⁩\⁨usr⁩\local⁩\lib⁩` and `gmp.h` to your `include` folder at `\<root>⁩\⁨usr⁩\local⁩\include⁩` and something may not go wright:)
 
       make mostlyclean
       make clean
@@ -131,8 +131,6 @@ keygen t=5 n=8          time:   [9.1888 s 9.5256 s 9.9273 s]
 Found 1 outliers among 5 measurements (20.00%)
   1 (20.00%) low mild
 ```
-
-You may want to check [full logs](./doc/bench_logs_full.rtf) for your own discretion.
 
 So running your usual Rust commands just turns into adding `dinghy -d 'YourDeviceName' --platform auto-ios-<architecture> -vvv` in between. Note that `-vvv` argument turns on verbose output and number of `v` denotes verbosity level - it may give you a lot of useful info for :point_down:
 
