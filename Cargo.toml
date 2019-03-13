@@ -24,7 +24,7 @@ categories = ["cryptography"]
 crate-type = ["staticlib", "rlib"]
 
 [dependencies]
-paillier = { git = "https://github.com/mortendahl/rust-paillier"}
+paillier = { git = "https://github.com/KZen-networks/rust-paillier"}
 zk-paillier = { git = "https://github.com/KZen-networks/zk-paillier"}
 
 serde = "1.0"
@@ -38,7 +38,7 @@ rust-crypto = { git = "https://github.com/vhnatyk/rust-crypto", branch="aarch64"
 
 [dependencies.curv]
 git = "https://github.com/KZen-networks/curv"
-features =  ["curvesecp256k1"]
+features =  ["ec_secp256k1"]
 
 [dependencies.centipede]
 git = "https://github.com/KZen-networks/centipede"
