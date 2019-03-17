@@ -82,6 +82,7 @@ pub struct PaillierKeyPair {
 pub struct Signature {
     pub s: BigInt,
     pub r: BigInt,
+    pub recid: u8,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
@@ -481,6 +482,7 @@ impl Signature {
         r = r.scalar_mul(&ephemeral_local_share.secret_share.get_element());
 
         let rx = r.x_coor().unwrap().mod_floor(&FE::q());
+        let ry = r.y_coor().unwrap().mod_floor(&FE::q());
         let k1_inv = &ephemeral_local_share
             .secret_share
             .to_big_int()
@@ -493,7 +495,19 @@ impl Signature {
         let s_tag_tag = BigInt::mod_mul(&k1_inv, &s_tag.0, &FE::q());
         let s = cmp::min(s_tag_tag.clone(), FE::q().clone() - s_tag_tag.clone());
 
-        Signature { s, r: rx }
+        /*
+         Calculate recovery id - it is not possible to compute the public key out of the signature
+         itself. Recovery id is used to enable extracting the public key uniquely.
+         1. id = R.y & 1
+         2. if (s > curve.q) id = id ^ 1
+        */
+        let is_ry_odd = ry.tstbit(0);
+        let mut recid = if is_ry_odd { 1 } else { 0 };
+        if s_tag_tag.gt(&FE::q().div_floor(&BigInt::from(2))) {
+            recid ^= 1;
+        }
+
+        Signature { s, r: rx, recid }
     }
 }
 
