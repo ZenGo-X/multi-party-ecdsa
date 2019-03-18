@@ -44,6 +44,10 @@ use curv::BigInt;
 use curv::FE;
 use curv::GE;
 
+use Error::{self, InvalidSig};
+
+use subtle::ConstantTimeEq;
+
 //****************** Begin: Party One structs ******************//
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct EcKeyPair {
@@ -542,25 +546,24 @@ impl Signature {
     }
 }
 
-pub fn verify(signature: &Signature, pubkey: &GE, message: &BigInt) -> Result<(), ProofError> {
-    let q = FE::q();
-    let b = signature.s.invert(&q).unwrap().mod_floor(&q);
-    let a = message.mod_floor(&q);
-    let u1 = BigInt::mod_mul(&a, &b, &q);
-    let u2 = BigInt::mod_mul(&signature.r, &b, &q);
-    // can be faster using shamir trick
-    let mut point1: GE = ECPoint::generator();
-    let u1_fe: FE = ECScalar::from(&u1);
-    let u2_fe: FE = ECScalar::from(&u2);
+pub fn verify(signature: &Signature, pubkey: &GE, message: &BigInt) -> Result<(), Error> {
+    let s_fe: FE = ECScalar::from(&signature.s);
+    let rx_fe: FE = ECScalar::from(&signature.r);
 
-    point1 = point1.scalar_mul(&u1_fe.get_element());
+    let s_inv_fe = s_fe.invert();
+    let e_fe: FE = ECScalar::from(&message.mod_floor(&FE::q()));
+    let u1 = GE::generator() * e_fe * s_inv_fe;
+    let u2 = *pubkey * rx_fe * s_inv_fe;
 
-    let mut point2 = pubkey.clone();
-    point2 = point2.scalar_mul(&u2_fe.get_element());
+    // second condition is against malleability
+    let rx_bytes = &BigInt::to_vec(&signature.r)[..];
+    let u1_plus_u2_bytes = &BigInt::to_vec(&(u1 + u2).x_coor().unwrap())[..];
 
-    if signature.r == point1.add_point(&point2.get_element()).x_coor().unwrap() {
+    if rx_bytes.ct_eq(&u1_plus_u2_bytes).unwrap_u8() == 1
+        && signature.s < FE::q() - signature.s.clone()
+    {
         Ok(())
     } else {
-        Err(ProofError)
+        Err(InvalidSig)
     }
 }

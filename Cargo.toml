@@ -27,6 +27,8 @@ crate-type = ["lib"]
 paillier = { git = "https://github.com/KZen-networks/rust-paillier"}
 zk-paillier = { git = "https://github.com/KZen-networks/zk-paillier"}
 
+
+subtle = {version = "2", features = ["nightly"]}
 serde = "1.0"
 serde_derive = "1.0"
 serde_json = "1.0"
