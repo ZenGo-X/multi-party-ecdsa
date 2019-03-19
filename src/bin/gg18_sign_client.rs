@@ -9,10 +9,9 @@ extern crate paillier;
 extern crate reqwest;
 #[macro_use]
 extern crate serde_derive;
+extern crate hex;
 extern crate serde_json;
 
-use curv::cryptographic_primitives::hashing::hash_sha256::HSha256;
-use curv::cryptographic_primitives::hashing::traits::Hash;
 use curv::cryptographic_primitives::proofs::sigma_correct_homomorphic_elgamal_enc::HomoELGamalProof;
 use curv::cryptographic_primitives::proofs::sigma_dlog::DLogProof;
 use curv::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS;
@@ -72,7 +71,11 @@ fn main() {
         panic!("too few arguments")
     }
     let message_str = env::args().nth(3).unwrap_or("".to_string());
-    let message = message_str.as_bytes();
+    let message = match hex::decode(message_str.clone()) {
+        Ok(x) => x,
+        Err(_e) => message_str.as_bytes().to_vec(),
+    };
+    let message = &message[..];
     let client = Client::new();
     // delay:
     let delay = time::Duration::from_millis(25);
@@ -341,8 +344,10 @@ fn main() {
     // adding local g_gamma_i
     let R = R + decomm_i.g_gamma_i * &delta_inv;
 
-    let message_bn = HSha256::create_hash(&vec![&BigInt::from(message)]);
-
+    // we assume the message is already hashed (by the signer).
+    let message_bn = BigInt::from(message);
+    let two = BigInt::from(2);
+    let message_bn = message_bn.modulus(&two.pow(256));
     let local_sig =
         LocalSignature::phase5_local_sig(&sign_keys.k_i, &message_bn, &R, &sigma, &y_sum);
 
