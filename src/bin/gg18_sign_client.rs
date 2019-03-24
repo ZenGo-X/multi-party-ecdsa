@@ -520,6 +520,15 @@ fn main() {
     println!("party {:?} Output Signature: \n", party_num_int);
     println!("R: {:?}", r.get_element());
     println!("s: {:?} \n", s.get_element());
+    let sign_json = serde_json::to_string(&(
+        "r",
+        (BigInt::from(&(r.get_element())[..])).to_str_radix(16),
+        "s",
+        (BigInt::from(&(s.get_element())[..])).to_str_radix(16),
+    ))
+    .unwrap();
+
+    fs::write("signature".to_string(), sign_json).expect("Unable to save !");
 }
 
 fn format_vec_from_reads<'a, T: serde::Deserialize<'a> + Clone>(
