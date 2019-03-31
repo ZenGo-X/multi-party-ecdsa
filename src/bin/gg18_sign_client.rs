@@ -138,8 +138,10 @@ fn main() {
     }
     // signers_vec.sort();
 
+    let private = PartyPrivate::set_private(party_keys.clone(), shared_keys);
+
     let sign_keys = SignKeys::create(
-        &shared_keys,
+        &private,
         &vss_scheme_vec[signers_vec[(party_num_int - 1) as usize]],
         signers_vec[(party_num_int - 1) as usize],
         &signers_vec,

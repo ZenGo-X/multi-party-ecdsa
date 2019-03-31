@@ -171,6 +171,11 @@ mod tests {
         let (party_keys_vec, shared_keys_vec, _pk_vec, y, vss_scheme) =
             keygen_t_n_parties(t.clone(), n);
 
+        let private_vec = (0..shared_keys_vec.len())
+            .map(|i| {
+                PartyPrivate::set_private(party_keys_vec[i].clone(), shared_keys_vec[i].clone())
+            })
+            .collect::<Vec<PartyPrivate>>();
         // make sure that we have t<t'<n and the group s contains id's for t' parties
         // TODO: make sure s has unique id's and they are all in range 0..n
         // TODO: make sure this code can run when id's are not in ascending order
@@ -181,7 +186,7 @@ mod tests {
         // create a vector of signing keys, one for each party.
         // throughout i will index parties
         let sign_keys_vec = (0..ttag)
-            .map(|i| SignKeys::create(&shared_keys_vec[s[i]], &vss_scheme, s[i], &s))
+            .map(|i| SignKeys::create(&private_vec[s[i]], &vss_scheme, s[i], &s))
             .collect::<Vec<SignKeys>>();
 
         // each party computes [Ci,Di] = com(g^gamma_i) and broadcast the commitments

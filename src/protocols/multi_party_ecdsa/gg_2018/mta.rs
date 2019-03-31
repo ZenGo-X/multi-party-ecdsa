@@ -22,7 +22,9 @@ use curv::GE;
 use paillier::{Add, Decrypt, Encrypt, Mul};
 use paillier::{DecryptionKey, EncryptionKey, Paillier, RawCiphertext, RawPlaintext};
 
+use protocols::multi_party_ecdsa::gg_2018::party_i::PartyPrivate;
 use Error::{self, InvalidKey};
+
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct MessageA {
     pub c: BigInt, // paillier encryption
@@ -76,6 +78,28 @@ impl MessageB {
         let alpha: FE = ECScalar::from(&alice_share.0);
         let g_alpha = g * &alpha;
         let ba_btag = &self.b_proof.pk * a + &self.beta_tag_proof.pk;
+        match DLogProof::verify(&self.b_proof).is_ok()
+            && DLogProof::verify(&self.beta_tag_proof).is_ok()
+            && ba_btag.get_element() == g_alpha.get_element()
+        {
+            true => Ok(alpha),
+            false => Err(InvalidKey),
+        }
+    }
+
+    //  another version, supportion PartyPrivate therefore binding mta to gg18.
+    //  with the regular version mta can be used in general
+    pub fn verify_proofs_get_alpha_gg18(
+        &self,
+        private: &PartyPrivate,
+        a: &FE,
+    ) -> Result<FE, Error> {
+        let alice_share = private.decrypt(self.c.clone());
+        let g: GE = ECPoint::generator();
+        let alpha: FE = ECScalar::from(&alice_share.0);
+        let g_alpha = g * &alpha;
+        let ba_btag = &self.b_proof.pk * a + &self.beta_tag_proof.pk;
+
         match DLogProof::verify(&self.b_proof).is_ok()
             && DLogProof::verify(&self.beta_tag_proof).is_ok()
             && ba_btag.get_element() == g_alpha.get_element()

@@ -36,16 +36,24 @@ use curv::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS;
 use curv::BigInt;
 use curv::FE;
 use curv::GE;
+use paillier::{Decrypt, RawCiphertext, RawPlaintext};
 
 const SECURITY: usize = 256;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Keys {
     pub u_i: FE,
     pub y_i: GE,
     pub dk: DecryptionKey,
     pub ek: EncryptionKey,
     pub party_index: usize,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+pub struct PartyPrivate {
+    u_i: FE,
+    x_i: FE,
+    dk: DecryptionKey,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -67,7 +75,7 @@ pub struct Parameters {
     pub share_count: usize, //n
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct SharedKeys {
     pub y: GE,
     pub x_i: FE,
@@ -270,15 +278,30 @@ impl Keys {
     }
 }
 
+impl PartyPrivate {
+    pub fn set_private(key: Keys, shared_key: SharedKeys) -> PartyPrivate {
+        let key_private = PartyPrivate {
+            u_i: key.u_i,
+            x_i: shared_key.x_i,
+            dk: key.dk,
+        };
+        key_private
+    }
+
+    pub fn decrypt(&self, ciphertext: BigInt) -> RawPlaintext {
+        Paillier::decrypt(&self.dk, &RawCiphertext::from(ciphertext))
+    }
+}
+
 impl SignKeys {
     pub fn create(
-        shared_keys: &SharedKeys,
+        private: &PartyPrivate,
         vss_scheme: &VerifiableSS,
         index: usize,
         s: &Vec<usize>,
     ) -> SignKeys {
         let li = vss_scheme.map_share_to_new_params(index, s);
-        let w_i = li * &shared_keys.x_i;
+        let w_i = li * &private.x_i;
         let g: GE = ECPoint::generator();
         let g_w_i = &g * &w_i;
         let gamma_i: FE = ECScalar::new_random();
@@ -551,7 +574,7 @@ impl LocalSignature {
             .fold(biased_sum_tb, |acc, x| acc.sub_point(&x.get_element()));
         match test_com {
             true => {
-                if g.get_element() == biased_sum_tb_minus_u.get_element() {
+                if g == biased_sum_tb_minus_u {
                     Ok(self.s_i.clone())
                 } else {
                     Err(InvalidKey)
