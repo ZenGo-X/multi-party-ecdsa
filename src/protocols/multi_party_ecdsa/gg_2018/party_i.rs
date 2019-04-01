@@ -291,6 +291,39 @@ impl PartyPrivate {
     pub fn decrypt(&self, ciphertext: BigInt) -> RawPlaintext {
         Paillier::decrypt(&self.dk, &RawCiphertext::from(ciphertext))
     }
+
+    pub fn refresh_private_key(&self, factor: &FE, index: usize) -> Keys {
+        let u: FE = self.u_i + factor;
+        let y = &ECPoint::generator() * &u;
+        let (ek, dk) = Paillier::keypair().keys();
+
+        Keys {
+            u_i: u,
+            y_i: y,
+            dk,
+            ek,
+            party_index: index.clone(),
+        }
+    }
+    /*
+    pub fn refresh_private_key(&self, factor: &FE, index: usize) -> (Self, VerifiableSS, FE){
+        let new_u_i = self.u_i + factor;
+        let (ek, dk) = Paillier::keypair().keys();
+        let params = Parameters {
+            threshold: 1 as usize,
+            share_count: 2 as usize,
+        };
+        let (vss_scheme, secret_shares) =
+            VerifiableSS::share(params.threshold, params.share_count, &new_u_i);
+        let party_private = PartyPrivate{
+            u_i: new_u_i,
+            x_i: secret_shares[i],
+            dk,
+        };
+        (party_private, vss_scheme, secret_shares[1-index])
+
+    }
+    */
 }
 
 impl SignKeys {
