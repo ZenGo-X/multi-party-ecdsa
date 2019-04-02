@@ -305,25 +305,14 @@ impl PartyPrivate {
             party_index: index.clone(),
         }
     }
-    /*
-    pub fn refresh_private_key(&self, factor: &FE, index: usize) -> (Self, VerifiableSS, FE){
-        let new_u_i = self.u_i + factor;
-        let (ek, dk) = Paillier::keypair().keys();
-        let params = Parameters {
-            threshold: 1 as usize,
-            share_count: 2 as usize,
-        };
-        let (vss_scheme, secret_shares) =
-            VerifiableSS::share(params.threshold, params.share_count, &new_u_i);
-        let party_private = PartyPrivate{
-            u_i: new_u_i,
-            x_i: secret_shares[i],
-            dk,
-        };
-        (party_private, vss_scheme, secret_shares[1-index])
 
+    pub fn update_private_key(&self, factor_u_i: &FE, factor_x_i: &FE) -> Self {
+        PartyPrivate {
+            u_i: self.u_i + factor_u_i,
+            x_i: self.x_i + factor_x_i,
+            dk: self.dk.clone(),
+        }
     }
-    */
 }
 
 impl SignKeys {
