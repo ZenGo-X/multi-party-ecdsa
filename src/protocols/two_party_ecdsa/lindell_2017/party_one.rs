@@ -39,6 +39,8 @@ use protocols::two_party_ecdsa::lindell_2017::party_two::PDLSecondMessage as Par
 
 use centipede::juggling::proof_system::{Helgamalsegmented, Witness};
 use centipede::juggling::segmentation::Msegmentation;
+use protocols::multi_party_ecdsa::gg_2018::mta::MessageB;
+
 
 use curv::BigInt;
 use curv::FE;
@@ -297,6 +299,7 @@ impl Party1Private {
         )
     }
 
+    // used for verifiable recovery
     pub fn to_encrypted_segment(
         &self,
         segment_size: &usize,
@@ -305,6 +308,11 @@ impl Party1Private {
         g: &GE,
     ) -> (Witness, Helgamalsegmented) {
         Msegmentation::to_encrypted_segments(&self.x1, &segment_size, num_of_segments, pub_ke_y, g)
+    }
+
+    // used to transform lindell master key to gg18 master key
+    pub fn to_mta_message_b(&self, message_b: MessageB) -> Result<FE, Error>{
+        message_b.verify_proofs_get_alpha(&self.paillier_priv ,&self.x1)
     }
 }
 

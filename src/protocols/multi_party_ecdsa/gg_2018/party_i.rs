@@ -148,6 +148,19 @@ impl Keys {
         }
     }
 
+    pub fn create_from(u: FE, index: usize) -> Keys {
+        let y = &ECPoint::generator() * &u;
+        let (ek, dk) = Paillier::keypair().keys();
+
+        Keys {
+            u_i: u,
+            y_i: y,
+            dk,
+            ek,
+            party_index: index.clone(),
+        }
+    }
+
     pub fn phase1_broadcast_phase3_proof_of_correct_key(
         &self,
     ) -> (KeyGenBroadcastMessage1, KeyGenDecommitMessage1) {

@@ -45,6 +45,7 @@ use zk_paillier::zkproofs::{
 
 use centipede::juggling::proof_system::{Helgamalsegmented, Witness};
 use centipede::juggling::segmentation::Msegmentation;
+use protocols::multi_party_ecdsa::gg_2018::mta::{MessageA, MessageB};
 
 //****************** Begin: Party Two structs ******************//
 
@@ -229,6 +230,7 @@ impl Party2Private {
         }
     }
 
+    // used for verifiable recovery
     pub fn to_encrypted_segment(
         &self,
         segment_size: &usize,
@@ -237,6 +239,12 @@ impl Party2Private {
         g: &GE,
     ) -> (Witness, Helgamalsegmented) {
         Msegmentation::to_encrypted_segments(&self.x2, &segment_size, num_of_segments, pub_ke_y, g)
+    }
+
+    // used to transform lindell master key to gg18 master key
+    pub fn to_mta_message_b(&self, ek: &EncryptionKey, ciphertext: &BigInt) -> (MessageB, FE){
+        let message_a = MessageA{c: ciphertext.clone()};
+        MessageB::b(&self.x2,&ek, message_a )
     }
 }
 
