@@ -41,7 +41,6 @@ use centipede::juggling::proof_system::{Helgamalsegmented, Witness};
 use centipede::juggling::segmentation::Msegmentation;
 use protocols::multi_party_ecdsa::gg_2018::mta::MessageB;
 
-
 use curv::BigInt;
 use curv::FE;
 use curv::GE;
@@ -311,8 +310,8 @@ impl Party1Private {
     }
 
     // used to transform lindell master key to gg18 master key
-    pub fn to_mta_message_b(&self, message_b: MessageB) -> Result<FE, Error>{
-        message_b.verify_proofs_get_alpha(&self.paillier_priv ,&self.x1)
+    pub fn to_mta_message_b(&self, message_b: MessageB) -> Result<FE, Error> {
+        message_b.verify_proofs_get_alpha(&self.paillier_priv, &self.x1)
     }
 }
 

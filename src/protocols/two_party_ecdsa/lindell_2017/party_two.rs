@@ -242,9 +242,11 @@ impl Party2Private {
     }
 
     // used to transform lindell master key to gg18 master key
-    pub fn to_mta_message_b(&self, ek: &EncryptionKey, ciphertext: &BigInt) -> (MessageB, FE){
-        let message_a = MessageA{c: ciphertext.clone()};
-        MessageB::b(&self.x2,&ek, message_a )
+    pub fn to_mta_message_b(&self, ek: &EncryptionKey, ciphertext: &BigInt) -> (MessageB, FE) {
+        let message_a = MessageA {
+            c: ciphertext.clone(),
+        };
+        MessageB::b(&self.x2, &ek, message_a)
     }
 }
 
