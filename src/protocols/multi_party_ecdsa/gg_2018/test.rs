@@ -386,7 +386,7 @@ mod tests {
 
         // here we compute the signature only of party i=0 to demonstrate correctness.
         s_vec.remove(0);
-        let (_s, _r) = local_sig_vec[0]
+        let _sig = local_sig_vec[0]
             .output_signature(&s_vec)
             .expect("verification failed");
     }

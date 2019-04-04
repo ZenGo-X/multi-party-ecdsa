@@ -133,6 +133,12 @@ pub struct Phase5DDecom2 {
     pub blind_factor: BigInt,
 }
 
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+pub struct Signature {
+    pub r: FE,
+    pub s: FE,
+}
+
 impl Keys {
     pub fn create(index: usize) -> Keys {
         let u: FE = ECScalar::new_random();
@@ -618,22 +624,23 @@ impl LocalSignature {
             false => Err(InvalidCom),
         }
     }
-    pub fn output_signature(&self, s_vec: &Vec<FE>) -> Result<(FE, FE), Error> {
+    pub fn output_signature(&self, s_vec: &Vec<FE>) -> Result<Signature, Error> {
         let s = s_vec.iter().fold(self.s_i.clone(), |acc, x| acc + x);
         let r: FE = ECScalar::from(&self.R.x_coor().unwrap().mod_floor(&FE::q()));
-        let ver = verify(&s, &r, &self.y, &self.m).is_ok();
+        let sig = Signature { r, s };
+        let ver = verify(&sig, &self.y, &self.m).is_ok();
         match ver {
-            true => Ok((s, r)),
+            true => Ok(sig),
             false => Err(InvalidSig),
         }
     }
 }
 
-pub fn verify(s: &FE, r: &FE, y: &GE, message: &BigInt) -> Result<(), Error> {
-    let b = s.invert();
+pub fn verify(sig: &Signature, y: &GE, message: &BigInt) -> Result<(), Error> {
+    let b = sig.s.invert();
     let a: FE = ECScalar::from(message);
     let u1 = a * &b;
-    let u2 = r.clone() * &b;
+    let u2 = sig.r.clone() * &b;
 
     let g: GE = ECPoint::generator();
     let gu1 = &g * &u1;
@@ -641,7 +648,7 @@ pub fn verify(s: &FE, r: &FE, y: &GE, message: &BigInt) -> Result<(), Error> {
     // can be faster using shamir trick
 
     ;
-    if r.clone() == ECScalar::from(&(gu1 + yu2).x_coor().unwrap().mod_floor(&FE::q())) {
+    if sig.r.clone() == ECScalar::from(&(gu1 + yu2).x_coor().unwrap().mod_floor(&FE::q())) {
         Ok(())
     } else {
         Err(InvalidSig)

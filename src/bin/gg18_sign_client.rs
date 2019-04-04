@@ -515,18 +515,18 @@ fn main() {
     );
 
     s_i_vec.remove((party_num_int - 1) as usize);
-    let (s, r) = local_sig
+    let sig = local_sig
         .output_signature(&s_i_vec)
         .expect("verification failed");
     println!(" \n");
     println!("party {:?} Output Signature: \n", party_num_int);
-    println!("R: {:?}", r.get_element());
-    println!("s: {:?} \n", s.get_element());
+    println!("R: {:?}", sig.r.get_element());
+    println!("s: {:?} \n", sig.s.get_element());
     let sign_json = serde_json::to_string(&(
         "r",
-        (BigInt::from(&(r.get_element())[..])).to_str_radix(16),
+        (BigInt::from(&(sig.r.get_element())[..])).to_str_radix(16),
         "s",
-        (BigInt::from(&(s.get_element())[..])).to_str_radix(16),
+        (BigInt::from(&(sig.s.get_element())[..])).to_str_radix(16),
     ))
     .unwrap();
 
