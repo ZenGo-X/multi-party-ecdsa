@@ -26,6 +26,8 @@ use curv::arithmetic::traits::*;
 
 use curv::elliptic::curves::traits::*;
 
+use centipede::juggling::proof_system::{Helgamalsegmented, Witness};
+use centipede::juggling::segmentation::Msegmentation;
 use curv::cryptographic_primitives::commitments::hash_commitment::HashCommitment;
 use curv::cryptographic_primitives::commitments::traits::Commitment;
 use curv::cryptographic_primitives::hashing::hash_sha256::HSha256;
@@ -323,6 +325,17 @@ impl PartyPrivate {
             ek,
             party_index: index.clone(),
         }
+    }
+
+    // used for verifiable recovery
+    pub fn to_encrypted_segment(
+        &self,
+        segment_size: &usize,
+        num_of_segments: usize,
+        pub_ke_y: &GE,
+        g: &GE,
+    ) -> (Witness, Helgamalsegmented) {
+        Msegmentation::to_encrypted_segments(&self.x_i, &segment_size, num_of_segments, pub_ke_y, g)
     }
 
     pub fn update_private_key(&self, factor_u_i: &FE, factor_x_i: &FE) -> Self {
