@@ -102,6 +102,7 @@ pub struct SignDecommitPhase1 {
     pub g_gamma_i: GE,
 }
 
+#[derive(Clone, Serialize, Deserialize)]
 pub struct LocalSignature {
     pub l_i: FE,
     pub rho_i: FE,
