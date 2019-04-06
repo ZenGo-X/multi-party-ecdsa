@@ -309,6 +309,10 @@ impl PartyPrivate {
         key_private
     }
 
+    pub fn y_i(&self) -> GE {
+        let g: GE = ECPoint::generator();
+        g * self.u_i
+    }
     pub fn decrypt(&self, ciphertext: BigInt) -> RawPlaintext {
         Paillier::decrypt(&self.dk, &RawCiphertext::from(ciphertext))
     }
