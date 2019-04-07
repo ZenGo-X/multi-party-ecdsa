@@ -342,7 +342,7 @@ impl PartyPrivate {
         pub_ke_y: &GE,
         g: &GE,
     ) -> (Witness, Helgamalsegmented) {
-        Msegmentation::to_encrypted_segments(&self.x_i, &segment_size, num_of_segments, pub_ke_y, g)
+        Msegmentation::to_encrypted_segments(&self.u_i, &segment_size, num_of_segments, pub_ke_y, g)
     }
 
     pub fn update_private_key(&self, factor_u_i: &FE, factor_x_i: &FE) -> Self {
