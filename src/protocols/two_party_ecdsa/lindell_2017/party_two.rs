@@ -342,9 +342,6 @@ impl EphKeyGenFirstMsg {
         let base: GE = ECPoint::generator();
 
         let secret_share: FE = ECScalar::new_random();
-        //in Lindell's protocol range proof works only for x1<q/3
-        let secret_share: FE =
-            ECScalar::from(&secret_share.to_big_int().div_floor(&BigInt::from(3)));
 
         let public_share = base.scalar_mul(&secret_share.get_element());
 
