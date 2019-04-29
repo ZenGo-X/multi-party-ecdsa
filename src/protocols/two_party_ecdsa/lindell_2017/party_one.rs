@@ -336,6 +336,29 @@ impl PaillierKeyPair {
         }
     }
 
+    pub fn generate_encrypted_share_from_fixed_paillier_keypair(
+        ek: &EncryptionKey,
+        dk: &DecryptionKey,
+        keygen: &EcKeyPair,
+    ) -> PaillierKeyPair {
+        let randomness = Randomness::sample(ek);
+
+        let encrypted_share = Paillier::encrypt_with_chosen_randomness(
+            ek,
+            RawPlaintext::from(keygen.secret_share.to_big_int()),
+            &randomness,
+        )
+        .0
+        .into_owned();
+
+        PaillierKeyPair {
+            ek: ek.clone(),
+            dk: dk.clone(),
+            encrypted_share,
+            randomness: randomness.0,
+        }
+    }
+
     pub fn generate_range_proof(
         paillier_context: &PaillierKeyPair,
         party_one_private: &Party1Private,
