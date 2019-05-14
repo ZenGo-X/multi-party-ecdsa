@@ -58,7 +58,7 @@ Multi-party ECDSA is released under the terms of the GPL-3.0 license. See [LICEN
 
 Contact
 -------------------
-For any questions, feel free to [email us](mailto:github@kzencorp.com).
+Feel free to [reach out](mailto:github@kzencorp.com) or join the KZen Research [Telegram]( https://t.me/kzen_research) for discussions on code and research.
 
 References
 -------------------
