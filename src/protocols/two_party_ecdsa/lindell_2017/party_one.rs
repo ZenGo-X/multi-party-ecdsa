@@ -105,7 +105,6 @@ pub struct Party1Private {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PDLFirstMessage {
-    pub alpha: BigInt,
     pub c_hat: BigInt,
 }
 
@@ -380,7 +379,7 @@ impl PaillierKeyPair {
     pub fn pdl_first_stage(
         party_one_private: &Party1Private,
         pdl_first_message: &Party2PDLFirstMessage,
-    ) -> (PDLFirstMessage, PDLdecommit) {
+    ) -> (PDLFirstMessage, PDLdecommit, BigInt) {
         let c_tag = pdl_first_message.c_tag.clone();
         let alpha = Paillier::decrypt(
             &party_one_private.paillier_priv.clone(),
@@ -395,20 +394,18 @@ impl PaillierKeyPair {
             &blindness,
         );
         (
-            PDLFirstMessage {
-                alpha: alpha.0.into_owned(),
-                c_hat,
-            },
+            PDLFirstMessage { c_hat },
             PDLdecommit { blindness, q_hat },
+            alpha.0.into_owned(),
         )
     }
 
     pub fn pdl_second_stage(
-        pdl_party_one_first_message: &PDLFirstMessage,
         pdl_party_two_first_message: &Party2PDLFirstMessage,
         pdl_party_two_second_message: &Party2PDLSecondMessage,
         party_one_private: Party1Private,
         pdl_decommit: PDLdecommit,
+        alpha: BigInt,
     ) -> Result<(PDLSecondMessage), ()> {
         let a = pdl_party_two_second_message.decommit.a.clone();
         let b = pdl_party_two_second_message.decommit.b.clone();
@@ -419,9 +416,7 @@ impl PaillierKeyPair {
             HashCommitment::create_commitment_with_user_defined_randomness(&ab_concat, &blindness);
         let ax1 = a.clone() * party_one_private.x1.to_big_int();
         let alpha_test = ax1 + b.clone();
-        if alpha_test == pdl_party_one_first_message.alpha
-            && pdl_party_two_first_message.c_tag_tag.clone() == c_tag_tag_test
-        {
+        if alpha_test == alpha && pdl_party_two_first_message.c_tag_tag.clone() == c_tag_tag_test {
             Ok(PDLSecondMessage {
                 decommit: pdl_decommit,
             })
