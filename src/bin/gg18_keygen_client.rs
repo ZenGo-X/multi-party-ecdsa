@@ -353,11 +353,19 @@ where
     let addr = env::args()
         .nth(1)
         .unwrap_or("http://127.0.0.1:8001".to_string());
-    let res = client
+    let retries = 3;
+    let retry_delay = time::Duration::from_millis(250);
+    for _i in 1..retries {
+        let res = client
         .post(&format!("{}/{}", addr, path))
         .json(&body)
         .send();
-    Some(res.unwrap().text().unwrap())
+        if res.is_ok() {
+            return Some(res.unwrap().text().unwrap());
+        }
+        thread::sleep(retry_delay);
+    }
+    None
 }
 
 pub fn signup(client: &Client) -> Result<(PartySignup), ()> {
