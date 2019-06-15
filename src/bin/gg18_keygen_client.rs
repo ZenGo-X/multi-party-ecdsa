@@ -357,9 +357,9 @@ where
     let retry_delay = time::Duration::from_millis(250);
     for _i in 1..retries {
         let res = client
-        .post(&format!("{}/{}", addr, path))
-        .json(&body)
-        .send();
+            .post(&format!("{}/{}", addr, path))
+            .json(&body)
+            .send();
         if res.is_ok() {
             return Some(res.unwrap().text().unwrap());
         }
