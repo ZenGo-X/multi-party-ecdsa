@@ -3,7 +3,8 @@ name = "multi-party-ecdsa"
 version = "0.1.0"
 authors = [
     "Gary <gary@kzencorp.com>",
-    "Omer <omer.shlomovits@gmail.com>"
+    "Omer <omer.shlomovits@gmail.com>",
+    "Oded Leiba <odedleiba5@gmail.com>"
 ]
 keywords = [
     "ecdsa",
@@ -24,9 +25,8 @@ categories = ["cryptography"]
 crate-type = ["lib"]
 
 [dependencies]
-paillier = { git = "https://github.com/KZen-networks/rust-paillier"}
-zk-paillier = { git = "https://github.com/KZen-networks/zk-paillier"}
-
+paillier = { git = "https://github.com/KZen-networks/rust-paillier", branch = "feature/libra-support" }
+zk-paillier = { git = "https://github.com/KZen-networks/zk-paillier", branch = "feature/libra-support" }
 
 hex = "0.3.2"
 subtle = {version = "2", features = ["nightly"]}
@@ -34,17 +34,19 @@ serde = "1.0"
 serde_derive = "1.0"
 serde_json = "1.0"
 reqwest = "0.9.5"
-rocket = "0.4.0"
-rocket_contrib = "0.4.0"
+rocket = { git = "https://github.com/SergioBenitez/Rocket.git", rev = "fc78eaf8363f1d3346ed9f51a6168f4b55152e8a" }
+rocket_contrib = { git = "https://github.com/SergioBenitez/Rocket.git", rev = "fc78eaf8363f1d3346ed9f51a6168f4b55152e8a" }
 uuid = { version = "0.7", features = ["v4"] }
 rust-crypto = "^0.2"
 
 [dependencies.curv]
 git = "https://github.com/KZen-networks/curv"
+branch = "feature/libra-support"
 features =  ["ec_secp256k1"]
 
 [dependencies.centipede]
 git = "https://github.com/KZen-networks/centipede"
+branch = "feature/libra-support"
 
 [patch.crates-io]
 rust-gmp = { version = "0.5.0", features = ["serde_support"], git = "https://github.com/KZen-networks/rust-gmp" }
