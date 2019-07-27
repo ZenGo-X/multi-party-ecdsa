@@ -11,6 +11,9 @@ extern crate reqwest;
 extern crate serde_derive;
 extern crate hex;
 extern crate serde_json;
+#[macro_use]
+extern crate time_test;
+
 
 use curv::cryptographic_primitives::proofs::sigma_correct_homomorphic_elgamal_enc::HomoELGamalProof;
 use curv::cryptographic_primitives::proofs::sigma_dlog::DLogProof;
@@ -64,6 +67,7 @@ pub struct Params {
 }
 
 fn main() {
+    time_test!();
     if env::args().nth(4).is_some() {
         panic!("too many arguments")
     }

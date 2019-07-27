@@ -11,6 +11,8 @@ extern crate reqwest;
 extern crate serde_derive;
 extern crate hex;
 extern crate serde_json;
+#[macro_use]
+extern crate time_test;
 
 use curv::arithmetic::traits::Samplable;
 use curv::cryptographic_primitives::commitments::hash_commitment::HashCommitment;
@@ -33,6 +35,7 @@ use std::env;
 use std::fs;
 use std::time::Duration;
 use std::{thread, time};
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct PSSFirstMessage {
     pub k_commitment: BigInt,
@@ -76,6 +79,7 @@ pub struct Params {
 }
 
 fn main() {
+    time_test!();
     if env::args().nth(5).is_some() {
         panic!("too many arguments")
     }
@@ -159,10 +163,10 @@ fn main() {
         signers_vec[(party_num_int - 1) as usize],
         &signers_vec,
     );
-    let mut xi_com_vec = Keys::get_commitments_to_xi(&vss_scheme_vec);
+    let xi_com_vec = Keys::get_commitments_to_xi(&vss_scheme_vec);
 
     ///////////################################ REFRESH ########################
-    let mut refresh_string;
+    let refresh_string;
     let mut d_fe: FE = ECScalar::zero();
     let refresh_once = match fs::read_to_string(env::args().nth(4).unwrap()) {
         Ok(x) => {
@@ -176,6 +180,8 @@ fn main() {
                 &d,
                 &epoch,
             ]);
+
+
             let e_fe: FE = ECScalar::from(&e);
             let e_pk = &shared_keys.y * &e_fe;
             let e_pk_K = e_pk + &K;
@@ -185,7 +191,7 @@ fn main() {
             // ordering indices based on time of joining, party_num_int is the number of the party
             // in the signing protocol)
             let ind = signers_vec[(party_num_int.clone() - 1) as usize] + 1;
-            let ind_fe: FE = ECScalar::from(&BigInt::from((ind as i32)));
+            let ind_fe: FE = ECScalar::from(&BigInt::from(ind as i32));
 
             let db = d_fe * &ind_fe;
             let li =
@@ -447,204 +453,7 @@ fn main() {
         zk_pok_commitment,
     };
 
-    assert!(broadcast(
-        &client,
-        party_num_int.clone(),
-        "com_zk_f_b",
-        serde_json::to_string(&pss_first_message).unwrap(),
-        uuid.clone()
-    )
-    .is_ok());
-    let com_zk_1_minus_b_ans_vec = poll_for_broadcasts(
-        &client,
-        party_num_int.clone(),
-        THRESHOLD + 1,
-        delay.clone(),
-        "com_zk_f_b",
-        uuid.clone(),
-    );
-
-    let mut zk_comm_vec: Vec<PSSFirstMessage> = Vec::new();
-    format_vec_from_reads(
-        &com_zk_1_minus_b_ans_vec,
-        party_num_int.clone() as usize,
-        pss_first_message,
-        &mut zk_comm_vec,
-    );
-
-    // send decom_zk_f_b
-    assert!(broadcast(
-        &client,
-        party_num_int.clone(),
-        "decom_zk_f_b",
-        serde_json::to_string(&com_witness).unwrap(),
-        uuid.clone()
-    )
-    .is_ok());
-    let decom_zk_1_minus_b_ans_vec = poll_for_broadcasts(
-        &client,
-        party_num_int.clone(),
-        THRESHOLD + 1,
-        delay.clone(),
-        "decom_zk_f_b",
-        uuid.clone(),
-    );
-
-    let mut zk_decomm_vec: Vec<CommWitness> = Vec::new();
-    format_vec_from_reads(
-        &decom_zk_1_minus_b_ans_vec,
-        party_num_int.clone() as usize,
-        com_witness,
-        &mut zk_decomm_vec,
-    );
-    // verify decom's and let d be hash of sum of k
-    if signers_vec[0] == party_num_int.clone() as usize {
-        let pk_commitment = &zk_comm_vec[1].k_commitment;
-        let zk_pok_commitment = &zk_comm_vec[1].zk_pok_commitment;
-        let zk_pok_blind_factor = &zk_decomm_vec[1].zk_pok_blind_factor;
-        let public_share = &zk_decomm_vec[1].public_share;
-        let pk_commitment_blind_factor = &zk_decomm_vec[1].pk_commitment_blind_factor;
-        let d_log_proof = &zk_decomm_vec[1].d_log_proof;
-
-        let mut flag = true;
-        match pk_commitment
-            == &HashCommitment::create_commitment_with_user_defined_randomness(
-                &public_share.bytes_compressed_to_big_int(),
-                &pk_commitment_blind_factor,
-            ) {
-            false => flag = false,
-            true => flag = flag,
-        };
-        match zk_pok_commitment
-            == &HashCommitment::create_commitment_with_user_defined_randomness(
-                &d_log_proof
-                    .pk_t_rand_commitment
-                    .bytes_compressed_to_big_int(),
-                &zk_pok_blind_factor,
-            ) {
-            false => flag = false,
-            true => flag = flag,
-        };
-        assert!(flag);
-        DLogProof::verify(&d_log_proof).expect("error zk-dlog verify");
-    } else {
-        let pk_commitment = &zk_comm_vec[0].k_commitment;
-        let zk_pok_commitment = &zk_comm_vec[0].zk_pok_commitment;
-        let zk_pok_blind_factor = &zk_decomm_vec[0].zk_pok_blind_factor;
-        let public_share = &zk_decomm_vec[0].public_share;
-        let pk_commitment_blind_factor = &zk_decomm_vec[0].pk_commitment_blind_factor;
-        let d_log_proof = &zk_decomm_vec[0].d_log_proof;
-
-        let mut flag = true;
-        match pk_commitment
-            == &HashCommitment::create_commitment_with_user_defined_randomness(
-                &public_share.bytes_compressed_to_big_int(),
-                &pk_commitment_blind_factor,
-            ) {
-            false => flag = false,
-            true => flag = flag,
-        };
-        match zk_pok_commitment
-            == &HashCommitment::create_commitment_with_user_defined_randomness(
-                &d_log_proof
-                    .pk_t_rand_commitment
-                    .bytes_compressed_to_big_int(),
-                &zk_pok_blind_factor,
-            ) {
-            false => flag = false,
-            true => flag = flag,
-        };
-        assert!(flag);
-        DLogProof::verify(&d_log_proof).expect("error zk-dlog verify");;
-    }
-
-    let d = HSha256::create_hash(&vec![
-        &zk_decomm_vec[0].public_share.bytes_compressed_to_big_int(),
-        &zk_decomm_vec[1].public_share.bytes_compressed_to_big_int(),
-    ]);
-    let d_fe: FE = ECScalar::from(&d);
-    let K = &zk_decomm_vec[0].public_share + &zk_decomm_vec[1].public_share;
-    //let party_num_bn : BigInt= BigInt::from(&party_num_int as i32);
-    let party_num_fe: FE = ECScalar::from(&BigInt::from((party_num_int.clone() as i32)));
-    let db = d_fe * &party_num_fe;
-    let sk_b_tag = sign_keys.w_i + &db;
-    let epoch = BigInt::one();
-    let e = HSha256::create_hash(&vec![
-        &R.bytes_compressed_to_big_int(),
-        &K.bytes_compressed_to_big_int(),
-        &d,
-        &epoch,
-    ]);
-    let e_fe: FE = ECScalar::from(&e);
-    let z_b = e_fe * &sign_keys.w_i + k_i;
-    // let z_b =e_fe +  k_i ;
-    // send z_b (3iv)
-    assert!(broadcast(
-        &client,
-        party_num_int.clone(),
-        "z_b",
-        serde_json::to_string(&z_b).unwrap(),
-        uuid.clone()
-    )
-    .is_ok());
-    let z_b_ans_vec = poll_for_broadcasts(
-        &client,
-        party_num_int.clone(),
-        THRESHOLD + 1,
-        delay.clone(),
-        "z_b",
-        uuid.clone(),
-    );
-
-    let mut z_b_vec: Vec<FE> = Vec::new();
-    format_vec_from_reads(
-        &z_b_ans_vec,
-        party_num_int.clone() as usize,
-        z_b,
-        &mut z_b_vec,
-    );
-
-    // this part will fail for more than 2 parties. TODO: add explicit check for threshold
-    let mut z_b_counter;
-    let mut l_counter;
-    let mut K_c;
-    let mut x_i;
-    let mut counter_index;
-    let ind = signers_vec[(party_num_int.clone() - 1) as usize] + 1;
-    if signers_vec[0] == (ind - 1) as usize {
-        z_b_counter = z_b_vec[1];
-        x_i = xi_com_vec[1];
-        counter_index = signers_vec[1];
-        l_counter = vss_scheme_vec[counter_index.clone()]
-            .map_share_to_new_params(counter_index, &signers_vec[..]);
-        K_c = zk_decomm_vec[1].public_share;
-    } else {
-        z_b_counter = z_b_vec[0];
-        x_i = xi_com_vec[0];
-        counter_index = signers_vec[0];
-        l_counter = vss_scheme_vec[counter_index.clone()]
-            .map_share_to_new_params(counter_index, &signers_vec[..]);
-        K_c = zk_decomm_vec[0].public_share;
-    }
-
-    let z_b_c_G = GE::generator() * &z_b_counter;
-    let mut pk_c = x_i * l_counter;
-    if refresh_once {
-        let ind = counter_index + 1;
-        pk_c = pk_c + GE::generator() * &d_fe * &ECScalar::from(&BigInt::from(ind as i32));
-    }
-    let pk_c = g_w_j[0];
-    let e_pk_c_plus_k_c = pk_c * &e_fe + K_c;
-
-    assert_eq!(z_b_c_G, e_pk_c_plus_k_c);
-
-    let z = z_b_vec[0] + z_b_vec[1];
-
-    let keygen_json =
-        serde_json::to_string(&(R.clone(), epoch.clone(), d.clone(), K.clone(), z.clone()))
-            .unwrap();
-
-    fs::write(env::args().nth(4).unwrap(), keygen_json).expect("Unable to save refresh!");
+    // use rounds 5-6-7 broadcasts to complete pss
     ////////////////////////////////
 
     // we assume the message is already hashed (by the signer).
@@ -656,12 +465,15 @@ fn main() {
 
     let (phase5_com, phase_5a_decom, helgamal_proof) = local_sig.phase5a_broadcast_5b_zkproof();
 
+
+
+
     //phase (5A)  broadcast commit
     assert!(broadcast(
         &client,
         party_num_int.clone(),
         "round5",
-        serde_json::to_string(&phase5_com).unwrap(),
+        serde_json::to_string(&(phase5_com.clone(), pss_first_message.clone())).unwrap(),
         uuid.clone()
     )
     .is_ok());
@@ -674,20 +486,25 @@ fn main() {
         uuid.clone(),
     );
 
-    let mut commit5a_vec: Vec<Phase5Com1> = Vec::new();
+    let mut commit5a_and_pss_vec: Vec<(Phase5Com1,PSSFirstMessage)> = Vec::new();
     format_vec_from_reads(
         &round5_ans_vec,
         party_num_int.clone() as usize,
-        phase5_com,
-        &mut commit5a_vec,
+        (phase5_com, pss_first_message),
+        &mut commit5a_and_pss_vec,
     );
+    let mut commit5a_vec = vec![commit5a_and_pss_vec[0].0.clone(),commit5a_and_pss_vec[1].0.clone()];
+    let zk_comm_vec = vec![commit5a_and_pss_vec[0].1.clone(),commit5a_and_pss_vec[1].1.clone()];
+
+
+
 
     //phase (5B)  broadcast decommit and (5B) ZK proof
     assert!(broadcast(
         &client,
         party_num_int.clone(),
         "round6",
-        serde_json::to_string(&(phase_5a_decom.clone(), helgamal_proof.clone())).unwrap(),
+        serde_json::to_string(&(phase_5a_decom.clone(), helgamal_proof.clone(),com_witness.clone())).unwrap(),
         uuid.clone()
     )
     .is_ok());
@@ -700,13 +517,18 @@ fn main() {
         uuid.clone(),
     );
 
-    let mut decommit5a_and_elgamal_vec: Vec<(Phase5ADecom1, HomoELGamalProof)> = Vec::new();
+    let mut decommit5a_and_elgamal_and_com_wit_vec: Vec<(Phase5ADecom1, HomoELGamalProof, CommWitness)> = Vec::new();
     format_vec_from_reads(
         &round6_ans_vec,
         party_num_int.clone() as usize,
-        (phase_5a_decom.clone(), helgamal_proof.clone()),
-        &mut decommit5a_and_elgamal_vec,
+        (phase_5a_decom.clone(), helgamal_proof.clone(), com_witness),
+        &mut decommit5a_and_elgamal_and_com_wit_vec,
     );
+    let mut decommit5a_and_elgamal_vec = vec![(decommit5a_and_elgamal_and_com_wit_vec[0].0.clone(), decommit5a_and_elgamal_and_com_wit_vec[0].1.clone()),
+                                          (decommit5a_and_elgamal_and_com_wit_vec[1].0.clone(), decommit5a_and_elgamal_and_com_wit_vec[1].1.clone())];
+    let zk_decomm_vec = vec![decommit5a_and_elgamal_and_com_wit_vec[0].2.clone(), decommit5a_and_elgamal_and_com_wit_vec[1].2.clone()];
+
+
     let decommit5a_and_elgamal_vec_includes_i = decommit5a_and_elgamal_vec.clone();
     decommit5a_and_elgamal_vec.remove((party_num_int - 1) as usize);
     commit5a_vec.remove((party_num_int - 1) as usize);
@@ -726,12 +548,96 @@ fn main() {
         )
         .expect("error phase5");
 
+    //######### PSS cont #########
+    // verify decom's and let d be hash of sum of k
+    if signers_vec[0] == party_num_int.clone() as usize {
+        let pk_commitment = &zk_comm_vec[1].k_commitment;
+        let zk_pok_commitment = &zk_comm_vec[1].zk_pok_commitment;
+        let zk_pok_blind_factor = &zk_decomm_vec[1].zk_pok_blind_factor;
+        let public_share = &zk_decomm_vec[1].public_share;
+        let pk_commitment_blind_factor = &zk_decomm_vec[1].pk_commitment_blind_factor;
+        let d_log_proof = &zk_decomm_vec[1].d_log_proof;
+
+        let mut flag = true;
+        match pk_commitment
+            == &HashCommitment::create_commitment_with_user_defined_randomness(
+            &public_share.bytes_compressed_to_big_int(),
+            &pk_commitment_blind_factor,
+        ) {
+            false => flag = false,
+            true => flag = flag,
+        };
+        match zk_pok_commitment
+            == &HashCommitment::create_commitment_with_user_defined_randomness(
+            &d_log_proof
+                .pk_t_rand_commitment
+                .bytes_compressed_to_big_int(),
+            &zk_pok_blind_factor,
+        ) {
+            false => flag = false,
+            true => flag = flag,
+        };
+        assert!(flag);
+        DLogProof::verify(&d_log_proof).expect("error zk-dlog verify");
+    } else {
+        let pk_commitment = &zk_comm_vec[0].k_commitment;
+        let zk_pok_commitment = &zk_comm_vec[0].zk_pok_commitment;
+        let zk_pok_blind_factor = &zk_decomm_vec[0].zk_pok_blind_factor;
+        let public_share = &zk_decomm_vec[0].public_share;
+        let pk_commitment_blind_factor = &zk_decomm_vec[0].pk_commitment_blind_factor;
+        let d_log_proof = &zk_decomm_vec[0].d_log_proof;
+
+        let mut flag = true;
+        match pk_commitment
+            == &HashCommitment::create_commitment_with_user_defined_randomness(
+            &public_share.bytes_compressed_to_big_int(),
+            &pk_commitment_blind_factor,
+        ) {
+            false => flag = false,
+            true => flag = flag,
+        };
+        match zk_pok_commitment
+            == &HashCommitment::create_commitment_with_user_defined_randomness(
+            &d_log_proof
+                .pk_t_rand_commitment
+                .bytes_compressed_to_big_int(),
+            &zk_pok_blind_factor,
+        ) {
+            false => flag = false,
+            true => flag = flag,
+        };
+        assert!(flag);
+        DLogProof::verify(&d_log_proof).expect("error zk-dlog verify");;
+    }
+
+    let d = HSha256::create_hash(&vec![
+        &zk_decomm_vec[0].public_share.bytes_compressed_to_big_int(),
+        &zk_decomm_vec[1].public_share.bytes_compressed_to_big_int(),
+    ]);
+  //  let d_fe: FE = ECScalar::from(&d);
+    let K = &zk_decomm_vec[0].public_share + &zk_decomm_vec[1].public_share;
+    //let party_num_bn : BigInt= BigInt::from(&party_num_int as i32);
+  //  let party_num_fe: FE = ECScalar::from(&BigInt::from(party_num_int.clone() as i32));
+   // let db = d_fe * &party_num_fe;
+   // let sk_b_tag = sign_keys.w_i + &db;
+    let epoch = BigInt::one();
+    let e = HSha256::create_hash(&vec![
+        &R.bytes_compressed_to_big_int(),
+        &K.bytes_compressed_to_big_int(),
+        &d,
+        &epoch,
+    ]);
+    let e_fe: FE = ECScalar::from(&e);
+    let z_b = e_fe * &sign_keys.w_i + k_i;
+
+
+
     //////////////////////////////////////////////////////////////////////////////
     assert!(broadcast(
         &client,
         party_num_int.clone(),
         "round7",
-        serde_json::to_string(&phase5_com2).unwrap(),
+        serde_json::to_string(&(phase5_com2.clone(), z_b.clone())).unwrap(),
         uuid.clone()
     )
     .is_ok());
@@ -744,13 +650,59 @@ fn main() {
         uuid.clone(),
     );
 
-    let mut commit5c_vec: Vec<Phase5Com2> = Vec::new();
+    let mut commit5c_and_z_b_vec: Vec<(Phase5Com2, FE)> = Vec::new();
     format_vec_from_reads(
         &round7_ans_vec,
         party_num_int.clone() as usize,
-        phase5_com2,
-        &mut commit5c_vec,
+        (phase5_com2, z_b),
+        &mut commit5c_and_z_b_vec,
     );
+
+    let commit5c_vec = vec![commit5c_and_z_b_vec[0].0.clone(), commit5c_and_z_b_vec[1].0.clone()];
+    let z_b_vec = vec![commit5c_and_z_b_vec[0].1.clone(), commit5c_and_z_b_vec[1].1.clone()];
+
+    // this part will fail for more than 2 parties. TODO: add explicit check for threshold
+    let z_b_counter;
+  //  let l_counter;
+    let K_c;
+   // let x_i;
+  //  let counter_index;
+    let ind = signers_vec[(party_num_int.clone() - 1) as usize] + 1;
+    if signers_vec[0] == (ind - 1) as usize {
+        z_b_counter = z_b_vec[1];
+   //     x_i = xi_com_vec[1];
+   //     counter_index = signers_vec[1];
+     //   l_counter = vss_scheme_vec[counter_index.clone()]
+     //       .map_share_to_new_params(counter_index, &signers_vec[..]);
+        K_c = zk_decomm_vec[1].public_share;
+    } else {
+        z_b_counter = z_b_vec[0];
+   //     x_i = xi_com_vec[0];
+   //     counter_index = signers_vec[0];
+     //   l_counter = vss_scheme_vec[counter_index.clone()]
+     //       .map_share_to_new_params(counter_index, &signers_vec[..]);
+        K_c = zk_decomm_vec[0].public_share;
+    }
+
+    let z_b_c_G = GE::generator() * &z_b_counter;
+   // let mut pk_c = x_i * l_counter;
+    if refresh_once {
+    //    let ind = counter_index + 1;
+        //pk_c = pk_c + GE::generator() * &d_fe * &ECScalar::from(&BigInt::from(ind as i32));
+    }
+    let pk_c = g_w_j[0];
+    let e_pk_c_plus_k_c = pk_c * &e_fe + K_c;
+
+    assert_eq!(z_b_c_G, e_pk_c_plus_k_c);
+
+    let z = z_b_vec[0] + z_b_vec[1];
+
+    let keygen_json =
+        serde_json::to_string(&(R.clone(), epoch.clone(), d.clone(), K.clone(), z.clone()))
+            .unwrap();
+
+    fs::write(env::args().nth(4).unwrap(), keygen_json).expect("Unable to save refresh!");
+
 
     //phase (5B)  broadcast decommit and (5B) ZK proof
     assert!(broadcast(
