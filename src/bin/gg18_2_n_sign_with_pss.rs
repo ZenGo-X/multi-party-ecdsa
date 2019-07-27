@@ -181,12 +181,16 @@ fn main() {
             let e_pk_K = e_pk + &K;
             assert_eq!(zG, e_pk_K);
             d_fe = ECScalar::from(&d);
-            let party_num_fe: FE = ECScalar::from(&BigInt::from((party_num_int.clone() as i32)));
-            let db = d_fe * &party_num_fe;
-            let li = vss_scheme_vec[party_num_int as usize - 1].map_share_to_new_params(
-                signers_vec[(party_num_int as usize - 1) as usize],
-                &signers_vec,
-            );
+            // "ind" is the party index (one base) as it was in keygen. (signers_vec is
+            // ordering indices based on time of joining, party_num_int is the number of the party
+            // in the signing protocol)
+            let ind = signers_vec[(party_num_int.clone() - 1) as usize] + 1;
+            let ind_fe: FE = ECScalar::from(&BigInt::from((ind as i32)));
+
+            let db = d_fe * &ind_fe;
+            let li =
+                vss_scheme_vec[ind as usize - 1].map_share_to_new_params(ind - 1, &signers_vec);
+
             let db_new_param = db * &li;
             let sk_i_tag = sign_keys.w_i + &db_new_param;
             let sk_i_tag_G = GE::generator() * &sk_i_tag;
@@ -329,6 +333,7 @@ fn main() {
             );
             if refresh_once {
                 let ind = signers_vec[(i - 1) as usize] + 1;
+
                 let refresh_point =
                     GE::generator() * &d_fe * &ECScalar::from(&BigInt::from(ind as i32));
                 let refresh_point_new_param = Keys::update_commitments_to_xi(
@@ -599,12 +604,14 @@ fn main() {
         &mut z_b_vec,
     );
 
+    // this part will fail for more than 2 parties. TODO: add explicit check for threshold
     let mut z_b_counter;
     let mut l_counter;
     let mut K_c;
     let mut x_i;
     let mut counter_index;
-    if signers_vec[0] == (party_num_int - 1) as usize {
+    let ind = signers_vec[(party_num_int.clone() - 1) as usize] + 1;
+    if signers_vec[0] == (ind - 1) as usize {
         z_b_counter = z_b_vec[1];
         x_i = xi_com_vec[1];
         counter_index = signers_vec[1];
@@ -619,19 +626,15 @@ fn main() {
             .map_share_to_new_params(counter_index, &signers_vec[..]);
         K_c = zk_decomm_vec[0].public_share;
     }
-    println!("party_num_int: {:?}", party_num_int.clone());
-    println!("signers_vec: {:?}", signers_vec.clone());
-    println!("z_b_vec: {:?}", z_b_vec.clone());
+
     let z_b_c_G = GE::generator() * &z_b_counter;
     let mut pk_c = x_i * l_counter;
     if refresh_once {
         let ind = counter_index + 1;
         pk_c = pk_c + GE::generator() * &d_fe * &ECScalar::from(&BigInt::from(ind as i32));
     }
-    println!("counter index {:?}", counter_index.clone());
     let pk_c = g_w_j[0];
     let e_pk_c_plus_k_c = pk_c * &e_fe + K_c;
-    //let pk_c_plus_k_c = pk_c;
 
     assert_eq!(z_b_c_G, e_pk_c_plus_k_c);
 
