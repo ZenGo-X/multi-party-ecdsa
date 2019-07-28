@@ -164,44 +164,74 @@ fn main() {
         &signers_vec,
     );
     let xi_com_vec = Keys::get_commitments_to_xi(&vss_scheme_vec);
-
+    let mut g_w_j: Vec<GE> = vec![GE::generator(); (THRESHOLD) as usize];
+    let mut j = 0;
+    for i in 1..THRESHOLD + 2 {
+        if i != party_num_int {
+            g_w_j[j] = Keys::update_commitments_to_xi(
+                &xi_com_vec[signers_vec[(i - 1) as usize]],
+                &vss_scheme_vec[signers_vec[(i - 1) as usize]],
+                signers_vec[(i - 1) as usize],
+                &signers_vec,
+            );
+            j = j + 1;
+        }
+    }
     ///////////################################ REFRESH ########################
-    let refresh_string;
-    let mut d_fe: FE = ECScalar::zero();
+
+    let mut refresh_string;
+    let mut d_fe: FE;
     let refresh_once = match fs::read_to_string(env::args().nth(4).unwrap()) {
         Ok(x) => {
-            refresh_string = x;
-            let (R, epoch, d, K, z): (GE, BigInt, BigInt, GE, FE) =
-                serde_json::from_str(&refresh_string).unwrap();
-            let zG = GE::generator() * &z;
-            let e = HSha256::create_hash(&vec![
-                &R.bytes_compressed_to_big_int(),
-                &K.bytes_compressed_to_big_int(),
-                &d,
-                &epoch,
-            ]);
+            let mut k = 0;
+            while k < 1 {
+                //change according to num of repetitions
+                refresh_string = x.clone();
+                let (R, epoch, d, K, z): (GE, BigInt, BigInt, GE, FE) =
+                    serde_json::from_str(&refresh_string).unwrap();
+                let zG = GE::generator() * &z;
+                let e = HSha256::create_hash(&vec![
+                    &R.bytes_compressed_to_big_int(),
+                    &K.bytes_compressed_to_big_int(),
+                    &d,
+                    &epoch,
+                ]);
 
-            let e_fe: FE = ECScalar::from(&e);
-            let e_pk = &shared_keys.y * &e_fe;
-            let e_pk_K = e_pk + &K;
-            assert_eq!(zG, e_pk_K);
-            d_fe = ECScalar::from(&d);
-            // "ind" is the party index (one base) as it was in keygen. (signers_vec is
-            // ordering indices based on time of joining, party_num_int is the number of the party
-            // in the signing protocol)
-            let ind = signers_vec[(party_num_int.clone() - 1) as usize] + 1;
-            let ind_fe: FE = ECScalar::from(&BigInt::from(ind as i32));
+                let e_fe: FE = ECScalar::from(&e);
+                let e_pk = &shared_keys.y * &e_fe;
+                let e_pk_K = e_pk + &K;
+                assert_eq!(zG, e_pk_K);
+                d_fe = ECScalar::from(&d);
+                // "ind" is the party index (one base) as it was in keygen. (signers_vec is
+                // ordering indices based on time of joining, party_num_int is the number of the party
+                // in the signing protocol)
+                let ind = signers_vec[(party_num_int.clone() - 1) as usize] + 1;
+                let ind_fe: FE = ECScalar::from(&BigInt::from(ind as i32));
 
-            let db = d_fe * &ind_fe;
-            let li =
-                vss_scheme_vec[ind as usize - 1].map_share_to_new_params(ind - 1, &signers_vec);
+                let db = d_fe * &ind_fe;
+                let li =
+                    vss_scheme_vec[ind as usize - 1].map_share_to_new_params(ind - 1, &signers_vec);
 
-            let db_new_param = db * &li;
-            let sk_i_tag = sign_keys.w_i + &db_new_param;
-            let sk_i_tag_G = GE::generator() * &sk_i_tag;
-            sign_keys.w_i = sk_i_tag;
-            sign_keys.g_w_i = sk_i_tag_G;
+                let db_new_param = db * &li;
+                let sk_i_tag = sign_keys.w_i + &db_new_param;
+                let sk_i_tag_G = GE::generator() * &sk_i_tag;
+                sign_keys.w_i = sk_i_tag;
+                sign_keys.g_w_i = sk_i_tag_G;
 
+                // g_w_j[0] is the counter party local public key: here is how we update it.
+
+                let ind = signers_vec.iter().fold(0, |acc, x| acc + x + 1) - ind;
+                let refresh_point =
+                    GE::generator() * &d_fe * &ECScalar::from(&BigInt::from(ind as i32));
+                let refresh_point_new_param = Keys::update_commitments_to_xi(
+                    &refresh_point,
+                    &vss_scheme_vec[(ind - 1) as usize],
+                    (ind - 1) as usize,
+                    &signers_vec,
+                );
+                g_w_j[0] = g_w_j[0] + refresh_point_new_param;
+                k = k + 1;
+            }
             true
         }
         Err(_) => false,
@@ -315,8 +345,7 @@ fn main() {
     let mut alpha_vec: Vec<FE> = Vec::new();
     let mut miu_vec: Vec<FE> = Vec::new();
 
-    let mut g_w_j: Vec<GE> = vec![GE::generator(); (THRESHOLD) as usize];
-    let mut j = 0;
+    let j = 0;
     for i in 1..THRESHOLD + 2 {
         if i != party_num_int {
             let m_b = m_b_gamma_rec_vec[j].clone();
@@ -330,28 +359,8 @@ fn main() {
                 .expect("wrong dlog or m_b");
             alpha_vec.push(alpha_ij_gamma);
             miu_vec.push(alpha_ij_wi);
-            g_w_j[j] = Keys::update_commitments_to_xi(
-                &xi_com_vec[signers_vec[(i - 1) as usize]],
-                &vss_scheme_vec[signers_vec[(i - 1) as usize]],
-                signers_vec[(i - 1) as usize],
-                &signers_vec,
-            );
-            if refresh_once {
-                let ind = signers_vec[(i - 1) as usize] + 1;
-
-                let refresh_point =
-                    GE::generator() * &d_fe * &ECScalar::from(&BigInt::from(ind as i32));
-                let refresh_point_new_param = Keys::update_commitments_to_xi(
-                    &refresh_point,
-                    &vss_scheme_vec[signers_vec[(i - 1) as usize]],
-                    signers_vec[(i - 1) as usize],
-                    &signers_vec,
-                );
-                g_w_j[j] = g_w_j[j] + refresh_point_new_param;
-            }
 
             assert_eq!(m_b.b_proof.pk.clone(), g_w_j[j]);
-            j = j + 1;
         }
     }
     //////////////////////////////////////////////////////////////////////////////
