@@ -184,7 +184,7 @@ fn main() {
     let refresh_once = match fs::read_to_string(env::args().nth(4).unwrap()) {
         Ok(x) => {
             let mut k = 0;
-            while k < 30 {
+            while k < 50 {
                 //change according to num of repetitions
                 refresh_string = x.clone();
                 let (R, epoch, d, K, z): (GE, BigInt, BigInt, GE, FE) =
