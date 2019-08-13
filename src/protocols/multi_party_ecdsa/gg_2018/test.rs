@@ -303,7 +303,7 @@ mod tests {
         // de-commit to g^gamma_i from phase1, test comm correctness, and that it is the same value used in MtA.
         // Return R
 
-        let g_gamma_i_vec = (0..ttag)
+        let _g_gamma_i_vec = (0..ttag)
             .map(|i| sign_keys_vec[i].g_gamma_i.clone())
             .collect::<Vec<GE>>();
 

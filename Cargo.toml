@@ -38,6 +38,7 @@ rocket = "0.4.0"
 rocket_contrib = "0.4.0"
 uuid = { version = "0.7", features = ["v4"] }
 rust-crypto = "^0.2"
+zeroize = "0.5.2"
 
 [dependencies.curv]
 git = "https://github.com/KZen-networks/curv"
@@ -45,7 +46,6 @@ features =  ["ec_secp256k1"]
 
 [dependencies.centipede]
 git = "https://github.com/KZen-networks/centipede"
-
 [patch.crates-io]
 rust-gmp = { version = "0.5.0", features = ["serde_support"], git = "https://github.com/KZen-networks/rust-gmp" }
 

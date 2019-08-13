@@ -16,14 +16,15 @@
 
 #[macro_use]
 extern crate serde_derive;
-extern crate serde;
-extern crate serde_json;
-extern crate subtle;
-
 extern crate centipede;
 extern crate curv;
 extern crate paillier;
+extern crate serde;
+extern crate serde_json;
+extern crate subtle;
+extern crate zeroize;
 extern crate zk_paillier;
+
 pub mod protocols;
 
 #[derive(Copy, PartialEq, Eq, Clone, Debug)]

@@ -34,6 +34,7 @@ mod tests {
             party_one::KeyGenFirstMsg::create_commitments_with_fixed_secret_share(ECScalar::from(
                 &BigInt::sample(253),
             ));
+
         let (party_two_first_message, _ec_key_pair_party2) =
             party_two::KeyGenFirstMsg::create_with_fixed_secret_share(ECScalar::from(
                 &BigInt::from(10),

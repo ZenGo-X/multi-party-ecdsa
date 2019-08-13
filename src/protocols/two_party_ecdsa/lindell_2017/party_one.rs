@@ -13,15 +13,14 @@
 
     @license GPL-3.0+ <https://github.com/KZen-networks/multi-party-ecdsa/blob/master/LICENSE>
 */
+use super::SECURITY_BITS;
+use curv::arithmetic::traits::*;
 use paillier::Paillier;
 use paillier::{Decrypt, EncryptWithChosenRandomness, KeyGeneration};
 use paillier::{DecryptionKey, EncryptionKey, Randomness, RawCiphertext, RawPlaintext};
 use std::cmp;
 use std::ops::Shl;
 use zk_paillier::zkproofs::{NICorrectKeyProof, RangeProofNi};
-
-use super::SECURITY_BITS;
-use curv::arithmetic::traits::*;
 
 use curv::elliptic::curves::traits::*;
 
@@ -48,6 +47,7 @@ use curv::GE;
 use Error::{self, InvalidSig};
 
 use subtle::ConstantTimeEq;
+use zeroize::Zeroize;
 
 //****************** Begin: Party One structs ******************//
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -143,7 +143,7 @@ impl KeyGenFirstMsg {
 
         let secret_share: FE = ECScalar::new_random();
         //in Lindell's protocol range proof works only for x1<q/3
-        let secret_share: FE =
+        let mut secret_share: FE =
             ECScalar::from(&secret_share.to_big_int().div_floor(&BigInt::from(3)));
 
         let public_share = base.scalar_mul(&secret_share.get_element());
@@ -167,6 +167,8 @@ impl KeyGenFirstMsg {
             public_share,
             secret_share,
         };
+        secret_share.zeroize();
+
         (
             KeyGenFirstMsg {
                 pk_commitment,
@@ -183,12 +185,10 @@ impl KeyGenFirstMsg {
     }
 
     pub fn create_commitments_with_fixed_secret_share(
-        secret_share: FE,
+        mut secret_share: FE,
     ) -> (KeyGenFirstMsg, CommWitness, EcKeyPair) {
-        //in Lindell's protocol range proof works only for x1<q/3
-        let sk_bigint = secret_share.to_big_int();
-        let q_third = FE::q();
-        assert!(&sk_bigint < &q_third.div_floor(&BigInt::from(3)));
+        //in Lindell's protocol range proofs have correctness 1 only for x1<q/3. Otherwise there is a probability of failure
+
         let base: GE = ECPoint::generator();
         let public_share = base.scalar_mul(&secret_share.get_element());
 
@@ -212,6 +212,7 @@ impl KeyGenFirstMsg {
             public_share,
             secret_share,
         };
+        secret_share.zeroize();
         (
             KeyGenFirstMsg {
                 pk_commitment,
