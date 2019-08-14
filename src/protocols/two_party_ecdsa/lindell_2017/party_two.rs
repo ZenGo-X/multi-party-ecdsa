@@ -431,7 +431,7 @@ impl PartialSig {
 
         let rx = r.x_coor().unwrap().mod_floor(&q);
         let rho = BigInt::sample_below(&q.pow(2));
-        let mut k2_inv = &ephemeral_local_share
+        let mut k2_inv = ephemeral_local_share
             .secret_share
             .to_big_int()
             .invert(&q)
