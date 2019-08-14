@@ -47,6 +47,9 @@ use centipede::juggling::proof_system::{Helgamalsegmented, Witness};
 use centipede::juggling::segmentation::Msegmentation;
 use protocols::multi_party_ecdsa::gg_2018::mta::{MessageA, MessageB};
 
+use zeroize::Zeroize;
+
+
 //****************** Begin: Party Two structs ******************//
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -137,13 +140,14 @@ pub struct EphKeyGenSecondMsg {
 impl KeyGenFirstMsg {
     pub fn create() -> (KeyGenFirstMsg, EcKeyPair) {
         let base: GE = ECPoint::generator();
-        let secret_share: FE = ECScalar::new_random();
+        let mut secret_share: FE = ECScalar::new_random();
         let public_share = base * &secret_share;
         let d_log_proof = DLogProof::prove(&secret_share);
         let ec_key_pair = EcKeyPair {
             public_share: public_share.clone(),
             secret_share,
         };
+        secret_share.zeroize();
         (
             KeyGenFirstMsg {
                 d_log_proof,
@@ -153,7 +157,7 @@ impl KeyGenFirstMsg {
         )
     }
 
-    pub fn create_with_fixed_secret_share(secret_share: FE) -> (KeyGenFirstMsg, EcKeyPair) {
+    pub fn create_with_fixed_secret_share(mut secret_share: FE) -> (KeyGenFirstMsg, EcKeyPair) {
         let base: GE = ECPoint::generator();
         let public_share = base * &secret_share;
         let d_log_proof = DLogProof::prove(&secret_share);
@@ -161,6 +165,7 @@ impl KeyGenFirstMsg {
             public_share: public_share.clone(),
             secret_share,
         };
+        secret_share.zeroize();
         (
             KeyGenFirstMsg {
                 d_log_proof,
@@ -219,7 +224,7 @@ pub fn compute_pubkey(local_share: &EcKeyPair, other_share_public_share: &GE) ->
 impl Party2Private {
     pub fn set_private_key(ec_key: &EcKeyPair) -> Party2Private {
         Party2Private {
-            x2: ec_key.secret_share.clone(),
+            x2: ec_key.secret_share,
         }
     }
 
@@ -341,15 +346,16 @@ impl EphKeyGenFirstMsg {
     pub fn create_commitments() -> (EphKeyGenFirstMsg, EphCommWitness, EphEcKeyPair) {
         let base: GE = ECPoint::generator();
 
-        let secret_share: FE = ECScalar::new_random();
+        let mut secret_share: FE = ECScalar::new_random();
 
         let public_share = base.scalar_mul(&secret_share.get_element());
 
         let h: GE = GE::base_point2();
-        let w = ECDDHWitness {
-            x: secret_share.clone(),
-        };
         let c = &h * &secret_share;
+
+        let w = ECDDHWitness {
+            x: secret_share,
+        };
         let delta = ECDDHStatement {
             g1: base.clone(),
             h1: public_share.clone(),
@@ -375,6 +381,7 @@ impl EphKeyGenFirstMsg {
             public_share,
             secret_share,
         };
+        secret_share.zeroize();
         (
             EphKeyGenFirstMsg {
                 pk_commitment,
@@ -424,18 +431,20 @@ impl PartialSig {
 
         let rx = r.x_coor().unwrap().mod_floor(&q);
         let rho = BigInt::sample_below(&q.pow(2));
-        let k2_inv = &ephemeral_local_share
+        let mut k2_inv = &ephemeral_local_share
             .secret_share
             .to_big_int()
             .invert(&q)
             .unwrap();
         let partial_sig = rho * &q + BigInt::mod_mul(&k2_inv, message, &q);
+
         let c1 = Paillier::encrypt(ek, RawPlaintext::from(partial_sig));
         let v = BigInt::mod_mul(
             &k2_inv,
             &BigInt::mod_mul(&rx, &local_share.x2.to_big_int(), &q),
             &q,
         );
+        k2_inv.zeroize_bn();
         let c2 = Paillier::mul(
             ek,
             RawCiphertext::from(encrypted_secret_share.clone()),
