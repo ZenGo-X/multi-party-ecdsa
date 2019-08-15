@@ -11,3 +11,7 @@ Cargo.lock
 
 .idea
 .DS_Store
+
+keys*.store
+signature
+params.json

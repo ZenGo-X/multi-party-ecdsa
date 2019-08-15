@@ -83,7 +83,7 @@ fn set(
 fn signup_keygen(
     db_mtx: State<RwLock<HashMap<TupleKey, String>>>,
 ) -> Json<Result<PartySignup, ()>> {
-    let data = fs::read_to_string("params")
+    let data = fs::read_to_string("params.json")
         .expect("Unable to read params, make sure config file is present in the same folder ");
     let params: Params = serde_json::from_str(&data).unwrap();
     let parties: u32 = params.parties.parse::<u32>().unwrap();
@@ -121,7 +121,7 @@ fn signup_keygen(
 #[post("/signupsign", format = "json")]
 fn signup_sign(db_mtx: State<RwLock<HashMap<TupleKey, String>>>) -> Json<Result<PartySignup, ()>> {
     //read parameters:
-    let data = fs::read_to_string("params")
+    let data = fs::read_to_string("params.json")
         .expect("Unable to read params, make sure config file is present in the same folder ");
     let params: Params = serde_json::from_str(&data).unwrap();
     let threshold: u32 = params.threshold.parse::<u32>().unwrap();

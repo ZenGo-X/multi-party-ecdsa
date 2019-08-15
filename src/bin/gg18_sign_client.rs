@@ -95,7 +95,7 @@ fn main() {
     ) = serde_json::from_str(&data).unwrap();
 
     //read parameters:
-    let data = fs::read_to_string("params")
+    let data = fs::read_to_string("params.json")
         .expect("Unable to read params, make sure config file is present in the same folder ");
     let params: Params = serde_json::from_str(&data).unwrap();
     let THRESHOLD: u32 = params.threshold.parse::<u32>().unwrap();
