@@ -242,22 +242,21 @@ impl Keys {
             })
             .all(|x| x);
 
-        match correct_ss_verify {
-            true => {
-                let mut y_vec_iter = y_vec.iter();
-                let y0 = y_vec_iter.next().unwrap();
-                let y = y_vec_iter.fold(y0.clone(), |acc, x| acc + x);
-                let x_i = secret_shares_vec.iter().fold(FE::zero(), |acc, x| acc + x);
-                let dlog_proof = DLogProof::prove(&x_i);
-                Ok((SharedKeys { y, x_i }, dlog_proof))
-            }
-            false => Err(InvalidSS),
+        if correct_ss_verify {
+            let mut y_vec_iter = y_vec.iter();
+            let y0 = y_vec_iter.next().unwrap();
+            let y = y_vec_iter.fold(y0.clone(), |acc, x| acc + x);
+            let x_i = secret_shares_vec.iter().fold(FE::zero(), |acc, x| acc + x);
+            let dlog_proof = DLogProof::prove(&x_i);
+            Ok((SharedKeys { y, x_i }, dlog_proof))
+        } else {
+            Err(InvalidSS)
         }
     }
 
-    pub fn get_commitments_to_xi(vss_scheme_vec: &Vec<VerifiableSS>) -> Vec<GE> {
+    pub fn get_commitments_to_xi(vss_scheme_vec: &[VerifiableSS]) -> Vec<GE> {
         let len = vss_scheme_vec.len();
-        let xi_points_vec = (1..len + 1)
+        (1..=len)
             .map(|i| {
                 let xij_points_vec = (0..len)
                     .map(|j| vss_scheme_vec[j].get_point_commitment(i))
@@ -269,16 +268,14 @@ impl Keys {
                 let tail = xij_points_iter;
                 tail.fold(first.clone(), |acc, x| acc + x)
             })
-            .collect::<Vec<GE>>();
-
-        xi_points_vec
+            .collect::<Vec<GE>>()
     }
 
     pub fn update_commitments_to_xi(
         comm: &GE,
         vss_scheme: &VerifiableSS,
         index: usize,
-        s: &Vec<usize>,
+        s: &[usize],
     ) -> GE {
         let li = vss_scheme.map_share_to_new_params(index, s);
         comm * &li
@@ -286,30 +283,30 @@ impl Keys {
 
     pub fn verify_dlog_proofs(
         params: &Parameters,
-        dlog_proofs_vec: &Vec<DLogProof>,
-        y_vec: &Vec<GE>,
+        dlog_proofs_vec: &[DLogProof],
+        y_vec: &[GE],
     ) -> Result<(), Error> {
         assert_eq!(y_vec.len(), params.share_count);
         assert_eq!(dlog_proofs_vec.len(), params.share_count);
         let xi_dlog_verify = (0..y_vec.len())
             .map(|i| DLogProof::verify(&dlog_proofs_vec[i]).is_ok())
-            .all(|x| x == true);
+            .all(|x| x);
 
-        match xi_dlog_verify {
-            true => Ok(()),
-            false => Err(InvalidKey),
+        if xi_dlog_verify {
+            Ok(())
+        } else {
+            Err(InvalidKey)
         }
     }
 }
 
 impl PartyPrivate {
     pub fn set_private(key: Keys, shared_key: SharedKeys) -> PartyPrivate {
-        let key_private = PartyPrivate {
+        PartyPrivate {
             u_i: key.u_i,
             x_i: shared_key.x_i,
             dk: key.dk,
-        };
-        key_private
+        }
     }
 
     pub fn y_i(&self) -> GE {
@@ -331,14 +328,14 @@ impl PartyPrivate {
             y_i: y,
             dk,
             ek,
-            party_index: index.clone(),
+            party_index: index,
         }
     }
 
     // used for verifiable recovery
     pub fn to_encrypted_segment(
         &self,
-        segment_size: &usize,
+        segment_size: usize,
         num_of_segments: usize,
         pub_ke_y: &GE,
         g: &GE,
@@ -360,14 +357,14 @@ impl SignKeys {
         private: &PartyPrivate,
         vss_scheme: &VerifiableSS,
         index: usize,
-        s: &Vec<usize>,
+        s: &[usize],
     ) -> SignKeys {
         let li = vss_scheme.map_share_to_new_params(index, s);
-        let w_i = li * &private.x_i;
+        let w_i = li * private.x_i;
         let g: GE = ECPoint::generator();
-        let g_w_i = &g * &w_i;
+        let g_w_i = g * w_i;
         let gamma_i: FE = ECScalar::new_random();
-        let g_gamma_i = &g * &gamma_i;
+        let g_gamma_i = g * gamma_i;
         SignKeys {
             w_i,
             g_w_i,
@@ -380,7 +377,7 @@ impl SignKeys {
     pub fn phase1_broadcast(&self) -> (SignBroadcastPhase1, SignDecommitPhase1) {
         let blind_factor = BigInt::sample(SECURITY);
         let g: GE = ECPoint::generator();
-        let g_gamma_i = g * &self.gamma_i;
+        let g_gamma_i = g * self.gamma_i;
         let com = HashCommitment::create_commitment_with_user_defined_randomness(
             &g_gamma_i.bytes_compressed_to_big_int(),
             &blind_factor,
@@ -390,45 +387,43 @@ impl SignKeys {
             SignBroadcastPhase1 { com },
             SignDecommitPhase1 {
                 blind_factor,
-                g_gamma_i: self.g_gamma_i.clone(),
+                g_gamma_i: self.g_gamma_i,
             },
         )
     }
 
-    pub fn phase2_delta_i(&self, alpha_vec: &Vec<FE>, beta_vec: &Vec<FE>) -> FE {
+    pub fn phase2_delta_i(&self, alpha_vec: &[FE], beta_vec: &[FE]) -> FE {
         let vec_len = alpha_vec.len();
         assert_eq!(alpha_vec.len(), beta_vec.len());
         // assert_eq!(alpha_vec.len(), self.s.len() - 1);
         let ki_gamma_i = self.k_i.mul(&self.gamma_i.get_element());
-        let sum = (0..vec_len)
+        (0..vec_len)
             .map(|i| alpha_vec[i].add(&beta_vec[i].get_element()))
-            .fold(ki_gamma_i, |acc, x| acc + x);
-        return sum;
+            .fold(ki_gamma_i, |acc, x| acc + x)
     }
 
-    pub fn phase2_sigma_i(&self, miu_vec: &Vec<FE>, ni_vec: &Vec<FE>) -> FE {
+    pub fn phase2_sigma_i(&self, miu_vec: &[FE], ni_vec: &[FE]) -> FE {
         let vec_len = miu_vec.len();
         assert_eq!(miu_vec.len(), ni_vec.len());
         //assert_eq!(miu_vec.len(), self.s.len() - 1);
         let ki_w_i = self.k_i.mul(&self.w_i.get_element());
-        let sum = (0..vec_len)
+        (0..vec_len)
             .map(|i| miu_vec[i].add(&ni_vec[i].get_element()))
-            .fold(ki_w_i, |acc, x| acc + x);
-        return sum;
+            .fold(ki_w_i, |acc, x| acc + x)
     }
 
-    pub fn phase3_reconstruct_delta(delta_vec: &Vec<FE>) -> FE {
+    pub fn phase3_reconstruct_delta(delta_vec: &[FE]) -> FE {
         let sum = delta_vec.iter().fold(FE::zero(), |acc, x| acc + x);
         sum.invert()
     }
 
     pub fn phase4(
         delta_inv: &FE,
-        b_proof_vec: &Vec<&DLogProof>,
+        b_proof_vec: &[&DLogProof],
         phase1_decommit_vec: Vec<SignDecommitPhase1>,
         // blind_vec: &Vec<BigInt>,
         //  g_gamma_i_vec: &Vec<GE>,
-        bc1_vec: &Vec<SignBroadcastPhase1>,
+        bc1_vec: &[SignBroadcastPhase1],
     ) -> Result<GE, Error> {
         let test_b_vec_and_com = (0..b_proof_vec.len())
             .map(|i| {
@@ -440,18 +435,18 @@ impl SignKeys {
                         &phase1_decommit_vec[i].blind_factor,
                     ) == bc1_vec[i].com
             })
-            .all(|x| x == true);
+            .all(|x| x);
 
         let mut g_gamma_i_iter = phase1_decommit_vec.iter();
         let head = g_gamma_i_iter.next().unwrap();
         let tail = g_gamma_i_iter;
-        match test_b_vec_and_com {
-            true => Ok({
-                let gamma_sum = tail.fold(head.g_gamma_i.clone(), |acc, x| acc + &x.g_gamma_i);
-                let R = gamma_sum * delta_inv;
-                R
-            }),
-            false => Err(InvalidKey),
+        if test_b_vec_and_com {
+            Ok({
+                let gamma_sum = tail.fold(head.g_gamma_i, |acc, x| acc + x.g_gamma_i);
+                gamma_sum * delta_inv
+            })
+        } else {
+            Err(InvalidKey)
         }
     }
 }
@@ -472,35 +467,35 @@ impl LocalSignature {
         LocalSignature {
             l_i,
             rho_i,
-            R: R.clone(),
+            R: *R,
             s_i,
             m: message.clone(),
-            y: pubkey.clone(),
+            y: *pubkey,
         }
     }
 
     pub fn phase5a_broadcast_5b_zkproof(&self) -> (Phase5Com1, Phase5ADecom1, HomoELGamalProof) {
         let blind_factor = BigInt::sample(SECURITY);
         let g: GE = ECPoint::generator();
-        let A_i = &g * &self.rho_i;
+        let A_i = g * self.rho_i;
         let l_i_rho_i = self.l_i.mul(&self.rho_i.get_element());
-        let B_i = &g * &l_i_rho_i;
-        let V_i = &self.R * &self.s_i + &g * &self.l_i;
+        let B_i = g * l_i_rho_i;
+        let V_i = self.R * self.s_i + g * self.l_i;
         let input_hash = HSha256::create_hash_from_ge(&[&V_i, &A_i, &B_i]).to_big_int();
         let com = HashCommitment::create_commitment_with_user_defined_randomness(
             &input_hash,
             &blind_factor,
         );
         let witness = HomoElGamalWitness {
-            r: self.l_i.clone(),
-            x: self.s_i.clone(),
+            r: self.l_i,
+            x: self.s_i,
         };
         let delta = HomoElGamalStatement {
-            G: A_i.clone(),
-            H: self.R.clone(),
+            G: A_i,
+            H: self.R,
             Y: g,
-            D: V_i.clone(),
-            E: B_i.clone(),
+            D: V_i,
+            E: B_i,
         };
         let proof = HomoELGamalProof::prove(&witness, &delta);
 
@@ -518,9 +513,9 @@ impl LocalSignature {
 
     pub fn phase5c(
         &self,
-        decom_vec: &Vec<Phase5ADecom1>,
-        com_vec: &Vec<Phase5Com1>,
-        elgamal_proofs: &Vec<HomoELGamalProof>,
+        decom_vec: &[Phase5ADecom1],
+        com_vec: &[Phase5Com1],
+        elgamal_proofs: &[HomoELGamalProof],
         v_i: &GE,
         R: &GE,
     ) -> Result<(Phase5Com2, Phase5DDecom2), Error> {
@@ -530,11 +525,11 @@ impl LocalSignature {
         let test_com_elgamal = (0..com_vec.len())
             .map(|i| {
                 let delta = HomoElGamalStatement {
-                    G: decom_vec[i].A_i.clone(),
-                    H: R.clone(),
-                    Y: g.clone(),
-                    D: decom_vec[i].V_i.clone(),
-                    E: decom_vec[i].B_i.clone(),
+                    G: decom_vec[i].A_i,
+                    H: *R,
+                    Y: g,
+                    D: decom_vec[i].V_i,
+                    E: decom_vec[i].B_i,
                 };
                 let input_hash = HSha256::create_hash_from_ge(&[
                     &decom_vec[i].V_i,
@@ -549,7 +544,7 @@ impl LocalSignature {
                 ) == com_vec[i].com
                     && elgamal_proofs[i].verify(&delta).is_ok()
             })
-            .all(|x| x == true);
+            .all(|x| x);
 
         let v_vec = (0..com_vec.len())
             .map(|i| &decom_vec[i].V_i)
@@ -566,13 +561,13 @@ impl LocalSignature {
         let a = tail.fold((*head).clone(), |acc, x| acc.add_point(&(*x).get_element()));
 
         let r: FE = ECScalar::from(&self.R.x_coor().unwrap().mod_floor(&FE::q()));
-        let yr = &self.y * &r;
+        let yr = self.y * r;
         let g: GE = ECPoint::generator();
         let m_fe: FE = ECScalar::from(&self.m);
-        let gm = &g * &m_fe;
+        let gm = g * &m_fe;
         let v = v.sub_point(&gm.get_element()).sub_point(&yr.get_element());
-        let u_i = &v * &self.rho_i;
-        let t_i = &a * &self.l_i;
+        let u_i = v * self.rho_i;
+        let t_i = a * self.l_i;
         let input_hash = HSha256::create_hash_from_ge(&[&u_i, &t_i]).to_big_int();
         let blind_factor = BigInt::sample(SECURITY);
         let com = HashCommitment::create_commitment_with_user_defined_randomness(
@@ -580,8 +575,8 @@ impl LocalSignature {
             &blind_factor,
         );
 
-        match test_com_elgamal {
-            true => Ok({
+        if test_com_elgamal {
+            Ok({
                 (
                     Phase5Com2 { com },
                     Phase5DDecom2 {
@@ -590,16 +585,17 @@ impl LocalSignature {
                         blind_factor,
                     },
                 )
-            }),
-            false => Err(InvalidCom),
+            })
+        } else {
+            Err(InvalidCom)
         }
     }
 
     pub fn phase5d(
         &self,
-        decom_vec2: &Vec<Phase5DDecom2>,
-        com_vec2: &Vec<Phase5Com2>,
-        decom_vec1: &Vec<Phase5ADecom1>,
+        decom_vec2: &[Phase5DDecom2],
+        com_vec2: &[Phase5Com2],
+        decom_vec1: &[Phase5ADecom1],
     ) -> Result<FE, Error> {
         assert_eq!(decom_vec2.len(), decom_vec1.len());
         assert_eq!(decom_vec2.len(), com_vec2.len());
@@ -614,7 +610,7 @@ impl LocalSignature {
                     &decom_vec2[i].blind_factor,
                 ) == com_vec2[i].com
             })
-            .all(|x| x == true);
+            .all(|x| x);
 
         let t_vec = (0..com_vec2.len())
             .map(|i| &decom_vec2[i].t_i)
@@ -627,32 +623,29 @@ impl LocalSignature {
             .collect::<Vec<&GE>>();
 
         let g: GE = ECPoint::generator();
-        let biased_sum_tb = t_vec
-            .iter()
-            .zip(b_vec)
-            .fold(g.clone(), |acc, x| acc + *x.0 + x.1);
+        let biased_sum_tb = t_vec.iter().zip(b_vec).fold(g, |acc, x| acc + *x.0 + x.1);
         let biased_sum_tb_minus_u = u_vec
             .iter()
             .fold(biased_sum_tb, |acc, x| acc.sub_point(&x.get_element()));
-        match test_com {
-            true => {
-                if g == biased_sum_tb_minus_u {
-                    Ok(self.s_i.clone())
-                } else {
-                    Err(InvalidKey)
-                }
+        if test_com {
+            if g == biased_sum_tb_minus_u {
+                Ok(self.s_i)
+            } else {
+                Err(InvalidKey)
             }
-            false => Err(InvalidCom),
+        } else {
+            Err(InvalidCom)
         }
     }
-    pub fn output_signature(&self, s_vec: &Vec<FE>) -> Result<Signature, Error> {
-        let s = s_vec.iter().fold(self.s_i.clone(), |acc, x| acc + x);
+    pub fn output_signature(&self, s_vec: &[FE]) -> Result<Signature, Error> {
+        let s = s_vec.iter().fold(self.s_i, |acc, x| acc + x);
         let r: FE = ECScalar::from(&self.R.x_coor().unwrap().mod_floor(&FE::q()));
         let sig = Signature { r, s };
         let ver = verify(&sig, &self.y, &self.m).is_ok();
-        match ver {
-            true => Ok(sig),
-            false => Err(InvalidSig),
+        if ver {
+            Ok(sig)
+        } else {
+            Err(InvalidSig)
         }
     }
 }
@@ -660,16 +653,16 @@ impl LocalSignature {
 pub fn verify(sig: &Signature, y: &GE, message: &BigInt) -> Result<(), Error> {
     let b = sig.s.invert();
     let a: FE = ECScalar::from(message);
-    let u1 = a * &b;
-    let u2 = sig.r.clone() * &b;
+    let u1 = a * b;
+    let u2 = sig.r * b;
 
     let g: GE = ECPoint::generator();
-    let gu1 = &g * &u1;
+    let gu1 = g * u1;
     let yu2 = y * &u2;
     // can be faster using shamir trick
 
     ;
-    if sig.r.clone() == ECScalar::from(&(gu1 + yu2).x_coor().unwrap().mod_floor(&FE::q())) {
+    if sig.r == ECScalar::from(&(gu1 + yu2).x_coor().unwrap().mod_floor(&FE::q())) {
         Ok(())
     } else {
         Err(InvalidSig)

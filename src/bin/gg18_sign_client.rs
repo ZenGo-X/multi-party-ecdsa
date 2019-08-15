@@ -12,20 +12,22 @@ extern crate serde_derive;
 extern crate hex;
 extern crate serde_json;
 
-use curv::cryptographic_primitives::proofs::sigma_correct_homomorphic_elgamal_enc::HomoELGamalProof;
-use curv::cryptographic_primitives::proofs::sigma_dlog::DLogProof;
-use curv::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS;
-use curv::elliptic::curves::traits::*;
-use curv::BigInt;
-use curv::{FE, GE};
-use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2018::mta::*;
-use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2018::party_i::*;
-use paillier::*;
+use curv::{
+    cryptographic_primitives::{
+        proofs::sigma_correct_homomorphic_elgamal_enc::HomoELGamalProof,
+        proofs::sigma_dlog::DLogProof, secret_sharing::feldman_vss::VerifiableSS,
+    },
+    elliptic::curves::traits::ECScalar,
+    BigInt, FE, GE,
+};
+use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2018::mta::{MessageA, MessageB};
+use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2018::party_i::{
+    Keys, LocalSignature, PartyPrivate, Phase5ADecom1, Phase5Com1, Phase5Com2, Phase5DDecom2,
+    SharedKeys, SignBroadcastPhase1, SignDecommitPhase1, SignKeys,
+};
+use paillier::EncryptionKey;
 use reqwest::Client;
-use std::env;
-use std::fs;
-use std::time::Duration;
-use std::{thread, time};
+use std::{env, fs, thread, time, time::Duration};
 
 #[derive(Hash, PartialEq, Eq, Clone, Debug, Serialize, Deserialize)]
 pub struct TupleKey {

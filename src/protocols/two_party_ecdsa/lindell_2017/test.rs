@@ -77,9 +77,8 @@ mod tests {
             &paillier_key_pair,
             &party_one_private,
         );
-        let _result =
-            party_two::PaillierPublic::verify_range_proof(&party_two_paillier, &range_proof)
-                .expect("range proof error");
+        party_two::PaillierPublic::verify_range_proof(&party_two_paillier, &range_proof)
+            .expect("range proof error");
 
         // pdl proof minus range proof
         let (party_two_pdl_first_message, pdl_chal_party2) =

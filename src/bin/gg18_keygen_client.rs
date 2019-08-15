@@ -374,8 +374,7 @@ pub fn signup(client: &Client) -> Result<(PartySignup), ()> {
     };
 
     let res_body = postb(&client, "signupkeygen", key).unwrap();
-    let answer: Result<(PartySignup), ()> = serde_json::from_str(&res_body).unwrap();
-    answer
+    serde_json::from_str(&res_body).unwrap()
 }
 
 pub fn broadcast(
@@ -397,8 +396,7 @@ pub fn broadcast(
     };
 
     let res_body = postb(&client, "set", entry).unwrap();
-    let answer: Result<(), ()> = serde_json::from_str(&res_body).unwrap();
-    answer
+    serde_json::from_str(&res_body).unwrap()
 }
 
 pub fn sendp2p(

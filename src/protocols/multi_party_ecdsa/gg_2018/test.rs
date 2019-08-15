@@ -179,22 +179,16 @@ mod tests {
             .collect::<Vec<SignKeys>>();
 
         // each party computes [Ci,Di] = com(g^gamma_i) and broadcast the commitments
-        let mut bc1_vec = Vec::new();
-        let mut decommit_vec1 = Vec::new();
-        for i in 0..ttag {
-            let (com, decommit_phase_1) = sign_keys_vec[i].phase1_broadcast();
-            bc1_vec.push(com);
-            decommit_vec1.push(decommit_phase_1);
-        }
+        let (bc1_vec, decommit_vec1): (Vec<_>, Vec<_>) =
+            sign_keys_vec.iter().map(|k| k.phase1_broadcast()).unzip();
 
         // each party i sends encryption of k_i under her Paillier key
         // m_a_vec = [ma_0;ma_1;,...]
-        let mut m_a_vec = Vec::new();
-        for i in 0..ttag.clone() {
-            let m_a_k = MessageA::a(&sign_keys_vec[i].k_i, &party_keys_vec[s[i]].ek);
-
-            m_a_vec.push(m_a_k);
-        }
+        let m_a_vec: Vec<_> = sign_keys_vec
+            .iter()
+            .enumerate()
+            .map(|(i, k)| MessageA::a(&k.k_i, &party_keys_vec[s[i]].ek))
+            .collect();
 
         // each party i sends responses to m_a_vec she received (one response with input gamma_i and one with w_i)
         // m_b_gamma_vec_all is a matrix where column i is a vector of message_b's that party i answers to all ma_{j!=i} using paillier key of party j to answer to ma_j
@@ -267,7 +261,7 @@ mod tests {
                 // here for b=w_i the parties already know W_i = g^w_i  for each party so this check is done here. for b = gamma_i the check will be later when g^gamma_i will become public
                 // currently we take the W_i from the other parties signing keys
                 // TODO: use pk_vec (first change from x_i to w_i) for this check.
-                assert_eq!(m_b.b_proof.pk.clone(), sign_keys_vec[i].g_w_i.clone());
+                assert_eq!(m_b.b_proof.pk, sign_keys_vec[i].g_w_i);
 
                 alpha_vec.push(alpha_ij_gamma);
                 miu_vec.push(alpha_ij_wi);
@@ -305,9 +299,8 @@ mod tests {
                         &b_gamma_vec[0].b_proof
                     })
                     .collect::<Vec<&DLogProof>>();
-                let R = SignKeys::phase4(&delta_inv, &b_proof_vec, decommit_vec1.clone(), &bc1_vec)
-                    .expect("bad gamma_i decommit");
-                R
+                SignKeys::phase4(&delta_inv, &b_proof_vec, decommit_vec1.clone(), &bc1_vec)
+                    .expect("bad gamma_i decommit")
             })
             .collect::<Vec<GE>>();
 
@@ -331,7 +324,7 @@ mod tests {
         let mut phase_5a_decom_vec: Vec<Phase5ADecom1> = Vec::new();
         let mut helgamal_proof_vec = Vec::new();
         // we notice that the proof for V= R^sg^l, B = A^l is a general form of homomorphic elgamal.
-        for i in 0..ttag.clone() {
+        for i in 0..ttag {
             let (phase5_com, phase_5a_decom, helgamal_proof) =
                 local_sig_vec[i].phase5a_broadcast_5b_zkproof();
             phase5_com_vec.push(phase5_com);
@@ -341,7 +334,7 @@ mod tests {
 
         let mut phase5_com2_vec = Vec::new();
         let mut phase_5d_decom2_vec = Vec::new();
-        for i in 0..ttag.clone() {
+        for i in 0..ttag {
             let mut phase_5a_decom_vec_clone = phase_5a_decom_vec.clone();
             let mut phase_5a_com_vec_clone = phase5_com_vec.clone();
             let mut phase_5b_elgamal_vec_clone = helgamal_proof_vec.clone();
@@ -366,7 +359,7 @@ mod tests {
 
         // assuming phase5 checks passes each party sends s_i and compute sum_i{s_i}
         let mut s_vec: Vec<FE> = Vec::new();
-        for i in 0..ttag.clone() {
+        for i in 0..ttag {
             let s_i = local_sig_vec[i]
                 .phase5d(&phase_5d_decom2_vec, &phase5_com2_vec, &phase_5a_decom_vec)
                 .expect("bad com 5d");
