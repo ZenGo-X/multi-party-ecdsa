@@ -93,10 +93,10 @@ fn main() {
     assert!(party_i_signup_result.is_ok());
     let party_i_signup = party_i_signup_result.unwrap();
     println!("{:?}", party_i_signup.clone());
-    let party_num_int = party_i_signup.number.clone();
+    let party_num_int = party_i_signup.number;
     let uuid = party_i_signup.uuid;
 
-    let party_keys = Keys::create(party_num_int.clone() as usize);
+    let party_keys = Keys::create(party_num_int as usize);
     let (bc_i, decom_i) = party_keys.phase1_broadcast_phase3_proof_of_correct_key();
 
     //////////////////////////////////////////////////////////////////////////////
@@ -104,7 +104,7 @@ fn main() {
     // send commitment to ephemeral public keys, get round 1 commitments of other parties
     assert!(broadcast(
         &client,
-        party_num_int.clone(),
+        party_num_int,
         "round1",
         serde_json::to_string(&bc_i).unwrap(),
         uuid.clone()
@@ -112,22 +112,22 @@ fn main() {
     .is_ok());
     let round1_ans_vec = poll_for_broadcasts(
         &client,
-        party_num_int.clone(),
+        party_num_int,
         PARTIES,
-        delay.clone(),
+        delay,
         "round1",
         uuid.clone(),
     );
 
     let mut j = 0;
-    let bc1_vec = (1..PARTIES + 1)
+    let bc1_vec = (1..=PARTIES)
         .map(|i| {
             if i == party_num_int {
                 bc_i.clone()
             } else {
                 let bc1_j: KeyGenBroadcastMessage1 =
                     serde_json::from_str(&round1_ans_vec[j]).unwrap();
-                j = j + 1;
+                j += 1;
                 bc1_j
             }
         })
@@ -136,7 +136,7 @@ fn main() {
     // round 2: send ephemeral public keys and  check commitments correctness
     assert!(broadcast(
         &client,
-        party_num_int.clone(),
+        party_num_int,
         "round2",
         serde_json::to_string(&decom_i).unwrap(),
         uuid.clone()
@@ -144,9 +144,9 @@ fn main() {
     .is_ok());
     let round2_ans_vec = poll_for_broadcasts(
         &client,
-        party_num_int.clone(),
+        party_num_int,
         PARTIES,
-        delay.clone(),
+        delay,
         "round2",
         uuid.clone(),
     );
@@ -157,20 +157,16 @@ fn main() {
     let mut y_vec: Vec<GE> = Vec::new();
     let mut decom_vec: Vec<KeyGenDecommitMessage1> = Vec::new();
     let mut enc_keys: Vec<BigInt> = Vec::new();
-    for i in 1..PARTIES + 1 {
+    for i in 1..=PARTIES {
         if i == party_num_int {
-            y_vec.push(party_keys.y_i.clone());
+            y_vec.push(party_keys.y_i);
             decom_vec.push(decom_i.clone());
         } else {
             let decom_j: KeyGenDecommitMessage1 = serde_json::from_str(&round2_ans_vec[j]).unwrap();
-            y_vec.push(decom_j.y_i.clone());
+            y_vec.push(decom_j.y_i);
             decom_vec.push(decom_j.clone());
-            enc_keys.push(
-                (party_keys.y_i.clone() + decom_j.y_i.clone())
-                    .x_coor()
-                    .unwrap(),
-            );
-            j = j + 1;
+            enc_keys.push((party_keys.y_i + decom_j.y_i).x_coor().unwrap());
+            j += 1;
         }
     }
 
@@ -188,9 +184,8 @@ fn main() {
     //////////////////////////////////////////////////////////////////////////////
 
     let mut j = 0;
-    let mut k = 0;
     let round = 3;
-    for i in 1..PARTIES + 1 {
+    for (k, i) in (1..=PARTIES).enumerate() {
         if i != party_num_int {
             // prepare encrypted ss for party i:
             let key_i = BigInt::to_vec(&enc_keys[j]);
@@ -207,32 +202,31 @@ fn main() {
             };
             assert!(sendp2p(
                 &client,
-                party_num_int.clone(),
+                party_num_int,
                 i,
                 "round3",
                 serde_json::to_string(&aead_pack_i).unwrap(),
                 uuid.clone()
             )
             .is_ok());
-            j = j + 1;
+            j += 1;
         }
-        k = k + 1;
     }
 
     let round3_ans_vec = poll_for_p2p(
         &client,
-        party_num_int.clone(),
+        party_num_int,
         PARTIES,
-        delay.clone(),
+        delay,
         "round3",
         uuid.clone(),
     );
 
     let mut j = 0;
     let mut party_shares: Vec<FE> = Vec::new();
-    for i in 1..PARTIES + 1 {
+    for i in 1..=PARTIES {
         if i == party_num_int {
-            party_shares.push(secret_shares[(i - 1) as usize].clone());
+            party_shares.push(secret_shares[(i - 1) as usize]);
         } else {
             let aead_pack: AEAD = serde_json::from_str(&round3_ans_vec[j]).unwrap();
             let mut out: Vec<u8> = repeat(0).take(aead_pack.ciphertext.len()).collect();
@@ -246,7 +240,7 @@ fn main() {
             let out_fe = ECScalar::from(&out_bn);
             party_shares.push(out_fe);
 
-            j = j + 1;
+            j += 1;
         }
     }
     //////////////////////////////////////////////////////////////////////////////
@@ -254,7 +248,7 @@ fn main() {
     // round 4: send vss commitments
     assert!(broadcast(
         &client,
-        party_num_int.clone(),
+        party_num_int,
         "round4",
         serde_json::to_string(&vss_scheme).unwrap(),
         uuid.clone()
@@ -262,22 +256,22 @@ fn main() {
     .is_ok());
     let round4_ans_vec = poll_for_broadcasts(
         &client,
-        party_num_int.clone(),
+        party_num_int,
         PARTIES,
-        delay.clone(),
+        delay,
         "round4",
         uuid.clone(),
     );
 
     let mut j = 0;
     let mut vss_scheme_vec: Vec<VerifiableSS> = Vec::new();
-    for i in 1..PARTIES + 1 {
+    for i in 1..=PARTIES {
         if i == party_num_int {
             vss_scheme_vec.push(vss_scheme.clone());
         } else {
             let vss_scheme_j: VerifiableSS = serde_json::from_str(&round4_ans_vec[j]).unwrap();
             vss_scheme_vec.push(vss_scheme_j);
-            j = j + 1;
+            j += 1;
         }
     }
 
@@ -295,7 +289,7 @@ fn main() {
     // round 5: send vss commitments
     assert!(broadcast(
         &client,
-        party_num_int.clone(),
+        party_num_int,
         "round5",
         serde_json::to_string(&dlog_proof).unwrap(),
         uuid.clone()
@@ -303,22 +297,22 @@ fn main() {
     .is_ok());
     let round5_ans_vec = poll_for_broadcasts(
         &client,
-        party_num_int.clone(),
+        party_num_int,
         PARTIES,
-        delay.clone(),
+        delay,
         "round5",
         uuid.clone(),
     );
 
     let mut j = 0;
     let mut dlog_proof_vec: Vec<DLogProof> = Vec::new();
-    for i in 1..PARTIES + 1 {
+    for i in 1..=PARTIES {
         if i == party_num_int {
             dlog_proof_vec.push(dlog_proof.clone());
         } else {
             let dlog_proof_j: DLogProof = serde_json::from_str(&round5_ans_vec[j]).unwrap();
             dlog_proof_vec.push(dlog_proof_j);
-            j = j + 1;
+            j += 1;
         }
     }
     Keys::verify_dlog_proofs(&parames, &dlog_proof_vec, &y_vec).expect("bad dlog proof");
@@ -352,7 +346,7 @@ where
 {
     let addr = env::args()
         .nth(1)
-        .unwrap_or("http://127.0.0.1:8001".to_string());
+        .unwrap_or_else(|| "http://127.0.0.1:8001".to_string());
     let retries = 3;
     let retry_delay = time::Duration::from_millis(250);
     for _i in 1..retries {
@@ -360,8 +354,9 @@ where
             .post(&format!("{}/{}", addr, path))
             .json(&body)
             .send();
-        if res.is_ok() {
-            return Some(res.unwrap().text().unwrap());
+
+        if let Ok(mut res) = res {
+            return Some(res.text().unwrap());
         }
         thread::sleep(retry_delay);
     }
@@ -378,7 +373,7 @@ pub fn signup(client: &Client) -> Result<(PartySignup), ()> {
 
     let res_body = postb(&client, "signupkeygen", key).unwrap();
     let answer: Result<(PartySignup), ()> = serde_json::from_str(&res_body).unwrap();
-    return answer;
+    answer
 }
 
 pub fn broadcast(
@@ -401,7 +396,7 @@ pub fn broadcast(
 
     let res_body = postb(&client, "set", entry).unwrap();
     let answer: Result<(), ()> = serde_json::from_str(&res_body).unwrap();
-    return answer;
+    answer
 }
 
 pub fn sendp2p(
@@ -424,8 +419,7 @@ pub fn sendp2p(
     };
 
     let res_body = postb(&client, "set", entry).unwrap();
-    let answer: Result<(), ()> = serde_json::from_str(&res_body).unwrap();
-    return answer;
+    serde_json::from_str(&res_body).unwrap()
 }
 
 pub fn poll_for_broadcasts(
@@ -437,7 +431,7 @@ pub fn poll_for_broadcasts(
     uuid: String,
 ) -> Vec<String> {
     let mut ans_vec = Vec::new();
-    for i in 1..n + 1 {
+    for i in 1..=n {
         if i != party_num {
             let key = TupleKey {
                 first: i.to_string(),
@@ -451,8 +445,8 @@ pub fn poll_for_broadcasts(
                 thread::sleep(delay);
                 let res_body = postb(client, "get", index.clone()).unwrap();
                 let answer: Result<Entry, ()> = serde_json::from_str(&res_body).unwrap();
-                if answer.is_ok() {
-                    ans_vec.push(answer.unwrap().value);
+                if let Ok(answer) = answer {
+                    ans_vec.push(answer.value);
                     println!("party {:?} {:?} read success", i, round);
                     break;
                 }
@@ -471,7 +465,7 @@ pub fn poll_for_p2p(
     uuid: String,
 ) -> Vec<String> {
     let mut ans_vec = Vec::new();
-    for i in 1..n + 1 {
+    for i in 1..=n {
         if i != party_num {
             let key = TupleKey {
                 first: i.to_string(),
@@ -485,8 +479,8 @@ pub fn poll_for_p2p(
                 thread::sleep(delay);
                 let res_body = postb(client, "get", index.clone()).unwrap();
                 let answer: Result<Entry, ()> = serde_json::from_str(&res_body).unwrap();
-                if answer.is_ok() {
-                    ans_vec.push(answer.unwrap().value);
+                if let Ok(answer) = answer {
+                    ans_vec.push(answer.value);
                     println!("party {:?} {:?} read success", i, round);
                     break;
                 }

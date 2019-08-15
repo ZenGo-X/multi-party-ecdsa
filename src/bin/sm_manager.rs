@@ -60,7 +60,7 @@ fn get(
         Some(v) => {
             let entry = Entry {
                 key: index.key,
-                value: format!("{}", v.clone()),
+                value: v.clone().to_string(),
             };
             Json(Ok(entry))
         }
@@ -101,7 +101,7 @@ fn signup_keygen(
         if party_i_minus1_signup.number < parties {
             let party_num = party_i_minus1_signup.number + 1;
             party_signup = PartySignup {
-                number: party_num.clone(),
+                number: party_num,
                 uuid: party_i_minus1_signup.uuid,
             };
         } else {
@@ -115,7 +115,7 @@ fn signup_keygen(
     }
     let mut hm = db_mtx.write().unwrap();
     hm.insert(key, serde_json::to_string(&party_signup).unwrap());
-    return Json(Ok(party_signup));
+    Json(Ok(party_signup))
 }
 
 #[post("/signupsign", format = "json")]
@@ -139,7 +139,7 @@ fn signup_sign(db_mtx: State<RwLock<HashMap<TupleKey, String>>>) -> Json<Result<
         if party_i_minus1_signup.number < threshold + 1 {
             let party_num = party_i_minus1_signup.number + 1;
             party_signup = PartySignup {
-                number: party_num.clone(),
+                number: party_num,
                 uuid: party_i_minus1_signup.uuid,
             };
         } else {
@@ -153,7 +153,7 @@ fn signup_sign(db_mtx: State<RwLock<HashMap<TupleKey, String>>>) -> Json<Result<
     }
     let mut hm = db_mtx.write().unwrap();
     hm.insert(key, serde_json::to_string(&party_signup).unwrap());
-    return Json(Ok(party_signup));
+    Json(Ok(party_signup))
 }
 
 //refcell, arc
@@ -186,11 +186,11 @@ fn main() {
 
     let party1 = 0;
     let party_signup_keygen = PartySignup {
-        number: party1.clone(),
+        number: party1,
         uuid: uuid_keygen,
     };
     let party_signup_sign = PartySignup {
-        number: party1.clone(),
+        number: party1,
         uuid: uuid_sign,
     };
     {
