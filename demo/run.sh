@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 params=`cat params`
 regex='{\"parties\":\"(.*)\",\"threshold\":\"(.*)\"}'
 [[ $params =~ $regex ]]
@@ -40,4 +41,3 @@ echo "signing for client $i out of $((t+1))"
 
 sleep 2
 done
-
