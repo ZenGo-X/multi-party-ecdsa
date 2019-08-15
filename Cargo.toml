@@ -37,7 +37,7 @@ reqwest = {version = "0.9.5", default-features = false}
 rocket = "0.4.0"
 rocket_contrib = "0.4.0"
 uuid = { version = "0.7", features = ["v4"] }
-rust-crypto = "^0.2"
+rust-crypto = { git = "https://github.com/vhnatyk/rust-crypto", branch="aarch64"}
 
 [dependencies.curv]
 git = "https://github.com/KZen-networks/curv"
@@ -53,6 +53,11 @@ rust-gmp = { version = "0.5.0", features = ["serde_support"], git = "https://git
 criterion = "0.2"
 
 [[bench]]
-name = "keygen"
+name = "keygen_2p"
+path = "benches/two_party_ecdsa/lindell_2017/keygen.rs"
+harness = false
+
+[[bench]]
+name = "keygen_mp"
 path = "benches/multi_party_ecdsa/gg18/keygen.rs"
 harness = false
