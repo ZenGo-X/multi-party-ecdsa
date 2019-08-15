@@ -73,8 +73,8 @@ pub struct KeyGenDecommitMessage1 {
 
 #[derive(Debug)]
 pub struct Parameters {
-    pub threshold: usize,   //t
-    pub share_count: usize, //n
+    pub threshold: u16,   //t
+    pub share_count: u16, //n
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -199,8 +199,8 @@ impl Keys {
         bc1_vec: &Vec<KeyGenBroadcastMessage1>,
     ) -> Result<(VerifiableSS, Vec<FE>, usize), Error> {
         // test length:
-        assert_eq!(decom_vec.len(), params.share_count);
-        assert_eq!(bc1_vec.len(), params.share_count);
+        assert_eq!(decom_vec.len() as u16, params.share_count);
+        assert_eq!(bc1_vec.len() as u16, params.share_count);
         // test paillier correct key and test decommitments
         let correct_key_correct_decom_all = (0..bc1_vec.len())
             .map(|i| {
@@ -213,7 +213,7 @@ impl Keys {
             .all(|x| x == true);
 
         let (vss_scheme, secret_shares) =
-            VerifiableSS::share(params.threshold, params.share_count, &self.u_i);
+            VerifiableSS::share(params.threshold as usize, params.share_count as usize, &self.u_i);
         match correct_key_correct_decom_all {
             true => Ok((vss_scheme, secret_shares, self.party_index.clone())),
             false => Err(InvalidKey),
@@ -228,9 +228,9 @@ impl Keys {
         vss_scheme_vec: &Vec<VerifiableSS>,
         index: &usize,
     ) -> Result<(SharedKeys, DLogProof), Error> {
-        assert_eq!(y_vec.len(), params.share_count);
-        assert_eq!(secret_shares_vec.len(), params.share_count);
-        assert_eq!(vss_scheme_vec.len(), params.share_count);
+        assert_eq!(y_vec.len() as u16, params.share_count);
+        assert_eq!(secret_shares_vec.len() as u16, params.share_count);
+        assert_eq!(vss_scheme_vec.len() as u16, params.share_count);
 
         let correct_ss_verify = (0..y_vec.len())
             .map(|i| {
@@ -288,8 +288,8 @@ impl Keys {
         dlog_proofs_vec: &Vec<DLogProof>,
         y_vec: &Vec<GE>,
     ) -> Result<(), Error> {
-        assert_eq!(y_vec.len(), params.share_count);
-        assert_eq!(dlog_proofs_vec.len(), params.share_count);
+        assert_eq!(y_vec.len() as u16, params.share_count);
+        assert_eq!(dlog_proofs_vec.len() as u16, params.share_count);
         let xi_dlog_verify = (0..y_vec.len())
             .map(|i| DLogProof::verify(&dlog_proofs_vec[i]).is_ok())
             .all(|x| x == true);
