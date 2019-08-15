@@ -82,7 +82,7 @@ mod bench {
                     &y_vec,
                     &party_shares[i],
                     &vss_scheme_vec,
-                    &(&index_vec[i] + 1),
+                    &index_vec[i] + 1,
                 )
                 .expect("invalid vss");
             shared_keys_vec.push(shared_keys);

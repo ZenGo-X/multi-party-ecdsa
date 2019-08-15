@@ -154,7 +154,7 @@ impl Keys {
             y_i: y,
             dk,
             ek,
-            party_index: index.clone(),
+            party_index: index,
         }
     }
 
@@ -167,7 +167,7 @@ impl Keys {
             y_i: y,
             dk,
             ek,
-            party_index: index.clone(),
+            party_index: index,
         }
     }
 
@@ -187,7 +187,7 @@ impl Keys {
         };
         let decom1 = KeyGenDecommitMessage1 {
             blind_factor,
-            y_i: self.y_i.clone(),
+            y_i: self.y_i,
         };
         (bcm1, decom1)
     }
@@ -195,8 +195,8 @@ impl Keys {
     pub fn phase1_verify_com_phase3_verify_correct_key_phase2_distribute(
         &self,
         params: &Parameters,
-        decom_vec: &Vec<KeyGenDecommitMessage1>,
-        bc1_vec: &Vec<KeyGenBroadcastMessage1>,
+        decom_vec: &[KeyGenDecommitMessage1],
+        bc1_vec: &[KeyGenBroadcastMessage1],
     ) -> Result<(VerifiableSS, Vec<FE>, usize), Error> {
         // test length:
         assert_eq!(decom_vec.len(), params.share_count);
@@ -210,23 +210,24 @@ impl Keys {
                 ) == bc1_vec[i].com
                     && bc1_vec[i].correct_key_proof.verify(&bc1_vec[i].e).is_ok()
             })
-            .all(|x| x == true);
+            .all(|x| x);
 
         let (vss_scheme, secret_shares) =
             VerifiableSS::share(params.threshold, params.share_count, &self.u_i);
-        match correct_key_correct_decom_all {
-            true => Ok((vss_scheme, secret_shares, self.party_index.clone())),
-            false => Err(InvalidKey),
+        if correct_key_correct_decom_all {
+            Ok((vss_scheme, secret_shares, self.party_index))
+        } else {
+            Err(InvalidKey)
         }
     }
 
     pub fn phase2_verify_vss_construct_keypair_phase3_pok_dlog(
         &self,
         params: &Parameters,
-        y_vec: &Vec<GE>,
-        secret_shares_vec: &Vec<FE>,
-        vss_scheme_vec: &Vec<VerifiableSS>,
-        index: &usize,
+        y_vec: &[GE],
+        secret_shares_vec: &[FE],
+        vss_scheme_vec: &[VerifiableSS],
+        index: usize,
     ) -> Result<(SharedKeys, DLogProof), Error> {
         assert_eq!(y_vec.len(), params.share_count);
         assert_eq!(secret_shares_vec.len(), params.share_count);
@@ -235,11 +236,11 @@ impl Keys {
         let correct_ss_verify = (0..y_vec.len())
             .map(|i| {
                 vss_scheme_vec[i]
-                    .validate_share(&secret_shares_vec[i], *index)
+                    .validate_share(&secret_shares_vec[i], index)
                     .is_ok()
                     && vss_scheme_vec[i].commitments[0].get_element() == y_vec[i].get_element()
             })
-            .all(|x| x == true);
+            .all(|x| x);
 
         match correct_ss_verify {
             true => {

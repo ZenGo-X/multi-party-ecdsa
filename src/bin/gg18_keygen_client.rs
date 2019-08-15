@@ -12,24 +12,25 @@ extern crate serde_derive;
 
 extern crate serde_json;
 
-use crypto::aead::AeadDecryptor;
-use crypto::aead::AeadEncryptor;
-use crypto::aes::KeySize::KeySize256;
-use crypto::aes_gcm::AesGcm;
-use curv::arithmetic::traits::Converter;
-use curv::cryptographic_primitives::proofs::sigma_dlog::DLogProof;
-use curv::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS;
-use curv::elliptic::curves::traits::*;
-use curv::BigInt;
-use curv::{FE, GE};
-use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2018::party_i::*;
+use crypto::{
+    aead::{AeadDecryptor, AeadEncryptor},
+    aes::KeySize::KeySize256,
+    aes_gcm::AesGcm,
+};
+use curv::{
+    arithmetic::traits::Converter,
+    cryptographic_primitives::{
+        proofs::sigma_dlog::DLogProof, secret_sharing::feldman_vss::VerifiableSS,
+    },
+    elliptic::curves::traits::{ECPoint, ECScalar},
+    BigInt, FE, GE,
+};
+use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2018::party_i::{
+    KeyGenBroadcastMessage1, KeyGenDecommitMessage1, Keys, Parameters,
+};
 use paillier::EncryptionKey;
 use reqwest::Client;
-use std::env;
-use std::fs;
-use std::iter::repeat;
-use std::time::Duration;
-use std::{thread, time};
+use std::{env, fs, iter::repeat, thread, time, time::Duration};
 
 #[derive(Hash, PartialEq, Eq, Clone, Debug, Serialize, Deserialize)]
 pub struct TupleKey {
@@ -67,6 +68,7 @@ pub struct Params {
     pub parties: String,
     pub threshold: String,
 }
+
 fn main() {
     if env::args().nth(3).is_some() {
         panic!("too many arguments")
@@ -281,7 +283,7 @@ fn main() {
             &y_vec,
             &party_shares,
             &vss_scheme_vec,
-            &(party_num_int as usize),
+            party_num_int as usize,
         )
         .expect("invalid vss");
 

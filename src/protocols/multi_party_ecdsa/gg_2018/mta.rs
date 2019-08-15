@@ -76,14 +76,15 @@ impl MessageB {
         let alice_share = Paillier::decrypt(dk, &RawCiphertext::from(self.c.clone()));
         let g: GE = ECPoint::generator();
         let alpha: FE = ECScalar::from(&alice_share.0);
-        let g_alpha = g * &alpha;
-        let ba_btag = &self.b_proof.pk * a + &self.beta_tag_proof.pk;
-        match DLogProof::verify(&self.b_proof).is_ok()
+        let g_alpha = g * alpha;
+        let ba_btag = self.b_proof.pk * a + self.beta_tag_proof.pk;
+        if DLogProof::verify(&self.b_proof).is_ok()
             && DLogProof::verify(&self.beta_tag_proof).is_ok()
             && ba_btag.get_element() == g_alpha.get_element()
         {
-            true => Ok(alpha),
-            false => Err(InvalidKey),
+            Ok(alpha)
+        } else {
+            Err(InvalidKey)
         }
     }
 
@@ -97,15 +98,16 @@ impl MessageB {
         let alice_share = private.decrypt(self.c.clone());
         let g: GE = ECPoint::generator();
         let alpha: FE = ECScalar::from(&alice_share.0);
-        let g_alpha = g * &alpha;
-        let ba_btag = &self.b_proof.pk * a + &self.beta_tag_proof.pk;
+        let g_alpha = g * alpha;
+        let ba_btag = self.b_proof.pk * a + self.beta_tag_proof.pk;
 
-        match DLogProof::verify(&self.b_proof).is_ok()
+        if DLogProof::verify(&self.b_proof).is_ok()
             && DLogProof::verify(&self.beta_tag_proof).is_ok()
             && ba_btag.get_element() == g_alpha.get_element()
         {
-            true => Ok(alpha),
-            false => Err(InvalidKey),
+            Ok(alpha)
+        } else {
+            Err(InvalidKey)
         }
     }
 

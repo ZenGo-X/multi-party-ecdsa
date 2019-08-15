@@ -59,23 +59,19 @@ mod tests {
     ) -> (Vec<Keys>, Vec<SharedKeys>, Vec<GE>, GE, VerifiableSS) {
         let parames = Parameters {
             threshold: t,
-            share_count: n.clone(),
+            share_count: n,
         };
-        let party_keys_vec = (0..n.clone())
-            .map(|i| Keys::create(i))
-            .collect::<Vec<Keys>>();
+        let party_keys_vec = (0..n).map(Keys::create).collect::<Vec<Keys>>();
 
         let mut bc1_vec = Vec::new();
         let mut decom_vec = Vec::new();
-        for i in 0..n.clone() {
-            let (bc1, decom1) = party_keys_vec[i].phase1_broadcast_phase3_proof_of_correct_key();
+        for key in &party_keys_vec {
+            let (bc1, decom1) = key.phase1_broadcast_phase3_proof_of_correct_key();
             bc1_vec.push(bc1);
             decom_vec.push(decom1);
         }
 
-        let y_vec = (0..n.clone())
-            .map(|i| decom_vec[i].y_i.clone())
-            .collect::<Vec<GE>>();
+        let y_vec = (0..n).map(|i| decom_vec[i].y_i).collect::<Vec<GE>>();
         let mut y_vec_iter = y_vec.iter();
         let head = y_vec_iter.next().unwrap();
         let tail = y_vec_iter;
@@ -83,8 +79,8 @@ mod tests {
         let mut vss_scheme_vec = Vec::new();
         let mut secret_shares_vec = Vec::new();
         let mut index_vec = Vec::new();
-        for i in 0..n.clone() {
-            let (vss_scheme, secret_shares, index) = party_keys_vec[i]
+        for key in &party_keys_vec {
+            let (vss_scheme, secret_shares, index) = key
                 .phase1_verify_com_phase3_verify_correct_key_phase2_distribute(
                     &parames, &decom_vec, &bc1_vec,
                 )
@@ -95,12 +91,12 @@ mod tests {
         }
         let vss_scheme_for_test = vss_scheme_vec.clone();
 
-        let party_shares = (0..n.clone())
+        let party_shares = (0..n)
             .map(|i| {
-                (0..n.clone())
+                (0..n)
                     .map(|j| {
                         let vec_j = &secret_shares_vec[j];
-                        vec_j[i].clone()
+                        vec_j[i]
                     })
                     .collect::<Vec<FE>>()
             })
@@ -108,37 +104,31 @@ mod tests {
 
         let mut shared_keys_vec = Vec::new();
         let mut dlog_proof_vec = Vec::new();
-        for i in 0..n.clone() {
-            let (shared_keys, dlog_proof) = party_keys_vec[i]
+        for (i, key) in party_keys_vec.iter().enumerate() {
+            let (shared_keys, dlog_proof) = key
                 .phase2_verify_vss_construct_keypair_phase3_pok_dlog(
                     &parames,
                     &y_vec,
                     &party_shares[i],
                     &vss_scheme_vec,
-                    &(&index_vec[i] + 1),
+                    &index_vec[i] + 1,
                 )
                 .expect("invalid vss");
             shared_keys_vec.push(shared_keys);
             dlog_proof_vec.push(dlog_proof);
         }
 
-        let pk_vec = (0..n.clone())
-            .map(|i| dlog_proof_vec[i].pk.clone())
-            .collect::<Vec<GE>>();
+        let pk_vec = (0..n).map(|i| dlog_proof_vec[i].pk).collect::<Vec<GE>>();
 
         //both parties run:
         Keys::verify_dlog_proofs(&parames, &dlog_proof_vec, &y_vec).expect("bad dlog proof");
 
         //test
-        let xi_vec = (0..t.clone() + 1)
-            .map(|i| shared_keys_vec[i].x_i.clone())
-            .collect::<Vec<FE>>();
+        let xi_vec = (0..=t).map(|i| shared_keys_vec[i].x_i).collect::<Vec<FE>>();
         let x = vss_scheme_for_test[0]
             .clone()
-            .reconstruct(&index_vec[0..t.clone() + 1], &xi_vec);
-        let sum_u_i = party_keys_vec
-            .iter()
-            .fold(FE::zero(), |acc, x| acc + &x.u_i);
+            .reconstruct(&index_vec[0..=t], &xi_vec);
+        let sum_u_i = party_keys_vec.iter().fold(FE::zero(), |acc, x| acc + x.u_i);
         assert_eq!(x, sum_u_i);
 
         (
@@ -168,8 +158,7 @@ mod tests {
 
     fn sign(t: usize, n: usize, ttag: usize, s: Vec<usize>) {
         // full key gen emulation
-        let (party_keys_vec, shared_keys_vec, _pk_vec, y, vss_scheme) =
-            keygen_t_n_parties(t.clone(), n);
+        let (party_keys_vec, shared_keys_vec, _pk_vec, y, vss_scheme) = keygen_t_n_parties(t, n);
 
         let private_vec = (0..shared_keys_vec.len())
             .map(|i| {
@@ -192,7 +181,7 @@ mod tests {
         // each party computes [Ci,Di] = com(g^gamma_i) and broadcast the commitments
         let mut bc1_vec = Vec::new();
         let mut decommit_vec1 = Vec::new();
-        for i in 0..ttag.clone() {
+        for i in 0..ttag {
             let (com, decommit_phase_1) = sign_keys_vec[i].phase1_broadcast();
             bc1_vec.push(com);
             decommit_vec1.push(decommit_phase_1);
@@ -216,7 +205,7 @@ mod tests {
         let mut m_b_w_vec_all = Vec::new();
         let mut ni_vec_all = Vec::new();
 
-        for i in 0..ttag.clone() {
+        for i in 0..ttag {
             let mut m_b_gamma_vec = Vec::new();
             let mut beta_vec = Vec::new();
             let mut m_b_w_vec = Vec::new();
@@ -255,7 +244,7 @@ mod tests {
         let mut alpha_vec_all = Vec::new();
         let mut miu_vec_all = Vec::new();
 
-        for i in 0..ttag.clone() {
+        for i in 0..ttag {
             let mut alpha_vec = Vec::new();
             let mut miu_vec = Vec::new();
 
@@ -290,7 +279,7 @@ mod tests {
         let mut delta_vec = Vec::new();
         let mut sigma_vec = Vec::new();
 
-        for i in 0..ttag.clone() {
+        for i in 0..ttag {
             let delta = sign_keys_vec[i].phase2_delta_i(&alpha_vec_all[i], &beta_vec_all[i]);
             let sigma = sign_keys_vec[i].phase2_sigma_i(&miu_vec_all[i], &ni_vec_all[i]);
             delta_vec.push(delta);
@@ -304,7 +293,7 @@ mod tests {
         // Return R
 
         let g_gamma_i_vec = (0..ttag)
-            .map(|i| sign_keys_vec[i].g_gamma_i.clone())
+            .map(|i| sign_keys_vec[i].g_gamma_i)
             .collect::<Vec<GE>>();
 
         let R_vec = (0..ttag)
@@ -323,11 +312,11 @@ mod tests {
             .collect::<Vec<GE>>();
 
         let message: [u8; 4] = [79, 77, 69, 82];
-        let message_bn = HSha256::create_hash(&vec![&BigInt::from(&message[..])]);
+        let message_bn = HSha256::create_hash(&[&BigInt::from(&message[..])]);
         let mut local_sig_vec = Vec::new();
 
         // each party computes s_i but don't send it yet. we start with phase5
-        for i in 0..ttag.clone() {
+        for i in 0..ttag {
             let local_sig = LocalSignature::phase5_local_sig(
                 &sign_keys_vec[i].k_i,
                 &message_bn,
