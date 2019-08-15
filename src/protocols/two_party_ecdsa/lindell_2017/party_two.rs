@@ -49,7 +49,6 @@ use protocols::multi_party_ecdsa::gg_2018::mta::{MessageA, MessageB};
 
 use zeroize::Zeroize;
 
-
 //****************** Begin: Party Two structs ******************//
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -353,9 +352,7 @@ impl EphKeyGenFirstMsg {
         let h: GE = GE::base_point2();
         let c = &h * &secret_share;
 
-        let w = ECDDHWitness {
-            x: secret_share,
-        };
+        let w = ECDDHWitness { x: secret_share };
         let delta = ECDDHStatement {
             g1: base.clone(),
             h1: public_share.clone(),

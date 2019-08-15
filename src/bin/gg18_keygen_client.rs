@@ -91,7 +91,7 @@ fn main() {
     //signup:
     let party_i_signup_result = signup(&client);
     assert!(party_i_signup_result.is_ok());
-    let party_i_signup  = party_i_signup_result.unwrap();
+    let party_i_signup = party_i_signup_result.unwrap();
     println!("{:?}", party_i_signup.clone());
     let party_num_int = party_i_signup.number.clone();
     let uuid = party_i_signup.uuid;

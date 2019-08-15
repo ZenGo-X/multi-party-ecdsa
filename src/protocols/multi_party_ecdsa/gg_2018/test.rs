@@ -58,7 +58,7 @@ mod tests {
         n: u16,
     ) -> (Vec<Keys>, Vec<SharedKeys>, Vec<GE>, GE, VerifiableSS) {
         let parames = Parameters {
-            threshold: t ,
+            threshold: t,
             share_count: n.clone(),
         };
         let party_keys_vec = (0..n.clone())

@@ -22,7 +22,6 @@ use std::cmp;
 use std::ops::Shl;
 use zk_paillier::zkproofs::{NICorrectKeyProof, RangeProofNi};
 
-use curv::elliptic::curves::traits::*;
 use curv::cryptographic_primitives::commitments::hash_commitment::HashCommitment;
 use curv::cryptographic_primitives::commitments::traits::Commitment;
 use curv::cryptographic_primitives::hashing::hash_sha256::HSha256;
@@ -30,6 +29,7 @@ use curv::cryptographic_primitives::hashing::traits::Hash;
 use curv::cryptographic_primitives::proofs::sigma_dlog::*;
 use curv::cryptographic_primitives::proofs::sigma_ec_ddh::*;
 use curv::cryptographic_primitives::proofs::ProofError;
+use curv::elliptic::curves::traits::*;
 use protocols::two_party_ecdsa::lindell_2017::party_two::EphKeyGenFirstMsg as Party2EphKeyGenFirstMessage;
 use protocols::two_party_ecdsa::lindell_2017::party_two::EphKeyGenSecondMsg as Party2EphKeyGenSecondMessage;
 use protocols::two_party_ecdsa::lindell_2017::party_two::PDLFirstMessage as Party2PDLFirstMessage;
@@ -142,8 +142,7 @@ impl KeyGenFirstMsg {
 
         let mut scalar: FE = ECScalar::new_random();
         //in Lindell's protocol range proof works only for x1<q/3
-        let mut secret_share: FE =
-            ECScalar::from(&scalar.to_big_int().div_floor(&BigInt::from(3)));
+        let mut secret_share: FE = ECScalar::from(&scalar.to_big_int().div_floor(&BigInt::from(3)));
         scalar.zeroize();
         let public_share = base.scalar_mul(&secret_share.get_element());
 
@@ -433,9 +432,7 @@ impl EphKeyGenFirstMsg {
         let h: GE = GE::base_point2();
         let c = &h * &secret_share;
         let mut x = secret_share;
-        let w = ECDDHWitness {
-            x,
-        };
+        let w = ECDDHWitness { x };
         let delta = ECDDHStatement {
             g1: base.clone(),
             h1: public_share.clone(),
@@ -496,7 +493,9 @@ impl EphKeyGenSecondMsg {
             true => flag = flag,
         };
         // this is a commitment error and not a proof error but that will do
-        if flag == false{return Err(ProofError)};
+        if flag == false {
+            return Err(ProofError);
+        };
         let delta = ECDDHStatement {
             g1: GE::generator(),
             h1: party_two_public_share.clone(),
@@ -526,7 +525,8 @@ impl Signature {
         let s_tag = Paillier::decrypt(
             &party_one_private.paillier_priv,
             &RawCiphertext::from(partial_sig_c3),
-        ).0;
+        )
+        .0;
         let mut s_tag_fe: FE = ECScalar::from(&s_tag);
         let s_tag_tag = s_tag_fe * k1_inv;
         k1_inv.zeroize();
@@ -555,7 +555,8 @@ impl Signature {
         let s_tag = Paillier::decrypt(
             &party_one_private.paillier_priv,
             &RawCiphertext::from(partial_sig_c3),
-        ).0;
+        )
+        .0;
         let mut s_tag_fe: FE = ECScalar::from(&s_tag);
         let s_tag_tag = s_tag_fe * k1_inv;
         k1_inv.zeroize();

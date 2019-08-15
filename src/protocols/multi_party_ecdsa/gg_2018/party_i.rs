@@ -212,8 +212,11 @@ impl Keys {
             })
             .all(|x| x == true);
 
-        let (vss_scheme, secret_shares) =
-            VerifiableSS::share(params.threshold as usize, params.share_count as usize, &self.u_i);
+        let (vss_scheme, secret_shares) = VerifiableSS::share(
+            params.threshold as usize,
+            params.share_count as usize,
+            &self.u_i,
+        );
         match correct_key_correct_decom_all {
             true => Ok((vss_scheme, secret_shares, self.party_index.clone())),
             false => Err(InvalidKey),
