@@ -44,11 +44,13 @@ pub struct Entry {
     pub key: TupleKey,
     pub value: String,
 }
+
 #[derive(Serialize, Deserialize)]
 pub struct Params {
     pub parties: String,
     pub threshold: String,
 }
+
 #[post("/get", format = "json", data = "<request>")]
 fn get(
     db_mtx: State<RwLock<HashMap<TupleKey, String>>>,
@@ -93,26 +95,24 @@ fn signup_keygen(
         third: "".to_string(),
         fourth: "".to_string(),
     };
-    let party_signup: PartySignup;
-    {
+
+    let party_signup = {
         let hm = db_mtx.read().unwrap();
         let value = hm.get(&key).unwrap();
-        let party_i_minus1_signup: PartySignup = serde_json::from_str(&value).unwrap();
-        if party_i_minus1_signup.number < parties {
-            let party_num = party_i_minus1_signup.number + 1;
-            party_signup = PartySignup {
-                number: party_num,
-                uuid: party_i_minus1_signup.uuid,
-            };
+        let client_signup: PartySignup = serde_json::from_str(&value).unwrap();
+        if client_signup.number < parties {
+            PartySignup {
+                number: client_signup.number + 1,
+                uuid: client_signup.uuid,
+            }
         } else {
-            let uuid = Uuid::new_v4().to_string();
-            let party1 = 1;
-            party_signup = PartySignup {
-                number: party1,
-                uuid,
-            };
+            PartySignup {
+                number: 1,
+                uuid: Uuid::new_v4().to_string(),
+            }
         }
-    }
+    };
+
     let mut hm = db_mtx.write().unwrap();
     hm.insert(key, serde_json::to_string(&party_signup).unwrap());
     Json(Ok(party_signup))
@@ -131,26 +131,24 @@ fn signup_sign(db_mtx: State<RwLock<HashMap<TupleKey, String>>>) -> Json<Result<
         third: "".to_string(),
         fourth: "".to_string(),
     };
-    let party_signup: PartySignup;
-    {
+
+    let party_signup = {
         let hm = db_mtx.read().unwrap();
         let value = hm.get(&key).unwrap();
-        let party_i_minus1_signup: PartySignup = serde_json::from_str(&value).unwrap();
-        if party_i_minus1_signup.number < threshold + 1 {
-            let party_num = party_i_minus1_signup.number + 1;
-            party_signup = PartySignup {
-                number: party_num,
-                uuid: party_i_minus1_signup.uuid,
-            };
+        let client_signup: PartySignup = serde_json::from_str(&value).unwrap();
+        if client_signup.number < threshold + 1 {
+            PartySignup {
+                number: client_signup.number + 1,
+                uuid: client_signup.uuid,
+            }
         } else {
-            let uuid = Uuid::new_v4().to_string();
-            let party1 = 1;
-            party_signup = PartySignup {
-                number: party1,
-                uuid,
-            };
+            PartySignup {
+                number: 1,
+                uuid: Uuid::new_v4().to_string(),
+            }
         }
-    }
+    };
+
     let mut hm = db_mtx.write().unwrap();
     hm.insert(key, serde_json::to_string(&party_signup).unwrap());
     Json(Ok(party_signup))
