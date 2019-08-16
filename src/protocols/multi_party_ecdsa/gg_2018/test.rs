@@ -204,7 +204,7 @@ mod tests {
         let mut m_b_w_vec_all = Vec::new();
         let mut ni_vec_all = Vec::new();
 
-        for i in 0..ttag {
+        for (i, key) in sign_keys_vec.iter().enumerate() {
             let mut m_b_gamma_vec = Vec::new();
             let mut beta_vec = Vec::new();
             let mut m_b_w_vec = Vec::new();
@@ -214,15 +214,12 @@ mod tests {
                 let ind = if j < i { j } else { j + 1 };
 
                 let (m_b_gamma, beta_gamma) = MessageB::b(
-                    &sign_keys_vec[i].gamma_i,
+                    &key.gamma_i,
                     &party_keys_vec[s[ind]].ek,
                     m_a_vec[ind].clone(),
                 );
-                let (m_b_w, beta_wi) = MessageB::b(
-                    &sign_keys_vec[i].w_i,
-                    &party_keys_vec[s[ind]].ek,
-                    m_a_vec[ind].clone(),
-                );
+                let (m_b_w, beta_wi) =
+                    MessageB::b(&key.w_i, &party_keys_vec[s[ind]].ek, m_a_vec[ind].clone());
 
                 m_b_gamma_vec.push(m_b_gamma);
                 beta_vec.push(beta_gamma);
@@ -329,9 +326,8 @@ mod tests {
         let mut phase_5a_decom_vec: Vec<Phase5ADecom1> = Vec::new();
         let mut helgamal_proof_vec = Vec::new();
         // we notice that the proof for V= R^sg^l, B = A^l is a general form of homomorphic elgamal.
-        for i in 0..ttag {
-            let (phase5_com, phase_5a_decom, helgamal_proof) =
-                local_sig_vec[i].phase5a_broadcast_5b_zkproof();
+        for sig in &local_sig_vec {
+            let (phase5_com, phase_5a_decom, helgamal_proof) = sig.phase5a_broadcast_5b_zkproof();
             phase5_com_vec.push(phase5_com);
             phase_5a_decom_vec.push(phase_5a_decom);
             helgamal_proof_vec.push(helgamal_proof);
@@ -364,8 +360,8 @@ mod tests {
 
         // assuming phase5 checks passes each party sends s_i and compute sum_i{s_i}
         let mut s_vec: Vec<FE> = Vec::new();
-        for i in 0..ttag {
-            let s_i = local_sig_vec[i]
+        for sig in &local_sig_vec {
+            let s_i = sig
                 .phase5d(&phase_5d_decom2_vec, &phase5_com2_vec, &phase_5a_decom_vec)
                 .expect("bad com 5d");
             s_vec.push(s_i);

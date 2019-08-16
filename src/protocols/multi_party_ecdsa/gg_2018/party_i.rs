@@ -145,8 +145,8 @@ pub struct Signature {
 
 impl Keys {
     pub fn create(index: usize) -> Keys {
-        let u: FE = ECScalar::new_random();
-        let y = &ECPoint::generator() * &u;
+        let u = FE::new_random();
+        let y = GE::generator() * u;
         let (ek, dk) = Paillier::keypair().keys();
 
         Keys {
@@ -159,7 +159,7 @@ impl Keys {
     }
 
     pub fn create_from(u: FE, index: usize) -> Keys {
-        let y = &ECPoint::generator() * &u;
+        let y = GE::generator() * u;
         let (ek, dk) = Paillier::keypair().keys();
 
         Keys {
@@ -320,7 +320,7 @@ impl PartyPrivate {
 
     pub fn refresh_private_key(&self, factor: &FE, index: usize) -> Keys {
         let u: FE = self.u_i + factor;
-        let y = &ECPoint::generator() * &u;
+        let y = GE::generator() * u;
         let (ek, dk) = Paillier::keypair().keys();
 
         Keys {
@@ -564,7 +564,7 @@ impl LocalSignature {
         let yr = self.y * r;
         let g: GE = ECPoint::generator();
         let m_fe: FE = ECScalar::from(&self.m);
-        let gm = g * &m_fe;
+        let gm = g * m_fe;
         let v = v.sub_point(&gm.get_element()).sub_point(&yr.get_element());
         let u_i = v * self.rho_i;
         let t_i = a * self.l_i;
