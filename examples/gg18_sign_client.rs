@@ -98,16 +98,12 @@ fn main() {
     let params: Params = serde_json::from_str(&data).unwrap();
     let THRESHOLD: u32 = params.threshold.parse::<u32>().unwrap();
 
-    //////////////////////////////////////////////////////////////////////////////
     //signup:
-    let party_i_signup_result = signup(&client);
-    assert!(party_i_signup_result.is_ok());
-    let party_i_signup = party_i_signup_result.unwrap();
-    println!("{:?}", party_i_signup.clone());
-    let party_num_int = party_i_signup.number;
-    let uuid = party_i_signup.uuid;
+    let (party_num_int, uuid) = match signup(&client).unwrap() {
+        PartySignup { number, uuid } => (number, uuid),
+    };
+    println!("number: {:?}, uuid: {:?}", party_num_int, uuid);
 
-    //////////////////////////////////////////////////////////////////////////////
     // round 0: collect signers IDs
     assert!(broadcast(
         &client,

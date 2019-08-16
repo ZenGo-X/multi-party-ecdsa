@@ -83,24 +83,22 @@ fn main() {
     let THRESHOLD: u32 = params.threshold.parse::<u32>().unwrap();
 
     let client = Client::new();
+
     // delay:
     let delay = time::Duration::from_millis(25);
     let parames = Parameters {
         threshold: THRESHOLD as usize,
         share_count: PARTIES as usize,
     };
+
     //signup:
-    let party_i_signup_result = signup(&client);
-    assert!(party_i_signup_result.is_ok());
-    let party_i_signup = party_i_signup_result.unwrap();
-    println!("{:?}", party_i_signup.clone());
-    let party_num_int = party_i_signup.number;
-    let uuid = party_i_signup.uuid;
+    let (party_num_int, uuid) = match signup(&client).unwrap() {
+        PartySignup { number, uuid } => (number, uuid),
+    };
+    println!("number: {:?}, uuid: {:?}", party_num_int, uuid);
 
     let party_keys = Keys::create(party_num_int as usize);
     let (bc_i, decom_i) = party_keys.phase1_broadcast_phase3_proof_of_correct_key();
-
-    //////////////////////////////////////////////////////////////////////////////
 
     // send commitment to ephemeral public keys, get round 1 commitments of other parties
     assert!(broadcast(
@@ -120,19 +118,12 @@ fn main() {
         uuid.clone(),
     );
 
-    let mut j = 0;
-    let bc1_vec = (1..=PARTIES)
-        .map(|i| {
-            if i == party_num_int {
-                bc_i.clone()
-            } else {
-                let bc1_j: KeyGenBroadcastMessage1 =
-                    serde_json::from_str(&round1_ans_vec[j]).unwrap();
-                j += 1;
-                bc1_j
-            }
-        })
-        .collect::<Vec<KeyGenBroadcastMessage1>>();
+    let mut bc1_vec = round1_ans_vec
+        .iter()
+        .map(|ra| serde_json::from_str::<KeyGenBroadcastMessage1>(ra).unwrap())
+        .collect::<Vec<_>>();
+
+    bc1_vec.insert(party_num_int as usize - 1, bc_i);
 
     // round 2: send ephemeral public keys and  check commitments correctness
     assert!(broadcast(
