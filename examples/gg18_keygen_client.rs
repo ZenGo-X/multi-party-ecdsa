@@ -1,15 +1,13 @@
 #![allow(non_snake_case)]
-extern crate crypto;
-extern crate curv;
 /// to run:
 /// 1: go to rocket_server -> cargo run
 /// 2: cargo run from PARTIES number of terminals
+extern crate crypto;
+extern crate curv;
 extern crate multi_party_ecdsa;
 extern crate paillier;
 extern crate reqwest;
-#[macro_use]
-extern crate serde_derive;
-
+extern crate serde;
 extern crate serde_json;
 
 use crypto::{
@@ -30,6 +28,7 @@ use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2018::party_i::{
 };
 use paillier::EncryptionKey;
 use reqwest::Client;
+use serde::{Deserialize, Serialize};
 use std::{env, fs, iter::repeat, thread, time, time::Duration};
 
 #[derive(Hash, PartialEq, Eq, Clone, Debug, Serialize, Deserialize)]

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+cargo build --examples --release
 
 n=`cat params | sed -n 1p`
 t=`cat params | sed -n 2p`
@@ -16,7 +17,7 @@ rm keys?.store
 kill -9 $(lsof -t -i:8001)
 
 
-./target/release/sm_manager&
+./target/release/examples/sm_manager&
 
 sleep 2
 echo "keygen part"
@@ -25,7 +26,7 @@ for i in $(seq 1 $n)
 do
 
 echo "key gen for client $i out of $n"
-./target/release/gg18_keygen_client http://127.0.0.1:8001 keys$i.store &
+./target/release/examples/gg18_keygen_client http://127.0.0.1:8001 keys$i.store &
 sleep 3
 done
 
@@ -37,7 +38,7 @@ echo "sign"
 for i in $(seq 1 $((t+1)));
 do
 echo "signing for client $i out of $((t+1))"
-./target/release/gg18_sign_client http://127.0.0.1:8001 keys$i.store "KZen Networks" &
+./target/release/examples/gg18_sign_client http://127.0.0.1:8001 keys$i.store "KZen Networks" &
 
 sleep 2
 done

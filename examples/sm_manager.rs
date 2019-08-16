@@ -1,22 +1,16 @@
 #![feature(proc_macro_hygiene, decl_macro)]
 
-#[macro_use]
-extern crate rocket;
-
 extern crate reqwest;
+extern crate rocket;
 extern crate rocket_contrib;
+extern crate serde;
 extern crate uuid;
 
-#[macro_use]
-extern crate serde_derive;
-extern crate serde;
-extern crate serde_json;
-
-use rocket::State;
+use rocket::{post, routes, State};
 use rocket_contrib::json::Json;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
-use std::str;
 use std::sync::RwLock;
 use uuid::Uuid;
 
