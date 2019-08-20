@@ -120,12 +120,14 @@ fn main() {
 
     let mut bc1_vec = round1_ans_vec
         .iter()
-        .map(|ra| serde_json::from_str::<KeyGenBroadcastMessage1>(ra).unwrap())
+        .map(|m| serde_json::from_str::<KeyGenBroadcastMessage1>(m).unwrap())
         .collect::<Vec<_>>();
 
     bc1_vec.insert(party_num_int as usize - 1, bc_i);
 
-    // round 2: send ephemeral public keys and  check commitments correctness
+    println!("bc1 vec {:?}", bc1_vec.len());
+
+    // round 2: send ephemeral public keys and check commitments correctness
     assert!(broadcast(
         &client,
         party_num_int,
@@ -143,29 +145,25 @@ fn main() {
         uuid.clone(),
     );
 
-    //////////////////////////////////////////////////////////////////////////////
-
     let mut j = 0;
-    let mut y_vec: Vec<GE> = Vec::new();
+    let mut point_vec: Vec<GE> = Vec::new();
     let mut decom_vec: Vec<KeyGenDecommitMessage1> = Vec::new();
     let mut enc_keys: Vec<BigInt> = Vec::new();
     for i in 1..=PARTIES {
         if i == party_num_int {
-            y_vec.push(party_keys.y_i);
+            point_vec.push(party_keys.y_i);
             decom_vec.push(decom_i.clone());
         } else {
             let decom_j: KeyGenDecommitMessage1 = serde_json::from_str(&round2_ans_vec[j]).unwrap();
-            y_vec.push(decom_j.y_i);
+            point_vec.push(decom_j.y_i);
             decom_vec.push(decom_j.clone());
             enc_keys.push((party_keys.y_i + decom_j.y_i).x_coor().unwrap());
             j += 1;
         }
     }
 
-    let mut y_vec_iter = y_vec.iter();
-    let head = y_vec_iter.next().unwrap();
-    let tail = y_vec_iter;
-    let y_sum = tail.fold(head.clone(), |acc, x| acc + x);
+    let (head, tail) = point_vec.split_at(1);
+    let y_sum = tail.iter().fold(head[0], |acc, x| acc + x);
 
     let (vss_scheme, secret_shares, _index) = party_keys
         .phase1_verify_com_phase3_verify_correct_key_phase2_distribute(
@@ -270,7 +268,7 @@ fn main() {
     let (shared_keys, dlog_proof) = party_keys
         .phase2_verify_vss_construct_keypair_phase3_pok_dlog(
             &parames,
-            &y_vec,
+            &point_vec,
             &party_shares,
             &vss_scheme_vec,
             party_num_int as usize,
@@ -307,7 +305,7 @@ fn main() {
             j += 1;
         }
     }
-    Keys::verify_dlog_proofs(&parames, &dlog_proof_vec, &y_vec).expect("bad dlog proof");
+    Keys::verify_dlog_proofs(&parames, &dlog_proof_vec, &point_vec).expect("bad dlog proof");
     //////////////////////////////////////////////////////////////////////////////
     //save key to file:
 
@@ -328,10 +326,6 @@ fn main() {
     fs::write(env::args().nth(2).unwrap(), keygen_json).expect("Unable to save !");
 }
 
-//////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////
 pub fn postb<T>(client: &Client, path: &str, body: T) -> Option<String>
 where
     T: serde::ser::Serialize,
