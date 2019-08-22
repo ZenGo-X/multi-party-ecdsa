@@ -47,7 +47,7 @@ pub struct AEAD {
 
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct PartySignup {
-    pub number: u32,
+    pub number: u16,
     pub uuid: String,
 }
 
@@ -79,16 +79,16 @@ fn main() {
     let data = fs::read_to_string("params.json")
         .expect("Unable to read params, make sure config file is present in the same folder ");
     let params: Params = serde_json::from_str(&data).unwrap();
-    let PARTIES: u32 = params.parties.parse::<u32>().unwrap();
-    let THRESHOLD: u32 = params.threshold.parse::<u32>().unwrap();
+    let PARTIES: u16 = params.parties.parse::<u16>().unwrap();
+    let THRESHOLD: u16 = params.threshold.parse::<u16>().unwrap();
 
     let client = Client::new();
 
     // delay:
     let delay = time::Duration::from_millis(25);
     let parames = Parameters {
-        threshold: THRESHOLD as usize,
-        share_count: PARTIES as usize,
+        threshold: THRESHOLD,
+        share_count: PARTIES,
     };
 
     //signup:
@@ -363,7 +363,7 @@ pub fn signup(client: &Client) -> Result<(PartySignup), ()> {
 
 pub fn broadcast(
     client: &Client,
-    party_num: u32,
+    party_num: u16,
     round: &str,
     data: String,
     uuid: String,
@@ -385,8 +385,8 @@ pub fn broadcast(
 
 pub fn sendp2p(
     client: &Client,
-    party_from: u32,
-    party_to: u32,
+    party_from: u16,
+    party_to: u16,
     round: &str,
     data: String,
     uuid: String,
@@ -408,8 +408,8 @@ pub fn sendp2p(
 
 pub fn poll_for_broadcasts(
     client: &Client,
-    party_num: u32,
-    n: u32,
+    party_num: u16,
+    n: u16,
     delay: Duration,
     round: &str,
     uuid: String,
@@ -442,8 +442,8 @@ pub fn poll_for_broadcasts(
 
 pub fn poll_for_p2p(
     client: &Client,
-    party_num: u32,
-    n: u32,
+    party_num: u16,
+    n: u16,
     delay: Duration,
     round: &str,
     uuid: String,

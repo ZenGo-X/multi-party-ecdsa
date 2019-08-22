@@ -54,13 +54,14 @@ mod tests {
     }
 
     pub fn keygen_t_n_parties(
-        t: usize,
-        n: usize,
+        t: u16,
+        n: u16,
     ) -> (Vec<Keys>, Vec<SharedKeys>, Vec<GE>, GE, VerifiableSS) {
         let parames = Parameters {
             threshold: t,
             share_count: n,
         };
+        let (t, n) = (t as usize, n as usize);
         let party_keys_vec = (0..n).map(Keys::create).collect::<Vec<Keys>>();
 
         let (bc1_vec, decom_vec): (Vec<_>, Vec<_>) = party_keys_vec
@@ -161,7 +162,7 @@ mod tests {
         assert_eq!(left.get_element(), right.get_element());
     }
 
-    fn sign(t: usize, n: usize, ttag: usize, s: Vec<usize>) {
+    fn sign(t: u16, n: u16, ttag: u16, s: Vec<usize>) {
         // full key gen emulation
         let (party_keys_vec, shared_keys_vec, _pk_vec, y, vss_scheme) = keygen_t_n_parties(t, n);
 
@@ -174,6 +175,7 @@ mod tests {
         // TODO: make sure s has unique id's and they are all in range 0..n
         // TODO: make sure this code can run when id's are not in ascending order
         assert!(ttag > t);
+        let ttag = ttag as usize;
         assert_eq!(s.len(), ttag);
 
         // each party creates a signing key. This happens in parallel IRL. In this test we

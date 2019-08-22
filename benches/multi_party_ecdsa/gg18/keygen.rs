@@ -24,13 +24,14 @@ mod bench {
         });
     }
     pub fn keygen_t_n_parties(
-        t: usize,
-        n: usize,
+        t: u16,
+        n: u16,
     ) -> (Vec<Keys>, Vec<SharedKeys>, Vec<GE>, GE, VerifiableSS) {
         let parames = Parameters {
             threshold: t,
             share_count: n,
         };
+        let (t, n) = (t as usize, n as usize);
         let party_keys_vec = (0..n).map(Keys::create).collect::<Vec<Keys>>();
 
         let mut bc1_vec = Vec::new();

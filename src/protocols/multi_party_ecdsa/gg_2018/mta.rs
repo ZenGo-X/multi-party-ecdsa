@@ -29,6 +29,7 @@ use Error::{self, InvalidKey};
 pub struct MessageA {
     pub c: BigInt, // paillier encryption
 }
+
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct MessageB {
     pub c: BigInt, // paillier encryption
@@ -37,16 +38,16 @@ pub struct MessageB {
 }
 
 impl MessageA {
-    pub fn a(a: &FE, alice_ek: &EncryptionKey) -> MessageA {
+    pub fn a(a: &FE, alice_ek: &EncryptionKey) -> Self {
         let c_a = Paillier::encrypt(alice_ek, RawPlaintext::from(a.to_big_int()));
-        MessageA {
+        Self {
             c: c_a.0.clone().into_owned(),
         }
     }
 }
 
 impl MessageB {
-    pub fn b(b: &FE, alice_ek: &EncryptionKey, c_a: MessageA) -> (MessageB, FE) {
+    pub fn b(b: &FE, alice_ek: &EncryptionKey, c_a: MessageA) -> (Self, FE) {
         let beta_tag = BigInt::sample_below(&alice_ek.n);
         let beta_tag_fe: FE = ECScalar::from(&beta_tag);
         let c_beta_tag = Paillier::encrypt(alice_ek, RawPlaintext::from(beta_tag));
@@ -63,7 +64,7 @@ impl MessageB {
         let dlog_proof_beta_tag = DLogProof::prove(&beta_tag_fe);
 
         (
-            MessageB {
+            Self {
                 c: c_b.0.clone().into_owned(),
                 b_proof: dlog_proof_b,
                 beta_tag_proof: dlog_proof_beta_tag,

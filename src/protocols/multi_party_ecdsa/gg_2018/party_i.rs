@@ -16,18 +16,9 @@
     @license GPL-3.0+ <https://github.com/KZen-networks/multi-party-ecdsa/blob/master/LICENSE>
 */
 
-use paillier::KeyGeneration;
-use paillier::Paillier;
-use paillier::{DecryptionKey, EncryptionKey};
-use zk_paillier::zkproofs::NICorrectKeyProof;
-use Error::{self, InvalidCom, InvalidKey, InvalidSS, InvalidSig};
-
-use curv::arithmetic::traits::*;
-
-use curv::elliptic::curves::traits::*;
-
 use centipede::juggling::proof_system::{Helgamalsegmented, Witness};
 use centipede::juggling::segmentation::Msegmentation;
+use curv::arithmetic::traits::*;
 use curv::cryptographic_primitives::commitments::hash_commitment::HashCommitment;
 use curv::cryptographic_primitives::commitments::traits::Commitment;
 use curv::cryptographic_primitives::hashing::hash_sha256::HSha256;
@@ -35,10 +26,17 @@ use curv::cryptographic_primitives::hashing::traits::Hash;
 use curv::cryptographic_primitives::proofs::sigma_correct_homomorphic_elgamal_enc::*;
 use curv::cryptographic_primitives::proofs::sigma_dlog::{DLogProof, ProveDLog};
 use curv::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS;
+use curv::elliptic::curves::traits::*;
 use curv::BigInt;
 use curv::FE;
 use curv::GE;
+use paillier::KeyGeneration;
+use paillier::Paillier;
 use paillier::{Decrypt, RawCiphertext, RawPlaintext};
+use paillier::{DecryptionKey, EncryptionKey};
+use zk_paillier::zkproofs::NICorrectKeyProof;
+
+use Error::{self, InvalidCom, InvalidKey, InvalidSS, InvalidSig};
 
 const SECURITY: usize = 256;
 
@@ -73,8 +71,8 @@ pub struct KeyGenDecommitMessage1 {
 
 #[derive(Debug)]
 pub struct Parameters {
-    pub threshold: usize,   //t
-    pub share_count: usize, //n
+    pub threshold: u16,   //t
+    pub share_count: u16, //n
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -144,12 +142,12 @@ pub struct Signature {
 }
 
 impl Keys {
-    pub fn create(index: usize) -> Keys {
+    pub fn create(index: usize) -> Self {
         let u = FE::new_random();
         let y = GE::generator() * u;
         let (ek, dk) = Paillier::keypair().keys();
 
-        Keys {
+        Self {
             u_i: u,
             y_i: y,
             dk,
@@ -158,11 +156,11 @@ impl Keys {
         }
     }
 
-    pub fn create_from(u: FE, index: usize) -> Keys {
+    pub fn create_from(u: FE, index: usize) -> Self {
         let y = GE::generator() * u;
         let (ek, dk) = Paillier::keypair().keys();
 
-        Keys {
+        Self {
             u_i: u,
             y_i: y,
             dk,
@@ -199,8 +197,8 @@ impl Keys {
         bc1_vec: &[KeyGenBroadcastMessage1],
     ) -> Result<(VerifiableSS, Vec<FE>, usize), Error> {
         // test length:
-        assert_eq!(decom_vec.len(), params.share_count);
-        assert_eq!(bc1_vec.len(), params.share_count);
+        assert_eq!(decom_vec.len() as u16, params.share_count);
+        assert_eq!(bc1_vec.len() as u16, params.share_count);
         // test paillier correct key and test decommitments
         let correct_key_correct_decom_all = (0..bc1_vec.len())
             .map(|i| {
@@ -212,8 +210,11 @@ impl Keys {
             })
             .all(|x| x);
 
-        let (vss_scheme, secret_shares) =
-            VerifiableSS::share(params.threshold, params.share_count, &self.u_i);
+        let (vss_scheme, secret_shares) = VerifiableSS::share(
+            params.threshold as usize,
+            params.share_count as usize,
+            &self.u_i,
+        );
         if correct_key_correct_decom_all {
             Ok((vss_scheme, secret_shares, self.party_index))
         } else {
@@ -229,9 +230,9 @@ impl Keys {
         vss_scheme_vec: &[VerifiableSS],
         index: usize,
     ) -> Result<(SharedKeys, DLogProof), Error> {
-        assert_eq!(y_vec.len(), params.share_count);
-        assert_eq!(secret_shares_vec.len(), params.share_count);
-        assert_eq!(vss_scheme_vec.len(), params.share_count);
+        assert_eq!(y_vec.len() as u16, params.share_count);
+        assert_eq!(secret_shares_vec.len() as u16, params.share_count);
+        assert_eq!(vss_scheme_vec.len() as u16, params.share_count);
 
         let correct_ss_verify = (0..y_vec.len())
             .map(|i| {
@@ -286,8 +287,8 @@ impl Keys {
         dlog_proofs_vec: &[DLogProof],
         y_vec: &[GE],
     ) -> Result<(), Error> {
-        assert_eq!(y_vec.len(), params.share_count);
-        assert_eq!(dlog_proofs_vec.len(), params.share_count);
+        assert_eq!(y_vec.len() as u16, params.share_count);
+        assert_eq!(dlog_proofs_vec.len() as u16, params.share_count);
         let xi_dlog_verify = (0..y_vec.len())
             .map(|i| DLogProof::verify(&dlog_proofs_vec[i]).is_ok())
             .all(|x| x);
@@ -301,8 +302,8 @@ impl Keys {
 }
 
 impl PartyPrivate {
-    pub fn set_private(key: Keys, shared_key: SharedKeys) -> PartyPrivate {
-        PartyPrivate {
+    pub fn set_private(key: Keys, shared_key: SharedKeys) -> Self {
+        Self {
             u_i: key.u_i,
             x_i: shared_key.x_i,
             dk: key.dk,
@@ -358,14 +359,15 @@ impl SignKeys {
         vss_scheme: &VerifiableSS,
         index: usize,
         s: &[usize],
-    ) -> SignKeys {
+    ) -> Self {
         let li = vss_scheme.map_share_to_new_params(index, s);
         let w_i = li * private.x_i;
         let g: GE = ECPoint::generator();
         let g_w_i = g * w_i;
         let gamma_i: FE = ECScalar::new_random();
         let g_gamma_i = g * gamma_i;
-        SignKeys {
+
+        Self {
             w_i,
             g_w_i,
             k_i: ECScalar::new_random(),
@@ -452,19 +454,13 @@ impl SignKeys {
 }
 
 impl LocalSignature {
-    pub fn phase5_local_sig(
-        k_i: &FE,
-        message: &BigInt,
-        R: &GE,
-        sigma_i: &FE,
-        pubkey: &GE,
-    ) -> LocalSignature {
+    pub fn phase5_local_sig(k_i: &FE, message: &BigInt, R: &GE, sigma_i: &FE, pubkey: &GE) -> Self {
         let m_fe: FE = ECScalar::from(message);
         let r: FE = ECScalar::from(&R.x_coor().unwrap().mod_floor(&FE::q()));
         let s_i = m_fe * k_i + r * sigma_i;
         let l_i: FE = ECScalar::new_random();
         let rho_i: FE = ECScalar::new_random();
-        LocalSignature {
+        Self {
             l_i,
             rho_i,
             R: *R,
