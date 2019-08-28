@@ -2,11 +2,10 @@
 
 #[cfg(test)]
 mod tests {
-
+    use crate::protocols::two_party_ecdsa::lindell_2017::{party_one, party_two};
     use curv::arithmetic::traits::Samplable;
     use curv::elliptic::curves::traits::*;
     use curv::BigInt;
-    use protocols::two_party_ecdsa::lindell_2017::*;
 
     #[test]
     fn test_d_log_proof_party_two_party_one() {

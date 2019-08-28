@@ -13,10 +13,11 @@
 
     @license GPL-3.0+ <https://github.com/KZen-networks/multi-party-ecdsa/blob/master/LICENSE>
 */
-use super::SECURITY_BITS;
-use curv::arithmetic::traits::*;
 use std::ops::Shl;
 
+use centipede::juggling::proof_system::{Helgamalsegmented, Witness};
+use centipede::juggling::segmentation::Msegmentation;
+use curv::arithmetic::traits::*;
 use curv::cryptographic_primitives::commitments::hash_commitment::HashCommitment;
 use curv::cryptographic_primitives::commitments::traits::Commitment;
 use curv::cryptographic_primitives::hashing::hash_sha256::HSha256;
@@ -24,28 +25,25 @@ use curv::cryptographic_primitives::hashing::traits::Hash;
 use curv::cryptographic_primitives::proofs::sigma_dlog::*;
 use curv::cryptographic_primitives::proofs::sigma_ec_ddh::*;
 use curv::cryptographic_primitives::proofs::ProofError;
-
 use curv::elliptic::curves::traits::*;
-
 use curv::BigInt;
 use curv::FE;
 use curv::GE;
-use protocols::two_party_ecdsa::lindell_2017::party_one::EphKeyGenFirstMsg as Party1EphKeyGenFirstMsg;
-use protocols::two_party_ecdsa::lindell_2017::party_one::KeyGenFirstMsg as Party1KeyGenFirstMessage;
-use protocols::two_party_ecdsa::lindell_2017::party_one::KeyGenSecondMsg as Party1KeyGenSecondMessage;
-use protocols::two_party_ecdsa::lindell_2017::party_one::PDLFirstMessage as Party1PDLFirstMessage;
-use protocols::two_party_ecdsa::lindell_2017::party_one::PDLSecondMessage as Party1PDLSecondMessage;
-
 use paillier::Paillier;
 use paillier::{Add, Encrypt, Mul};
 use paillier::{EncryptionKey, RawCiphertext, RawPlaintext};
+use serde::{Deserialize, Serialize};
 use zk_paillier::zkproofs::{
     CorrectKeyProofError, NICorrectKeyProof, RangeProofError, RangeProofNi,
 };
 
-use centipede::juggling::proof_system::{Helgamalsegmented, Witness};
-use centipede::juggling::segmentation::Msegmentation;
-use protocols::multi_party_ecdsa::gg_2018::mta::{MessageA, MessageB};
+use super::party_one::EphKeyGenFirstMsg as Party1EphKeyGenFirstMsg;
+use super::party_one::KeyGenFirstMsg as Party1KeyGenFirstMessage;
+use super::party_one::KeyGenSecondMsg as Party1KeyGenSecondMessage;
+use super::party_one::PDLFirstMessage as Party1PDLFirstMessage;
+use super::party_one::PDLSecondMessage as Party1PDLSecondMessage;
+use super::SECURITY_BITS;
+use crate::protocols::multi_party_ecdsa::gg_2018::mta::{MessageA, MessageB};
 
 //****************** Begin: Party Two structs ******************//
 

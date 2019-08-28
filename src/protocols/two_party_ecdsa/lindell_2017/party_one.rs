@@ -13,18 +13,12 @@
 
     @license GPL-3.0+ <https://github.com/KZen-networks/multi-party-ecdsa/blob/master/LICENSE>
 */
-use paillier::Paillier;
-use paillier::{Decrypt, EncryptWithChosenRandomness, KeyGeneration};
-use paillier::{DecryptionKey, EncryptionKey, Randomness, RawCiphertext, RawPlaintext};
 use std::cmp;
 use std::ops::Shl;
-use zk_paillier::zkproofs::{NICorrectKeyProof, RangeProofNi};
 
-use super::SECURITY_BITS;
+use centipede::juggling::proof_system::{Helgamalsegmented, Witness};
+use centipede::juggling::segmentation::Msegmentation;
 use curv::arithmetic::traits::*;
-
-use curv::elliptic::curves::traits::*;
-
 use curv::cryptographic_primitives::commitments::hash_commitment::HashCommitment;
 use curv::cryptographic_primitives::commitments::traits::Commitment;
 use curv::cryptographic_primitives::hashing::hash_sha256::HSha256;
@@ -32,20 +26,24 @@ use curv::cryptographic_primitives::hashing::traits::Hash;
 use curv::cryptographic_primitives::proofs::sigma_dlog::*;
 use curv::cryptographic_primitives::proofs::sigma_ec_ddh::*;
 use curv::cryptographic_primitives::proofs::ProofError;
-use protocols::two_party_ecdsa::lindell_2017::party_two::EphKeyGenFirstMsg as Party2EphKeyGenFirstMessage;
-use protocols::two_party_ecdsa::lindell_2017::party_two::EphKeyGenSecondMsg as Party2EphKeyGenSecondMessage;
-use protocols::two_party_ecdsa::lindell_2017::party_two::PDLFirstMessage as Party2PDLFirstMessage;
-use protocols::two_party_ecdsa::lindell_2017::party_two::PDLSecondMessage as Party2PDLSecondMessage;
-
-use centipede::juggling::proof_system::{Helgamalsegmented, Witness};
-use centipede::juggling::segmentation::Msegmentation;
-use protocols::multi_party_ecdsa::gg_2018::mta::MessageB;
-
+use curv::elliptic::curves::traits::*;
 use curv::BigInt;
 use curv::FE;
 use curv::GE;
+use paillier::Paillier;
+use paillier::{Decrypt, EncryptWithChosenRandomness, KeyGeneration};
+use paillier::{DecryptionKey, EncryptionKey, Randomness, RawCiphertext, RawPlaintext};
+use serde::{Deserialize, Serialize};
+use zk_paillier::zkproofs::{NICorrectKeyProof, RangeProofNi};
 
-use Error::{self, InvalidSig};
+use super::party_two::EphKeyGenFirstMsg as Party2EphKeyGenFirstMessage;
+use super::party_two::EphKeyGenSecondMsg as Party2EphKeyGenSecondMessage;
+use super::party_two::PDLFirstMessage as Party2PDLFirstMessage;
+use super::party_two::PDLSecondMessage as Party2PDLSecondMessage;
+use super::SECURITY_BITS;
+
+use crate::protocols::multi_party_ecdsa::gg_2018::mta::MessageB;
+use crate::Error::{self, InvalidSig};
 
 use subtle::ConstantTimeEq;
 

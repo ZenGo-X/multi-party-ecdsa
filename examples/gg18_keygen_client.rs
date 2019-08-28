@@ -86,7 +86,7 @@ fn main() {
 
     // delay:
     let delay = time::Duration::from_millis(25);
-    let parames = Parameters {
+    let params = Parameters {
         threshold: THRESHOLD,
         share_count: PARTIES,
     };
@@ -167,7 +167,7 @@ fn main() {
 
     let (vss_scheme, secret_shares, _index) = party_keys
         .phase1_verify_com_phase3_verify_correct_key_phase2_distribute(
-            &parames, &decom_vec, &bc1_vec,
+            &params, &decom_vec, &bc1_vec,
         )
         .expect("invalid key");
 
@@ -267,7 +267,7 @@ fn main() {
 
     let (shared_keys, dlog_proof) = party_keys
         .phase2_verify_vss_construct_keypair_phase3_pok_dlog(
-            &parames,
+            &params,
             &point_vec,
             &party_shares,
             &vss_scheme_vec,
@@ -305,7 +305,7 @@ fn main() {
             j += 1;
         }
     }
-    Keys::verify_dlog_proofs(&parames, &dlog_proof_vec, &point_vec).expect("bad dlog proof");
+    Keys::verify_dlog_proofs(&params, &dlog_proof_vec, &point_vec).expect("bad dlog proof");
     //////////////////////////////////////////////////////////////////////////////
     //save key to file:
 
@@ -366,12 +366,12 @@ pub fn broadcast(
     party_num: u16,
     round: &str,
     data: String,
-    uuid: String,
+    from: String,
 ) -> Result<(), ()> {
     let key = TupleKey {
         first: party_num.to_string(),
         second: round.to_string(),
-        third: uuid,
+        third: from,
         fourth: "".to_string(),
     };
     let entry = Entry {
@@ -389,12 +389,12 @@ pub fn sendp2p(
     party_to: u16,
     round: &str,
     data: String,
-    uuid: String,
+    from: String,
 ) -> Result<(), ()> {
     let key = TupleKey {
         first: party_from.to_string(),
         second: round.to_string(),
-        third: uuid,
+        third: from,
         fourth: party_to.to_string(),
     };
     let entry = Entry {

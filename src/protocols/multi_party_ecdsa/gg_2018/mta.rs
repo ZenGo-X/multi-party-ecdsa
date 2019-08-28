@@ -21,9 +21,10 @@ use curv::FE;
 use curv::GE;
 use paillier::{Add, Decrypt, Encrypt, Mul};
 use paillier::{DecryptionKey, EncryptionKey, Paillier, RawCiphertext, RawPlaintext};
+use serde::{Deserialize, Serialize};
 
-use protocols::multi_party_ecdsa::gg_2018::party_i::PartyPrivate;
-use Error::{self, InvalidKey};
+use super::party_i::PartyPrivate;
+use crate::Error::{self, InvalidKey};
 
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct MessageA {

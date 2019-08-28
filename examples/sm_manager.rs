@@ -24,7 +24,7 @@ pub struct TupleKey {
 
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct PartySignup {
-    pub number: u32,
+    pub number: u16,
     pub uuid: String,
 }
 
@@ -82,7 +82,7 @@ fn signup_keygen(
     let data = fs::read_to_string("params.json")
         .expect("Unable to read params, make sure config file is present in the same folder ");
     let params: Params = serde_json::from_str(&data).unwrap();
-    let parties: u32 = params.parties.parse::<u32>().unwrap();
+    let parties = params.parties.parse::<u16>().unwrap();
     let key = TupleKey {
         first: "signup".to_string(),
         second: "keygen".to_string(),
@@ -118,7 +118,7 @@ fn signup_sign(db_mtx: State<RwLock<HashMap<TupleKey, String>>>) -> Json<Result<
     let data = fs::read_to_string("params.json")
         .expect("Unable to read params, make sure config file is present in the same folder ");
     let params: Params = serde_json::from_str(&data).unwrap();
-    let threshold: u32 = params.threshold.parse::<u32>().unwrap();
+    let threshold = params.threshold.parse::<u16>().unwrap();
     let key = TupleKey {
         first: "signup".to_string(),
         second: "sign".to_string(),

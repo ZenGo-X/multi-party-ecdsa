@@ -18,6 +18,10 @@
 
 #[cfg(test)]
 mod tests {
+    use crate::protocols::multi_party_ecdsa::gg_2018::{
+        mta::{MessageA, MessageB},
+        party_i::*,
+    };
 
     use curv::cryptographic_primitives::hashing::hash_sha256::HSha256;
     use curv::cryptographic_primitives::hashing::traits::Hash;
@@ -26,8 +30,6 @@ mod tests {
     use curv::elliptic::curves::traits::*;
     use curv::{FE, GE};
     use paillier::*;
-    use protocols::multi_party_ecdsa::gg_2018::mta::*;
-    use protocols::multi_party_ecdsa::gg_2018::party_i::*;
 
     #[test]
     fn test_keygen_t1_n2() {
