@@ -14,7 +14,8 @@ keywords = [
     "secret-shares",
     "blockchain",
     "cryptography",
-    "cryptocurrency"]
+    "cryptocurrency"
+]
 
 homepage = "https://github.com/KZen-networks/multi-party-ecdsa"
 repository = "https://github.com/KZen-networks/multi-party-ecdsa"
@@ -44,10 +45,10 @@ git = "https://github.com/KZen-networks/centipede"
 rust-gmp = { version = "0.5.0", features = ["serde_support"], git = "https://github.com/KZen-networks/rust-gmp" }
 
 [dev-dependencies]
-criterion = "0.2"
+criterion = "0.3"
 rocket = "0.4.2"
 rocket_contrib = "0.4.2"
-reqwest = {version = "0.9.19", default-features = false}
+reqwest = {version = "0.9", default-features = false}
 uuid = { version = "0.7", features = ["v4"] }
 serde_json = "1.0"
 

@@ -68,6 +68,28 @@ pub struct Params {
     pub threshold: String,
 }
 
+fn aes_encrypt(key: &[u8], plaintext: &[u8]) -> AEAD {
+    let nonce: Vec<u8> = repeat(3).take(12).collect();
+    let aad: [u8; 0] = [];
+    let mut gcm = AesGcm::new(KeySize256, key, &nonce[..], &aad);
+    let mut out: Vec<u8> = repeat(0).take(plaintext.len()).collect();
+    let mut out_tag: Vec<u8> = repeat(0).take(16).collect();
+    gcm.encrypt(&plaintext[..], &mut out[..], &mut out_tag[..]);
+    AEAD {
+        ciphertext: out.to_vec(),
+        tag: out_tag.to_vec(),
+    }
+}
+
+fn aes_decrypt(key: &[u8], aead_pack: AEAD) -> Vec<u8> {
+    let mut out: Vec<u8> = repeat(0).take(aead_pack.ciphertext.len()).collect();
+    let nonce: Vec<u8> = repeat(3).take(12).collect();
+    let aad: [u8; 0] = [];
+    let mut gcm = AesGcm::new(KeySize256, key, &nonce[..], &aad);
+    gcm.decrypt(&aead_pack.ciphertext[..], &mut out, &aead_pack.tag[..]);
+    out
+}
+
 fn main() {
     if env::args().nth(3).is_some() {
         panic!("too many arguments")
@@ -174,22 +196,12 @@ fn main() {
     //////////////////////////////////////////////////////////////////////////////
 
     let mut j = 0;
-    let round = 3;
     for (k, i) in (1..=PARTIES).enumerate() {
         if i != party_num_int {
             // prepare encrypted ss for party i:
             let key_i = BigInt::to_vec(&enc_keys[j]);
-            let nonce: Vec<u8> = repeat(round).take(12).collect();
-            let aad: [u8; 0] = [];
-            let mut gcm = AesGcm::new(KeySize256, &key_i[..], &nonce[..], &aad);
             let plaintext = BigInt::to_vec(&secret_shares[k].to_big_int());
-            let mut out: Vec<u8> = repeat(0).take(plaintext.len()).collect();
-            let mut out_tag: Vec<u8> = repeat(0).take(16).collect();
-            gcm.encrypt(&plaintext[..], &mut out[..], &mut out_tag[..]);
-            let aead_pack_i = AEAD {
-                ciphertext: out.to_vec(),
-                tag: out_tag.to_vec(),
-            };
+            let aead_pack_i = aes_encrypt(&key_i, &plaintext);
             assert!(sendp2p(
                 &client,
                 party_num_int,
@@ -219,13 +231,8 @@ fn main() {
             party_shares.push(secret_shares[(i - 1) as usize]);
         } else {
             let aead_pack: AEAD = serde_json::from_str(&round3_ans_vec[j]).unwrap();
-            let mut out: Vec<u8> = repeat(0).take(aead_pack.ciphertext.len()).collect();
             let key_i = BigInt::to_vec(&enc_keys[j]);
-            let nonce: Vec<u8> = repeat(round).take(12).collect();
-            let aad: [u8; 0] = [];
-            let mut gcm = AesGcm::new(KeySize256, &key_i[..], &nonce[..], &aad);
-            let result = gcm.decrypt(&aead_pack.ciphertext[..], &mut out, &aead_pack.tag[..]);
-            assert!(result);
+            let out = aes_decrypt(&key_i, aead_pack);
             let out_bn = BigInt::from(&out[..]);
             let out_fe = ECScalar::from(&out_bn);
             party_shares.push(out_fe);
