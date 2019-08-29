@@ -61,6 +61,11 @@ name = "gg18_sign_client"
 [[example]]
 name = "gg18_keygen_client"
 
+
+[[example]]
+name = "common"
+crate-type = ["lib"]
+
 [[bench]]
 name = "keygen"
 path = "benches/multi_party_ecdsa/gg18/keygen.rs"

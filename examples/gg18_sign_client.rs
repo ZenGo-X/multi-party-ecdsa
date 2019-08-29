@@ -1,14 +1,5 @@
 #![allow(non_snake_case)]
 
-extern crate crypto;
-extern crate curv;
-extern crate hex;
-extern crate multi_party_ecdsa;
-extern crate paillier;
-extern crate reqwest;
-extern crate serde;
-extern crate serde_json;
-
 use curv::{
     cryptographic_primitives::{
         proofs::sigma_correct_homomorphic_elgamal_enc::HomoELGamalProof,
@@ -24,44 +15,10 @@ use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2018::party_i::{
 };
 use paillier::EncryptionKey;
 use reqwest::Client;
-use serde::{Deserialize, Serialize};
-use std::{env, fs, thread, time, time::Duration};
+use std::{env, fs, time};
 
-#[derive(Hash, PartialEq, Eq, Clone, Debug, Serialize, Deserialize)]
-pub struct TupleKey {
-    pub first: String,
-    pub second: String,
-    pub third: String,
-    pub fourth: String,
-}
-
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
-pub struct AEAD {
-    pub ciphertext: Vec<u8>,
-    pub tag: Vec<u8>,
-}
-
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
-pub struct PartySignup {
-    pub number: u32,
-    pub uuid: String,
-}
-
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
-pub struct Index {
-    pub key: TupleKey,
-}
-
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
-pub struct Entry {
-    pub key: TupleKey,
-    pub value: String,
-}
-#[derive(Serialize, Deserialize)]
-pub struct Params {
-    pub parties: String,
-    pub threshold: String,
-}
+mod common;
+use common::{broadcast, poll_for_broadcasts, poll_for_p2p, postb, sendp2p, Params, PartySignup};
 
 #[allow(clippy::cognitive_complexity)]
 fn main() {
@@ -86,7 +43,7 @@ fn main() {
     let (party_keys, shared_keys, party_id, vss_scheme_vec, paillier_key_vector, y_sum): (
         Keys,
         SharedKeys,
-        u32,
+        u16,
         Vec<VerifiableSS>,
         Vec<EncryptionKey>,
         GE,
@@ -96,7 +53,7 @@ fn main() {
     let data = fs::read_to_string("params.json")
         .expect("Unable to read params, make sure config file is present in the same folder ");
     let params: Params = serde_json::from_str(&data).unwrap();
-    let THRESHOLD: u32 = params.threshold.parse::<u32>().unwrap();
+    let THRESHOLD = params.threshold.parse::<u16>().unwrap();
 
     //signup:
     let (party_num_int, uuid) = match signup(&client).unwrap() {
@@ -128,7 +85,7 @@ fn main() {
         if i == party_num_int {
             signers_vec.push((party_id - 1) as usize);
         } else {
-            let signer_j: u32 = serde_json::from_str(&round0_ans_vec[j]).unwrap();
+            let signer_j: u16 = serde_json::from_str(&round0_ans_vec[j]).unwrap();
             signers_vec.push((signer_j - 1) as usize);
             j += 1;
         }
@@ -543,150 +500,9 @@ fn format_vec_from_reads<'a, T: serde::Deserialize<'a> + Clone>(
     }
 }
 
-pub fn postb<T>(client: &Client, path: &str, body: T) -> Option<String>
-where
-    T: serde::ser::Serialize,
-{
-    let addr = env::args()
-        .nth(1)
-        .unwrap_or_else(|| "http://127.0.0.1:8001".to_string());
-    let retries = 3;
-    let retry_delay = time::Duration::from_millis(250);
-    for _i in 1..retries {
-        let res = client
-            .post(&format!("{}/{}", addr, path))
-            .json(&body)
-            .send();
-        if let Ok(mut res) = res {
-            return Some(res.text().unwrap());
-        }
-        thread::sleep(retry_delay);
-    }
-    None
-}
-
 pub fn signup(client: &Client) -> Result<(PartySignup), ()> {
-    let key = TupleKey {
-        first: "signup".to_string(),
-        second: "sign".to_string(),
-        third: "".to_string(),
-        fourth: "".to_string(),
-    };
+    let key = "signup-sign".to_string();
 
     let res_body = postb(&client, "signupsign", key).unwrap();
     serde_json::from_str(&res_body).unwrap()
-}
-
-pub fn broadcast(
-    client: &Client,
-    party_num: u32,
-    round: &str,
-    data: String,
-    uuid: String,
-) -> Result<(), ()> {
-    let key = TupleKey {
-        first: party_num.to_string(),
-        second: round.to_string(),
-        third: uuid,
-        fourth: "".to_string(),
-    };
-    let entry = Entry {
-        key: key.clone(),
-        value: data,
-    };
-
-    let res_body = postb(&client, "set", entry).unwrap();
-    let answer: Result<(), ()> = serde_json::from_str(&res_body).unwrap();
-    answer
-}
-
-pub fn sendp2p(
-    client: &Client,
-    party_from: u32,
-    party_to: u32,
-    round: &str,
-    data: String,
-    uuid: String,
-) -> Result<(), ()> {
-    let key = TupleKey {
-        first: party_from.to_string(),
-        second: round.to_string(),
-        third: uuid,
-        fourth: party_to.to_string(),
-    };
-    let entry = Entry {
-        key: key.clone(),
-        value: data,
-    };
-
-    let res_body = postb(&client, "set", entry).unwrap();
-    serde_json::from_str(&res_body).unwrap()
-}
-
-pub fn poll_for_broadcasts(
-    client: &Client,
-    party_num: u32,
-    n: u32,
-    delay: Duration,
-    round: &str,
-    uuid: String,
-) -> Vec<String> {
-    let mut ans_vec = Vec::new();
-    for i in 1..=n {
-        if i != party_num {
-            let key = TupleKey {
-                first: i.to_string(),
-                second: round.to_string(),
-                third: uuid.clone(),
-                fourth: "".to_string(),
-            };
-            let index = Index { key };
-            loop {
-                // add delay to allow the server to process request:
-                thread::sleep(delay);
-                let res_body = postb(client, "get", index.clone()).unwrap();
-                let answer: Result<Entry, ()> = serde_json::from_str(&res_body).unwrap();
-                if let Ok(answer) = answer {
-                    ans_vec.push(answer.value);
-                    println!("party {:?} {:?} read success", i, round);
-                    break;
-                }
-            }
-        }
-    }
-    ans_vec
-}
-
-pub fn poll_for_p2p(
-    client: &Client,
-    party_num: u32,
-    n: u32,
-    delay: Duration,
-    round: &str,
-    uuid: String,
-) -> Vec<String> {
-    let mut ans_vec = Vec::new();
-    for i in 1..=n {
-        if i != party_num {
-            let key = TupleKey {
-                first: i.to_string(),
-                second: round.to_string(),
-                third: uuid.clone(),
-                fourth: party_num.to_string(),
-            };
-            let index = Index { key };
-            loop {
-                // add delay to allow the server to process request:
-                thread::sleep(delay);
-                let res_body = postb(client, "get", index.clone()).unwrap();
-                let answer: Result<Entry, ()> = serde_json::from_str(&res_body).unwrap();
-                if let Ok(answer) = answer {
-                    ans_vec.push(answer.value);
-                    println!("party {:?} {:?} read success", i, round);
-                    break;
-                }
-            }
-        }
-    }
-    ans_vec
 }

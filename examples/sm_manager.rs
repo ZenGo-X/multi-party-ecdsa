@@ -1,53 +1,18 @@
 #![feature(proc_macro_hygiene, decl_macro)]
 
-extern crate reqwest;
-extern crate rocket;
-extern crate rocket_contrib;
-extern crate serde;
-extern crate uuid;
-
 use rocket::{post, routes, State};
 use rocket_contrib::json::Json;
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::sync::RwLock;
 use uuid::Uuid;
 
-#[derive(Hash, PartialEq, Eq, Clone, Debug, Serialize, Deserialize)]
-pub struct TupleKey {
-    pub first: String,
-    pub second: String,
-    pub third: String,
-    pub fourth: String,
-}
-
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
-pub struct PartySignup {
-    pub number: u16,
-    pub uuid: String,
-}
-
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
-pub struct Index {
-    pub key: TupleKey,
-}
-
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
-pub struct Entry {
-    pub key: TupleKey,
-    pub value: String,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct Params {
-    pub parties: String,
-    pub threshold: String,
-}
+mod common;
+use common::{Entry, Index, Key, Params, PartySignup};
 
 #[post("/get", format = "json", data = "<request>")]
 fn get(
-    db_mtx: State<RwLock<HashMap<TupleKey, String>>>,
+    db_mtx: State<RwLock<HashMap<Key, String>>>,
     request: Json<Index>,
 ) -> Json<Result<Entry, ()>> {
     let index: Index = request.0;
@@ -65,10 +30,7 @@ fn get(
 }
 
 #[post("/set", format = "json", data = "<request>")]
-fn set(
-    db_mtx: State<RwLock<HashMap<TupleKey, String>>>,
-    request: Json<Entry>,
-) -> Json<Result<(), ()>> {
+fn set(db_mtx: State<RwLock<HashMap<Key, String>>>, request: Json<Entry>) -> Json<Result<(), ()>> {
     let entry: Entry = request.0;
     let mut hm = db_mtx.write().unwrap();
     hm.insert(entry.key.clone(), entry.value.clone());
@@ -76,19 +38,13 @@ fn set(
 }
 
 #[post("/signupkeygen", format = "json")]
-fn signup_keygen(
-    db_mtx: State<RwLock<HashMap<TupleKey, String>>>,
-) -> Json<Result<PartySignup, ()>> {
+fn signup_keygen(db_mtx: State<RwLock<HashMap<Key, String>>>) -> Json<Result<PartySignup, ()>> {
     let data = fs::read_to_string("params.json")
         .expect("Unable to read params, make sure config file is present in the same folder ");
     let params: Params = serde_json::from_str(&data).unwrap();
     let parties = params.parties.parse::<u16>().unwrap();
-    let key = TupleKey {
-        first: "signup".to_string(),
-        second: "keygen".to_string(),
-        third: "".to_string(),
-        fourth: "".to_string(),
-    };
+
+    let key = "signup-keygen".to_string();
 
     let party_signup = {
         let hm = db_mtx.read().unwrap();
@@ -113,18 +69,13 @@ fn signup_keygen(
 }
 
 #[post("/signupsign", format = "json")]
-fn signup_sign(db_mtx: State<RwLock<HashMap<TupleKey, String>>>) -> Json<Result<PartySignup, ()>> {
+fn signup_sign(db_mtx: State<RwLock<HashMap<Key, String>>>) -> Json<Result<PartySignup, ()>> {
     //read parameters:
     let data = fs::read_to_string("params.json")
         .expect("Unable to read params, make sure config file is present in the same folder ");
     let params: Params = serde_json::from_str(&data).unwrap();
     let threshold = params.threshold.parse::<u16>().unwrap();
-    let key = TupleKey {
-        first: "signup".to_string(),
-        second: "sign".to_string(),
-        third: "".to_string(),
-        fourth: "".to_string(),
-    };
+    let key = "signup-sign".to_string();
 
     let party_signup = {
         let hm = db_mtx.read().unwrap();
@@ -153,7 +104,7 @@ fn signup_sign(db_mtx: State<RwLock<HashMap<TupleKey, String>>>) -> Json<Result<
 fn main() {
     // let mut my_config = Config::development();
     // my_config.set_port(18001);
-    let db: HashMap<TupleKey, String> = HashMap::new();
+    let db: HashMap<Key, String> = HashMap::new();
     let db_mtx = RwLock::new(db);
     //rocket::custom(my_config).mount("/", routes![get, set]).manage(db_mtx).launch();
 
@@ -161,18 +112,9 @@ fn main() {
     //////////////////////////init signups://////////////////////////
     /////////////////////////////////////////////////////////////////
 
-    let keygen_key = TupleKey {
-        first: "signup".to_string(),
-        second: "keygen".to_string(),
-        third: "".to_string(),
-        fourth: "".to_string(),
-    };
-    let sign_key = TupleKey {
-        first: "signup".to_string(),
-        second: "sign".to_string(),
-        third: "".to_string(),
-        fourth: "".to_string(),
-    };
+    let keygen_key = "signup-keygen".to_string();
+    let sign_key = "signup-sign".to_string();
+
     let uuid_keygen = Uuid::new_v4().to_string();
     let uuid_sign = Uuid::new_v4().to_string();
 

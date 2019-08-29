@@ -2,19 +2,6 @@
 /// to run:
 /// 1: go to rocket_server -> cargo run
 /// 2: cargo run from PARTIES number of terminals
-extern crate crypto;
-extern crate curv;
-extern crate multi_party_ecdsa;
-extern crate paillier;
-extern crate reqwest;
-extern crate serde;
-extern crate serde_json;
-
-use crypto::{
-    aead::{AeadDecryptor, AeadEncryptor},
-    aes::KeySize::KeySize256,
-    aes_gcm::AesGcm,
-};
 use curv::{
     arithmetic::traits::Converter,
     cryptographic_primitives::{
@@ -28,67 +15,13 @@ use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2018::party_i::{
 };
 use paillier::EncryptionKey;
 use reqwest::Client;
-use serde::{Deserialize, Serialize};
-use std::{env, fs, iter::repeat, thread, time, time::Duration};
+use std::{env, fs, time};
 
-#[derive(Hash, PartialEq, Eq, Clone, Debug, Serialize, Deserialize)]
-pub struct TupleKey {
-    pub first: String,
-    pub second: String,
-    pub third: String,
-    pub fourth: String,
-}
-
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
-pub struct AEAD {
-    pub ciphertext: Vec<u8>,
-    pub tag: Vec<u8>,
-}
-
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
-pub struct PartySignup {
-    pub number: u16,
-    pub uuid: String,
-}
-
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
-pub struct Index {
-    pub key: TupleKey,
-}
-
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
-pub struct Entry {
-    pub key: TupleKey,
-    pub value: String,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct Params {
-    pub parties: String,
-    pub threshold: String,
-}
-
-fn aes_encrypt(key: &[u8], plaintext: &[u8]) -> AEAD {
-    let nonce: Vec<u8> = repeat(3).take(12).collect();
-    let aad: [u8; 0] = [];
-    let mut gcm = AesGcm::new(KeySize256, key, &nonce[..], &aad);
-    let mut out: Vec<u8> = repeat(0).take(plaintext.len()).collect();
-    let mut out_tag: Vec<u8> = repeat(0).take(16).collect();
-    gcm.encrypt(&plaintext[..], &mut out[..], &mut out_tag[..]);
-    AEAD {
-        ciphertext: out.to_vec(),
-        tag: out_tag.to_vec(),
-    }
-}
-
-fn aes_decrypt(key: &[u8], aead_pack: AEAD) -> Vec<u8> {
-    let mut out: Vec<u8> = repeat(0).take(aead_pack.ciphertext.len()).collect();
-    let nonce: Vec<u8> = repeat(3).take(12).collect();
-    let aad: [u8; 0] = [];
-    let mut gcm = AesGcm::new(KeySize256, key, &nonce[..], &aad);
-    gcm.decrypt(&aead_pack.ciphertext[..], &mut out, &aead_pack.tag[..]);
-    out
-}
+mod common;
+use common::{
+    aes_decrypt, aes_encrypt, broadcast, poll_for_broadcasts, poll_for_p2p, postb, sendp2p, Params,
+    PartySignup, AEAD,
+};
 
 fn main() {
     if env::args().nth(3).is_some() {
@@ -329,154 +262,12 @@ fn main() {
         y_sum,
     ))
     .unwrap();
-
     fs::write(env::args().nth(2).unwrap(), keygen_json).expect("Unable to save !");
 }
 
-pub fn postb<T>(client: &Client, path: &str, body: T) -> Option<String>
-where
-    T: serde::ser::Serialize,
-{
-    let addr = env::args()
-        .nth(1)
-        .unwrap_or_else(|| "http://127.0.0.1:8001".to_string());
-    let retries = 3;
-    let retry_delay = time::Duration::from_millis(250);
-    for _i in 1..retries {
-        let res = client
-            .post(&format!("{}/{}", addr, path))
-            .json(&body)
-            .send();
-
-        if let Ok(mut res) = res {
-            return Some(res.text().unwrap());
-        }
-        thread::sleep(retry_delay);
-    }
-    None
-}
-
 pub fn signup(client: &Client) -> Result<(PartySignup), ()> {
-    let key = TupleKey {
-        first: "signup".to_string(),
-        second: "keygen".to_string(),
-        third: "".to_string(),
-        fourth: "".to_string(),
-    };
+    let key = "signup-keygen".to_string();
 
     let res_body = postb(&client, "signupkeygen", key).unwrap();
     serde_json::from_str(&res_body).unwrap()
-}
-
-pub fn broadcast(
-    client: &Client,
-    party_num: u16,
-    round: &str,
-    data: String,
-    from: String,
-) -> Result<(), ()> {
-    let key = TupleKey {
-        first: party_num.to_string(),
-        second: round.to_string(),
-        third: from,
-        fourth: "".to_string(),
-    };
-    let entry = Entry {
-        key: key.clone(),
-        value: data,
-    };
-
-    let res_body = postb(&client, "set", entry).unwrap();
-    serde_json::from_str(&res_body).unwrap()
-}
-
-pub fn sendp2p(
-    client: &Client,
-    party_from: u16,
-    party_to: u16,
-    round: &str,
-    data: String,
-    from: String,
-) -> Result<(), ()> {
-    let key = TupleKey {
-        first: party_from.to_string(),
-        second: round.to_string(),
-        third: from,
-        fourth: party_to.to_string(),
-    };
-    let entry = Entry {
-        key: key.clone(),
-        value: data,
-    };
-
-    let res_body = postb(&client, "set", entry).unwrap();
-    serde_json::from_str(&res_body).unwrap()
-}
-
-pub fn poll_for_broadcasts(
-    client: &Client,
-    party_num: u16,
-    n: u16,
-    delay: Duration,
-    round: &str,
-    uuid: String,
-) -> Vec<String> {
-    let mut ans_vec = Vec::new();
-    for i in 1..=n {
-        if i != party_num {
-            let key = TupleKey {
-                first: i.to_string(),
-                second: round.to_string(),
-                third: uuid.clone(),
-                fourth: "".to_string(),
-            };
-            let index = Index { key };
-            loop {
-                // add delay to allow the server to process request:
-                thread::sleep(delay);
-                let res_body = postb(client, "get", index.clone()).unwrap();
-                let answer: Result<Entry, ()> = serde_json::from_str(&res_body).unwrap();
-                if let Ok(answer) = answer {
-                    ans_vec.push(answer.value);
-                    println!("party {:?} {:?} read success at {:?}", i, round, index);
-                    break;
-                }
-            }
-        }
-    }
-    ans_vec
-}
-
-pub fn poll_for_p2p(
-    client: &Client,
-    party_num: u16,
-    n: u16,
-    delay: Duration,
-    round: &str,
-    uuid: String,
-) -> Vec<String> {
-    let mut ans_vec = Vec::new();
-    for i in 1..=n {
-        if i != party_num {
-            let key = TupleKey {
-                first: i.to_string(),
-                second: round.to_string(),
-                third: uuid.clone(),
-                fourth: party_num.to_string(),
-            };
-            let index = Index { key };
-            loop {
-                // add delay to allow the server to process request:
-                thread::sleep(delay);
-                let res_body = postb(client, "get", index.clone()).unwrap();
-                let answer: Result<Entry, ()> = serde_json::from_str(&res_body).unwrap();
-                if let Ok(answer) = answer {
-                    ans_vec.push(answer.value);
-                    println!("party {:?} {:?} read success", i, round);
-                    break;
-                }
-            }
-        }
-    }
-    ans_vec
 }
