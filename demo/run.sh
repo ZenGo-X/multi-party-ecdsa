@@ -12,12 +12,9 @@ echo "$0: Multi-party ECDSA parties:$n threshold:$t"
 sleep 1
 
 rm keys?.store
+killall sm_manager gg18_keygen_client gg18_sign_client 2> /dev/null
 
-
-kill -9 $(lsof -t -i:8001)
-
-
-./target/release/examples/sm_manager&
+./target/release/examples/sm_manager &
 
 sleep 2
 echo "keygen part"
@@ -44,3 +41,4 @@ sleep 2
 done
 
 rm params.json
+killall sm_manager gg18_keygen_client gg18_sign_client 2> /dev/null

@@ -438,7 +438,7 @@ pub fn poll_for_broadcasts(
                 let answer: Result<Entry, ()> = serde_json::from_str(&res_body).unwrap();
                 if let Ok(answer) = answer {
                     ans_vec.push(answer.value);
-                    println!("party {:?} {:?} read success", i, round);
+                    println!("party {:?} {:?} read success at {:?}", i, round, index);
                     break;
                 }
             }
