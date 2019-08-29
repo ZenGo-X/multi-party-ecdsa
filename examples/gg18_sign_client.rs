@@ -81,7 +81,7 @@ fn main() {
 
     let mut j = 0;
     let mut signers_vec: Vec<usize> = Vec::new();
-    for i in 1..THRESHOLD + 2 {
+    for i in 1..=THRESHOLD + 1 {
         if i == party_num_int {
             signers_vec.push((party_id - 1) as usize);
         } else {
@@ -90,7 +90,6 @@ fn main() {
             j += 1;
         }
     }
-    // signers_vec.sort();
 
     let private = PartyPrivate::set_private(party_keys.clone(), shared_keys);
 

@@ -80,8 +80,6 @@ fn main() {
 
     bc1_vec.insert(party_num_int as usize - 1, bc_i);
 
-    println!("bc1 vec {:?}", bc1_vec.len());
-
     // round 2: send ephemeral public keys and check commitments correctness
     assert!(broadcast(
         &client,
