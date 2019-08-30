@@ -41,7 +41,13 @@ use crate::Error::{self, InvalidCom, InvalidKey, InvalidSS, InvalidSig};
 
 const SECURITY: usize = 256;
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Debug)]
+pub struct Parameters {
+    pub threshold: u16,   //t
+    pub share_count: u16, //n
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Keys {
     pub u_i: FE,
     pub y_i: GE,
@@ -50,39 +56,33 @@ pub struct Keys {
     pub party_index: usize,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct PartyPrivate {
     u_i: FE,
     x_i: FE,
     dk: DecryptionKey,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct KeyGenBroadcastMessage1 {
     pub e: EncryptionKey,
     pub com: BigInt,
     pub correct_key_proof: NICorrectKeyProof,
 }
 
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct KeyGenDecommitMessage1 {
     pub blind_factor: BigInt,
     pub y_i: GE,
 }
 
-#[derive(Debug)]
-pub struct Parameters {
-    pub threshold: u16,   //t
-    pub share_count: u16, //n
-}
-
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SharedKeys {
     pub y: GE,
     pub x_i: FE,
 }
 
-#[derive(Clone, Copy, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SignKeys {
     pub w_i: FE,
     pub g_w_i: GE,
@@ -91,18 +91,18 @@ pub struct SignKeys {
     pub g_gamma_i: GE,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SignBroadcastPhase1 {
     pub com: BigInt,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SignDecommitPhase1 {
     pub blind_factor: BigInt,
     pub g_gamma_i: GE,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct LocalSignature {
     pub l_i: FE,
     pub rho_i: FE,
@@ -111,17 +111,18 @@ pub struct LocalSignature {
     pub m: BigInt,
     pub y: GE,
 }
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Phase5Com1 {
     pub com: BigInt,
 }
 
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Phase5Com2 {
     pub com: BigInt,
 }
 
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Phase5ADecom1 {
     pub V_i: GE,
     pub A_i: GE,
@@ -129,14 +130,14 @@ pub struct Phase5ADecom1 {
     pub blind_factor: BigInt,
 }
 
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Phase5DDecom2 {
     pub u_i: GE,
     pub t_i: GE,
     pub blind_factor: BigInt,
 }
 
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Signature {
     pub r: FE,
     pub s: FE,

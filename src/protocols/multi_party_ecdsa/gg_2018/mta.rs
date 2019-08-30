@@ -26,12 +26,12 @@ use serde::{Deserialize, Serialize};
 use super::party_i::PartyPrivate;
 use crate::Error::{self, InvalidKey};
 
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct MessageA {
     pub c: BigInt, // paillier encryption
 }
 
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct MessageB {
     pub c: BigInt, // paillier encryption
     pub b_proof: DLogProof,
