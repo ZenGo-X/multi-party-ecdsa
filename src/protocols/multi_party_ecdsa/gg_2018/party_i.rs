@@ -659,7 +659,6 @@ pub fn verify(sig: &Signature, y: &GE, message: &BigInt) -> Result<(), Error> {
     let yu2 = y * &u2;
     // can be faster using shamir trick
 
-    ;
     if sig.r == ECScalar::from(&(gu1 + yu2).x_coor().unwrap().mod_floor(&FE::q())) {
         Ok(())
     } else {

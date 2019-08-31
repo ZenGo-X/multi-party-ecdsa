@@ -1,10 +1,7 @@
-#[macro_use]
-extern crate criterion;
-extern crate curv;
-extern crate multi_party_ecdsa;
+use criterion::criterion_main;
 
 mod bench {
-    use criterion::Criterion;
+    use criterion::{criterion_group, Criterion};
     use curv::arithmetic::traits::Samplable;
     use curv::elliptic::curves::traits::*;
     use curv::BigInt;

@@ -1,10 +1,11 @@
 #![feature(proc_macro_hygiene, decl_macro)]
 
-use rocket::{post, routes, State};
-use rocket_contrib::json::Json;
 use std::collections::HashMap;
 use std::fs;
 use std::sync::RwLock;
+
+use rocket::{post, routes, State};
+use rocket_contrib::json::Json;
 use uuid::Uuid;
 
 mod common;
