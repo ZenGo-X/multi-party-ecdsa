@@ -25,8 +25,8 @@ categories = ["cryptography"]
 crate-type = ["lib"]
 
 [dependencies]
-paillier = { git = "https://github.com/KZen-networks/rust-paillier", branch = "feature/libra-support" }
-zk-paillier = { git = "https://github.com/KZen-networks/zk-paillier", branch = "feature/libra-support" }
+paillier = { git = "https://github.com/KZen-networks/rust-paillier", branch = "feature/libra-support-fix" }
+zk-paillier = { git = "https://github.com/KZen-networks/zk-paillier", branch = "feature/libra-support-fix" }
 
 hex = "0.3.2"
 subtle = {version = "2", features = ["nightly"]}
@@ -41,12 +41,12 @@ rust-crypto = "^0.2"
 
 [dependencies.curv]
 git = "https://github.com/KZen-networks/curv"
-branch = "feature/libra-support"
+branch = "feature/libra-support-fix"
 features =  ["ec_secp256k1"]
 
 [dependencies.centipede]
 git = "https://github.com/KZen-networks/centipede"
-branch = "feature/libra-support"
+branch = "feature/libra-support-fix"
 
 [patch.crates-io]
 rust-gmp = { version = "0.5.0", features = ["serde_support"], git = "https://github.com/KZen-networks/rust-gmp" }
