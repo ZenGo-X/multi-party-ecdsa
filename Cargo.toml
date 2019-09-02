@@ -26,13 +26,14 @@ categories = ["cryptography"]
 crate-type = ["lib"]
 
 [dependencies]
-paillier = { git = "https://github.com/KZen-networks/rust-paillier"}
+paillier = { git = "https://github.com/KZen-networks/rust-paillier", tag = "v0.3.0"}
 zk-paillier = { git = "https://github.com/KZen-networks/zk-paillier"}
 subtle = { version = "2", features = ["nightly"] }
 serde = { version = "1.0", features = ["derive"] }
 
 [dependencies.curv]
 git = "https://github.com/KZen-networks/curv"
+tag = "v0.2.0"
 features =  ["ec_secp256k1"]
 
 [dependencies.centipede]
