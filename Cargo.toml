@@ -27,7 +27,7 @@ crate-type = ["lib"]
 
 [dependencies]
 paillier = { git = "https://github.com/KZen-networks/rust-paillier", tag = "v0.3.0"}
-zk-paillier = { git = "https://github.com/KZen-networks/zk-paillier"}
+zk-paillier = { git = "https://github.com/KZen-networks/zk-paillier", tag = "v0.2.0"}
 subtle = { version = "2", features = ["nightly"] }
 serde = { version = "1.0", features = ["derive"] }
 
