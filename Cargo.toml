@@ -24,9 +24,8 @@ categories = ["cryptography"]
 crate-type = ["lib"]
 
 [dependencies]
-paillier = { git = "https://github.com/KZen-networks/rust-paillier"}
-zk-paillier = { git = "https://github.com/KZen-networks/zk-paillier"}
-
+paillier = { git = "https://github.com/KZen-networks/rust-paillier", tag = "v0.3.0" }
+zk-paillier = { git = "https://github.com/KZen-networks/zk-paillier", tag = "v0.2.0" }
 
 hex = "0.3.2"
 subtle = {version = "2", features = ["nightly"]}
@@ -34,17 +33,19 @@ serde = "1.0"
 serde_derive = "1.0"
 serde_json = "1.0"
 reqwest = {version = "0.9.5", default-features = false}
-rocket = "0.4.0"
-rocket_contrib = "0.4.0"
+rocket = "0.4.2"
+rocket_contrib = "0.4.2"
 uuid = { version = "0.7", features = ["v4"] }
 rust-crypto = "^0.2"
 
 [dependencies.curv]
 git = "https://github.com/KZen-networks/curv"
+tag = "v0.2.0"
 features =  ["ec_secp256k1"]
 
 [dependencies.centipede]
 git = "https://github.com/KZen-networks/centipede"
+tag = "v0.2.0"
 
 [patch.crates-io]
 rust-gmp = { version = "0.5.0", features = ["serde_support"], git = "https://github.com/KZen-networks/rust-gmp" }
