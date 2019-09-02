@@ -33,8 +33,8 @@ serde = "1.0"
 serde_derive = "1.0"
 serde_json = "1.0"
 reqwest = {version = "0.9.5", default-features = false}
-rocket = { git = "https://github.com/SergioBenitez/Rocket.git", rev = "dcea9563fcb081874f862a4113d40f0172ed2113" }
-rocket_contrib = { git = "https://github.com/SergioBenitez/Rocket.git", rev = "dcea9563fcb081874f862a4113d40f0172ed2113" }
+rocket = { version = "0.4.2", default-features = false }
+rocket_contrib = { version = "0.4.2", default-features = false, features = ["json"] }
 uuid = { version = "0.7", features = ["v4"] }
 rust-crypto = "^0.2"
 
