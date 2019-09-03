@@ -165,5 +165,4 @@ mod tests {
             party_one::compute_pubkey(&party1_private, &party_two_private_share_gen.public_share);
         party_one::verify(&signature, &pubkey, &message).expect("Invalid signature")
     }
-
 }
