@@ -1,5 +1,5 @@
 language: rust
-cache: false
+cache: cargo
 rust:
   - nightly
 

@@ -80,7 +80,7 @@ fn main() {
 
     bc1_vec.insert(party_num_int as usize - 1, bc_i);
 
-    // round 2: send ephemeral public keys and check commitments correctness
+    // send ephemeral public keys and check commitments correctness
     assert!(broadcast(
         &client,
         party_num_int,
@@ -104,7 +104,7 @@ fn main() {
     let mut enc_keys: Vec<BigInt> = Vec::new();
     for i in 1..=PARTIES {
         if i == party_num_int {
-            point_vec.push(party_keys.y_i);
+            point_vec.push(decom_i.y_i);
             decom_vec.push(decom_i.clone());
         } else {
             let decom_j: KeyGenDecommitMessage1 = serde_json::from_str(&round2_ans_vec[j]).unwrap();
@@ -171,7 +171,6 @@ fn main() {
             j += 1;
         }
     }
-    //////////////////////////////////////////////////////////////////////////////
 
     // round 4: send vss commitments
     assert!(broadcast(
@@ -213,8 +212,7 @@ fn main() {
         )
         .expect("invalid vss");
 
-    //////////////////////////////////////////////////////////////////////////////
-    // round 5: send vss commitments
+    // round 5: send dlog proof
     assert!(broadcast(
         &client,
         party_num_int,
@@ -244,9 +242,8 @@ fn main() {
         }
     }
     Keys::verify_dlog_proofs(&params, &dlog_proof_vec, &point_vec).expect("bad dlog proof");
-    //////////////////////////////////////////////////////////////////////////////
-    //save key to file:
 
+    //save key to file:
     let paillier_key_vec = (0..PARTIES)
         .map(|i| bc1_vec[i as usize].e.clone())
         .collect::<Vec<EncryptionKey>>();

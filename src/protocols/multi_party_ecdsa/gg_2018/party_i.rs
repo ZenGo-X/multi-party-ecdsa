@@ -196,19 +196,19 @@ impl Keys {
         &self,
         params: &Parameters,
         decom_vec: &[KeyGenDecommitMessage1],
-        bc1_vec: &[KeyGenBroadcastMessage1],
+        com_vec: &[KeyGenBroadcastMessage1],
     ) -> Result<(VerifiableSS, Vec<FE>, usize), Error> {
         // test length:
         assert_eq!(decom_vec.len() as u16, params.share_count);
-        assert_eq!(bc1_vec.len() as u16, params.share_count);
+        assert_eq!(com_vec.len() as u16, params.share_count);
         // test paillier correct key and test decommitments
-        let correct_key_correct_decom_all = (0..bc1_vec.len())
+        let correct_key_correct_decom_all = (0..com_vec.len())
             .map(|i| {
                 HashCommitment::create_commitment_with_user_defined_randomness(
                     &decom_vec[i].y_i.bytes_compressed_to_big_int(),
                     &decom_vec[i].blind_factor,
-                ) == bc1_vec[i].com
-                    && bc1_vec[i].correct_key_proof.verify(&bc1_vec[i].e).is_ok()
+                ) == com_vec[i].com
+                    && com_vec[i].correct_key_proof.verify(&com_vec[i].e).is_ok()
             })
             .all(|x| x);
 
@@ -246,9 +246,9 @@ impl Keys {
             .all(|x| x);
 
         if correct_ss_verify {
-            let mut y_vec_iter = y_vec.iter();
-            let y0 = y_vec_iter.next().unwrap();
-            let y = y_vec_iter.fold(y0.clone(), |acc, x| acc + x);
+            let (head, tail) = y_vec.split_at(1);
+            let y = tail.iter().fold(head[0], |acc, x| acc + x);
+
             let x_i = secret_shares_vec.iter().fold(FE::zero(), |acc, x| acc + x);
             let dlog_proof = DLogProof::prove(&x_i);
             Ok((SharedKeys { y, x_i }, dlog_proof))

@@ -377,4 +377,20 @@ mod tests {
             .output_signature(&s_vec)
             .expect("verification failed");
     }
+
+    #[test]
+    fn test_serialize_deserialize() {
+        use serde_json;
+
+        let k = Keys::create(0);
+        let (commit, decommit) = k.phase1_broadcast_phase3_proof_of_correct_key();
+
+        let encoded = serde_json::to_string(&commit).unwrap();
+        let decoded: KeyGenBroadcastMessage1 = serde_json::from_str(&encoded).unwrap();
+        assert_eq!(commit.com, decoded.com);
+
+        let encoded = serde_json::to_string(&decommit).unwrap();
+        let decoded: KeyGenDecommitMessage1 = serde_json::from_str(&encoded).unwrap();
+        assert_eq!(decommit.y_i, decoded.y_i);
+    }
 }
