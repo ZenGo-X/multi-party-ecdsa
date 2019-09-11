@@ -38,6 +38,7 @@ features =  ["ec_secp256k1"]
 
 [dependencies.centipede]
 git = "https://github.com/KZen-networks/centipede"
+tag = "v0.2.0"
 
 [dev-dependencies]
 criterion = "0.3"
