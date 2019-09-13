@@ -1,6 +1,6 @@
 [package]
 name = "multi-party-ecdsa"
-version = "0.1.0"
+version = "0.2.0"
 authors = [
     "Gary <gary@kzencorp.com>",
     "Omer <omer.shlomovits@gmail.com>"
@@ -23,9 +23,13 @@ categories = ["cryptography"]
 [lib]
 crate-type = ["lib"]
 
+[features]
+bin = ["rocket", "rocket_contrib"]
+
 [dependencies]
 paillier = { git = "https://github.com/KZen-networks/rust-paillier", tag = "v0.3.0" }
 zk-paillier = { git = "https://github.com/KZen-networks/zk-paillier", tag = "v0.2.0" }
+
 
 hex = "0.3.2"
 subtle = {version = "2", features = ["nightly"]}
@@ -33,8 +37,6 @@ serde = "1.0"
 serde_derive = "1.0"
 serde_json = "1.0"
 reqwest = {version = "0.9.5", default-features = false}
-rocket = { version = "0.4.2", default-features = false }
-rocket_contrib = { version = "0.4.2", default-features = false, features = ["json"] }
 uuid = { version = "0.7", features = ["v4"] }
 rust-crypto = "^0.2"
 
@@ -46,6 +48,21 @@ features =  ["ec_secp256k1"]
 [dependencies.centipede]
 git = "https://github.com/KZen-networks/centipede"
 tag = "v0.2.0"
+
+[dependencies.class_group]
+git = "https://github.com/KZen-networks/class-groups"
+tag = "v0.1.3"
+
+[dependencies.rocket]
+version = "0.4.2"
+default-features = false
+optional = true
+
+[dependencies.rocket_contrib]
+version = "0.4.2"
+default-features = false
+features = ["json"]
+optional = true
 
 [patch.crates-io]
 rust-gmp = { version = "0.5.0", features = ["serde_support"], git = "https://github.com/KZen-networks/rust-gmp" }

@@ -14,23 +14,9 @@
     @license GPL-3.0+ <https://github.com/KZen-networks/multi-party-ecdsa/blob/master/LICENSE>
 */
 
-#[macro_use]
-extern crate serde_derive;
-extern crate serde;
-extern crate serde_json;
-extern crate subtle;
+const SECURITY_BITS: usize = 256;
 
-extern crate centipede;
-extern crate class_group;
-extern crate curv;
-extern crate paillier;
-extern crate zk_paillier;
-pub mod protocols;
+pub mod party_one;
+pub mod party_two;
 
-#[derive(Copy, PartialEq, Eq, Clone, Debug)]
-pub enum Error {
-    InvalidKey,
-    InvalidSS,
-    InvalidCom,
-    InvalidSig,
-}
+mod test;

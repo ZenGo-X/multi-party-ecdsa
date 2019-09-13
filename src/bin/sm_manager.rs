@@ -1,10 +1,12 @@
 #![feature(proc_macro_hygiene, decl_macro)]
 
 #[macro_use]
+#[cfg(feature = "bin")]
 extern crate rocket;
+#[cfg(feature = "bin")]
+extern crate rocket_contrib;
 
 extern crate reqwest;
-extern crate rocket_contrib;
 extern crate uuid;
 
 #[macro_use]
@@ -12,14 +14,20 @@ extern crate serde_derive;
 extern crate serde;
 extern crate serde_json;
 
+#[cfg(feature = "bin")]
 use rocket::State;
+#[cfg(feature = "bin")]
 use rocket_contrib::json::Json;
+#[cfg(feature = "bin")]
 use std::collections::HashMap;
+#[cfg(feature = "bin")]
 use std::fs;
+#[cfg(feature = "bin")]
 use std::str;
+#[cfg(feature = "bin")]
 use std::sync::RwLock;
+#[cfg(feature = "bin")]
 use uuid::Uuid;
-
 #[derive(Hash, PartialEq, Eq, Clone, Debug, Serialize, Deserialize)]
 pub struct TupleKey {
     pub first: String,
@@ -49,6 +57,7 @@ pub struct Params {
     pub parties: String,
     pub threshold: String,
 }
+#[cfg(feature = "bin")]
 #[post("/get", format = "json", data = "<request>")]
 fn get(
     db_mtx: State<RwLock<HashMap<TupleKey, String>>>,
@@ -67,7 +76,7 @@ fn get(
         None => Json(Err(())),
     }
 }
-
+#[cfg(feature = "bin")]
 #[post("/set", format = "json", data = "<request>")]
 fn set(
     db_mtx: State<RwLock<HashMap<TupleKey, String>>>,
@@ -79,6 +88,7 @@ fn set(
     Json(Ok(()))
 }
 
+#[cfg(feature = "bin")]
 #[post("/signupkeygen", format = "json")]
 fn signup_keygen(
     db_mtx: State<RwLock<HashMap<TupleKey, String>>>,
@@ -118,6 +128,7 @@ fn signup_keygen(
     return Json(Ok(party_signup));
 }
 
+#[cfg(feature = "bin")]
 #[post("/signupsign", format = "json")]
 fn signup_sign(db_mtx: State<RwLock<HashMap<TupleKey, String>>>) -> Json<Result<PartySignup, ()>> {
     //read parameters:
@@ -157,8 +168,8 @@ fn signup_sign(db_mtx: State<RwLock<HashMap<TupleKey, String>>>) -> Json<Result<
 }
 
 //refcell, arc
-
-fn main() {
+#[cfg(feature = "bin")]
+fn run_server() {
     // let mut my_config = Config::development();
     // my_config.set_port(18001);
     let db: HashMap<TupleKey, String> = HashMap::new();
@@ -206,4 +217,10 @@ fn main() {
         .mount("/", routes![get, set, signup_keygen, signup_sign])
         .manage(db_mtx)
         .launch();
+}
+
+fn main() {
+    //refcell, arc
+    #[cfg(feature = "bin")]
+    run_server()
 }
