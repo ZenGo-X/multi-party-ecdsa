@@ -1,6 +1,6 @@
 [package]
 name = "multi-party-ecdsa"
-version = "0.2.0"
+version = "0.2.1"
 authors = [
     "Gary <gary@kzencorp.com>",
     "Omer <omer.shlomovits@gmail.com>"
@@ -72,5 +72,5 @@ criterion = "0.2"
 
 [[bench]]
 name = "keygen"
-path = "benches/multi_party_ecdsa/gg18/keygen.rs"
+path = "benches/two_party_ecdsa/cclst_2019/keygen.rs"
 harness = false
