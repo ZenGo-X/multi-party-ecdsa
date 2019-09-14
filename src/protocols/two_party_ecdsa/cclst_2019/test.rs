@@ -29,7 +29,6 @@ mod tests {
     }
 
     #[test]
-
     fn test_full_key_gen() {
         let (party_one_first_message, comm_witness, ec_key_pair_party1) =
             party_one::KeyGenFirstMsg::create_commitments_with_fixed_secret_share(ECScalar::from(
@@ -126,5 +125,4 @@ mod tests {
             party_one::compute_pubkey(&party1_private, &party_two_private_share_gen.public_share);
         party_one::verify(&signature, &pubkey, &message).expect("Invalid signature")
     }
-
 }

@@ -323,15 +323,8 @@ impl PartialSig {
         let v = BigInt::mod_mul(&k2_inv, &local_share.x2.to_big_int(), &q);
         let v = BigInt::mod_mul(&v, &rx, &q);
 
-        let c2 = Ciphertext {
-            c1: party_two_public.encrypted_secret_share.c1.exp(&v),
-            c2: party_two_public.encrypted_secret_share.c2.exp(&v),
-        };
-
-        let c3 = Ciphertext {
-            c1: c1.c1.compose(&c2.c1).reduce().0,
-            c2: c1.c2.compose(&c2.c2).reduce().0,
-        };
+        let c2 = HSMCL::eval_scal(&party_two_public.encrypted_secret_share, &v);
+        let c3 = HSMCL::eval_sum(&c1, &c2);
 
         //c3:
         PartialSig { c3 }
