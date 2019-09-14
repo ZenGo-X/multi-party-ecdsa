@@ -20,7 +20,7 @@ Project Status
 
 * The library supports Gennaro and Goldfeder CCS 2018 protocol [2] for **{t,n}-threshold ECDSA**. 
 
-* The library supports **2P-ECDSA** based on Castagnos et. al. crypto 2019 paper [3]. To Enable use cclst feature.
+* The library supports **2P-ECDSA** based on Castagnos et. al. crypto 2019 paper [3]. To Enable build with `--features=cclst`.
 
 Run Demo
 -------
