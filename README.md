@@ -45,6 +45,12 @@ Run `./gg18_sign_client`. The application should be in the same folder as the `k
 
 Run `./run.sh` (located in `/demo` folder) in the same folder as the excutables (usually `/target/release/examples`). It will spawn a shared state machine, clients in the number of parties and signing requests for the `threshold + 1` first parties.
 
+|          !["Multiparty ECDSA Demo"][demo]          |
+| :------------------------------------------------: |
+| _A 5 parties setup with 3 signers (threshold = 2)_ |
+
+[demo]: https://raw.githubusercontent.com/KZen-networks/multi-party-ecdsa/master/demo/MP-ECDSA%20demo.gif
+
 ## Contributions & Development Process
 
 The contribution workflow is described in [CONTRIBUTING.md](CONTRIBUTING.md), in addition **the [Rust utilities wiki](https://github.com/KZen-networks/rust-utils/wiki) contains information on workflow and environment set-up**.

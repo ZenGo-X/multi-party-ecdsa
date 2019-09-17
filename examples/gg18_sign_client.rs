@@ -1,12 +1,11 @@
 #![allow(non_snake_case)]
 
 use curv::{
-    arithmetic::traits::Converter,
     cryptographic_primitives::{
         proofs::sigma_correct_homomorphic_elgamal_enc::HomoELGamalProof,
         proofs::sigma_dlog::DLogProof, secret_sharing::feldman_vss::VerifiableSS,
     },
-    elliptic::curves::traits::{ECPoint, ECScalar},
+    elliptic::curves::traits::ECScalar,
     BigInt, FE, GE,
 };
 use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2018::mta::{MessageA, MessageB};
