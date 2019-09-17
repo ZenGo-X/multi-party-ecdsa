@@ -16,4 +16,6 @@
 
 pub mod mta;
 pub mod party_i;
+
+#[cfg(test)]
 pub mod test;

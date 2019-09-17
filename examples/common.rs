@@ -1,11 +1,17 @@
+use std::{env, iter::repeat, thread, time, time::Duration};
+
 use crypto::{
     aead::{AeadDecryptor, AeadEncryptor},
     aes::KeySize::KeySize256,
     aes_gcm::AesGcm,
 };
+use curv::{
+    arithmetic::traits::Converter,
+    elliptic::curves::traits::{ECPoint, ECScalar},
+    BigInt, FE, GE,
+};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use std::{env, iter::repeat, thread, time, time::Duration};
 
 pub type Key = String;
 
@@ -177,4 +183,35 @@ pub fn poll_for_p2p(
         }
     }
     ans_vec
+}
+
+#[allow(dead_code)]
+pub fn check_sig(r: &FE, s: &FE, msg: &BigInt, pk: &GE) {
+    use secp256k1::{verify, Message, PublicKey, PublicKeyFormat, Signature};
+
+    let raw_msg = BigInt::to_vec(&msg);
+    let mut msg: Vec<u8> = Vec::new(); // padding
+    msg.extend(vec![0u8; 32 - raw_msg.len()]);
+    msg.extend(raw_msg.iter());
+
+    let msg = Message::parse_slice(msg.as_slice()).unwrap();
+    let mut raw_pk = pk.pk_to_key_slice();
+    if raw_pk.len() == 64 {
+        raw_pk.insert(0, 4u8);
+    }
+    let pk = PublicKey::parse_slice(&raw_pk, Some(PublicKeyFormat::Full)).unwrap();
+
+    let mut compact: Vec<u8> = Vec::new();
+    let bytes_r = &r.get_element()[..];
+    compact.extend(vec![0u8; 32 - bytes_r.len()]);
+    compact.extend(bytes_r.iter());
+
+    let bytes_s = &s.get_element()[..];
+    compact.extend(vec![0u8; 32 - bytes_s.len()]);
+    compact.extend(bytes_s.iter());
+
+    let secp_sig = Signature::parse_slice(compact.as_slice()).unwrap();
+
+    let is_correct = verify(&msg, &secp_sig, &pk);
+    assert!(is_correct);
 }

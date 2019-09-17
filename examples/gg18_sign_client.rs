@@ -1,11 +1,12 @@
 #![allow(non_snake_case)]
 
 use curv::{
+    arithmetic::traits::Converter,
     cryptographic_primitives::{
         proofs::sigma_correct_homomorphic_elgamal_enc::HomoELGamalProof,
         proofs::sigma_dlog::DLogProof, secret_sharing::feldman_vss::VerifiableSS,
     },
-    elliptic::curves::traits::ECScalar,
+    elliptic::curves::traits::{ECPoint, ECScalar},
     BigInt, FE, GE,
 };
 use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2018::mta::{MessageA, MessageB};
@@ -13,12 +14,15 @@ use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2018::party_i::{
     Keys, LocalSignature, PartyPrivate, Phase5ADecom1, Phase5Com1, Phase5Com2, Phase5DDecom2,
     SharedKeys, SignBroadcastPhase1, SignDecommitPhase1, SignKeys,
 };
+
 use paillier::EncryptionKey;
 use reqwest::Client;
 use std::{env, fs, time};
 
 mod common;
-use common::{broadcast, poll_for_broadcasts, poll_for_p2p, postb, sendp2p, Params, PartySignup};
+use common::{
+    broadcast, check_sig, poll_for_broadcasts, poll_for_p2p, postb, sendp2p, Params, PartySignup,
+};
 
 #[allow(clippy::cognitive_complexity)]
 fn main() {
@@ -466,10 +470,10 @@ fn main() {
     let sig = local_sig
         .output_signature(&s_i_vec)
         .expect("verification failed");
-    println!(" \n");
     println!("party {:?} Output Signature: \n", party_num_int);
     println!("R: {:?}", sig.r.get_element());
     println!("s: {:?} \n", sig.s.get_element());
+
     let sign_json = serde_json::to_string(&(
         "r",
         (BigInt::from(&(sig.r.get_element())[..])).to_str_radix(16),
@@ -477,6 +481,9 @@ fn main() {
         (BigInt::from(&(sig.s.get_element())[..])).to_str_radix(16),
     ))
     .unwrap();
+
+    // check sig against secp256k1
+    check_sig(&sig.r, &sig.s, &message_bn, &y_sum);
 
     fs::write("signature".to_string(), sign_json).expect("Unable to save !");
 }
