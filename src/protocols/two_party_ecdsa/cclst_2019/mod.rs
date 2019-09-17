@@ -14,11 +14,9 @@
     @license GPL-3.0+ <https://github.com/KZen-networks/multi-party-ecdsa/blob/master/LICENSE>
 */
 
-// Fast Secure Two-Party ECDSA Signing by Yehuda Lindell (https://eprint.iacr.org/2017/552.pdf).
+const SECURITY_BITS: usize = 256;
 
-pub mod lindell_2017;
+pub mod party_one;
+pub mod party_two;
 
-// Two-Party ECDSA from Hash Proof Systems and
-//Efficient Instantiations (https://eprint.iacr.org/2019/503.pdf)
-#[cfg(feature = "cclst")]
-pub mod cclst_2019;
+mod test;

@@ -15,11 +15,13 @@ This library can be used to create MultiSig and ThresholdSig crypto wallet.
 
 ## Project Status
 
--   The library supports **2p-ecdsa** based on Lindell's crypto 2017 paper [1]. Project [Gotham-city](https://github.com/KZen-networks/gotham-city) is a proof of concept for a full two-party Bitcoin wallet that uses this library. See benchmarks and white paper there.
+-   The library supports **2P-ECDSA** based on Lindell's crypto 2017 paper [1]. Project [Gotham-city](https://github.com/KZen-networks/gotham-city) is a proof of concept for a full two-party Bitcoin wallet that uses this library. See benchmarks and white paper there.
 
 -   The library supports Gennaro and Goldfeder CCS 2018 protocol [2] for **{t,n}-threshold ECDSA**.
 
-## Run
+-   The library supports **2P-ECDSA** based on Castagnos et. al. crypto 2019 paper [3]. To Enable build with `--features=cclst`.
+
+## Run Demo
 
 The following steps are for setup, key generation with `n` parties and signing with `t+1` parties.
 
@@ -41,13 +43,7 @@ Run `./gg18_sign_client`. The application should be in the same folder as the `k
 
 ### Full demo
 
-Run `./run.sh` (located in `/demo` folder) in the same folder as the excutables (usually `/target/release`). It will spawn a shared state machine, clients in the number of parties and signing requests for the `threshold + 1` first parties.
-
-|          !["Multiparty ECDSA Demo"][demo]          |
-| :------------------------------------------------: |
-| _A 5 parties setup with 3 signers (threshold = 2)_ |
-
-[demo]: https://raw.githubusercontent.com/KZen-networks/multi-party-ecdsa/master/demo/MP-ECDSA%20demo.gif
+Run `./run.sh` (located in `/demo` folder) in the same folder as the excutables (usually `/target/release/examples`). It will spawn a shared state machine, clients in the number of parties and signing requests for the `threshold + 1` first parties.
 
 ## Contributions & Development Process
 
@@ -66,3 +62,5 @@ Feel free to [reach out](mailto:github@kzencorp.com) or join the KZen Research [
 [1] <https://eprint.iacr.org/2017/552.pdf>
 
 [2] <https://eprint.iacr.org/2019/114.pdf>
+
+[3] <https://eprint.iacr.org/2019/503.pdf>

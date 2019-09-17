@@ -25,6 +25,9 @@ categories = ["cryptography"]
 [lib]
 crate-type = ["lib"]
 
+[features]
+cclst = ["class_group"]
+
 [dependencies]
 paillier = { git = "https://github.com/KZen-networks/rust-paillier", tag = "v0.3.0"}
 zk-paillier = { git = "https://github.com/KZen-networks/zk-paillier", tag = "v0.2.0"}
@@ -40,6 +43,11 @@ features =  ["ec_secp256k1"]
 git = "https://github.com/KZen-networks/centipede"
 tag = "v0.2.0"
 
+[dependencies.class_group]
+git = "https://github.com/KZen-networks/class-groups"
+tag = "v0.1.4"
+optional = true
+
 [dev-dependencies]
 criterion = "0.3"
 rust-crypto = "0.2"
@@ -51,6 +59,9 @@ uuid = { version = "0.7", features = ["v4"] }
 serde_json = "1.0"
 libsecp256k1 = "0.2.2"
 
+[patch.crates-io]
+rust-gmp = { version = "0.5.0", features = ["serde_support"], git = "https://github.com/KZen-networks/rust-gmp" }
+
 [[example]]
 name = "sm_manager"
 
@@ -60,12 +71,11 @@ name = "gg18_sign_client"
 [[example]]
 name = "gg18_keygen_client"
 
-
 [[example]]
 name = "common"
 crate-type = ["lib"]
 
 [[bench]]
 name = "keygen"
-path = "benches/multi_party_ecdsa/gg18/keygen.rs"
+path = "benches/two_party_ecdsa/cclst_2019/keygen.rs"
 harness = false
