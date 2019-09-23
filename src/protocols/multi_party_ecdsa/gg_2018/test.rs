@@ -388,10 +388,19 @@ fn check_sig(r: &FE, s: &FE, msg: &BigInt, pk: &GE) {
     msg.extend(raw_msg.iter());
 
     let msg = Message::parse_slice(msg.as_slice()).unwrap();
-    let mut raw_pk = pk.pk_to_key_slice();
-    if raw_pk.len() == 64 {
+    let slice = pk.pk_to_key_slice();
+    let mut raw_pk = Vec::new();
+    if slice.len() != 65 {
+        // after curv's pk_to_key_slice return 65 bytes, this can be removed
         raw_pk.insert(0, 4u8);
+        raw_pk.extend(vec![0u8; 64 - slice.len()]);
+        raw_pk.extend(slice);
+    } else {
+        raw_pk.extend(slice);
     }
+
+    assert_eq!(raw_pk.len(), 65);
+
     let pk = PublicKey::parse_slice(&raw_pk, Some(PublicKeyFormat::Full)).unwrap();
 
     let mut compact: Vec<u8> = Vec::new();
