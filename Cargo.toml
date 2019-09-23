@@ -76,6 +76,16 @@ name = "common"
 crate-type = ["lib"]
 
 [[bench]]
-name = "keygen"
+name = "cclst"
 path = "benches/two_party_ecdsa/cclst_2019/keygen.rs"
+harness = false
+
+[[bench]]
+name = "gg18"
+path = "benches/multi_party_ecdsa/gg18/keygen.rs"
+harness = false
+
+[[bench]]
+name = "lindel2017"
+path = "benches/two_party_ecdsa/lindell_2017/keygen.rs"
 harness = false
