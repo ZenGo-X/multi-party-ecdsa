@@ -1,6 +1,6 @@
 [package]
 name = "multi-party-ecdsa"
-version = "0.2.2"
+version = "0.2.3"
 authors = [
     "Gary <gary@kzencorp.com>",
     "Omer <omer.shlomovits@gmail.com>"
@@ -25,8 +25,8 @@ crate-type = ["lib"]
 
 
 [dependencies]
-paillier = { git = "https://github.com/KZen-networks/rust-paillier", tag = "v0.3.0" }
-zk-paillier = { git = "https://github.com/KZen-networks/zk-paillier", tag = "v0.2.0" }
+paillier = { git = "https://github.com/KZen-networks/rust-paillier", tag = "v0.3.2" }
+zk-paillier = { git = "https://github.com/KZen-networks/zk-paillier", tag = "v0.2.3" }
 subtle = {version = "2", features = ["nightly"]}
 serde = "1.0"
 serde_derive = "1.0"
@@ -37,12 +37,12 @@ cclst = ["class_group"]
 
 [dependencies.curv]
 git = "https://github.com/KZen-networks/curv"
-tag = "v0.2.0"
+tag = "v0.2.2"
 features =  ["ec_secp256k1"]
 
 [dependencies.centipede]
 git = "https://github.com/KZen-networks/centipede"
-tag = "v0.2.0"
+tag = "v0.2.1"
 
 [dependencies.class_group]
 git = "https://github.com/KZen-networks/class-groups"
