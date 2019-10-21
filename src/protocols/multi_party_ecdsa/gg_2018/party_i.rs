@@ -163,9 +163,7 @@ impl Keys {
         let u: FE = ECScalar::new_random();
         let y = &ECPoint::generator() * &u;
 
-        println!("test1");
         let (ek, dk) = Paillier::keypair_safe_primes().keys();
-        println!("test2");
 
         Keys {
             u_i: u,
@@ -352,7 +350,7 @@ impl PartyPrivate {
     }
 
     // we recommend using safe primes if the code is used in production
-    pub fn refresh_private_key_safe_prine(&self, factor: &FE, index: usize) -> Keys {
+    pub fn refresh_private_key_safe_prime(&self, factor: &FE, index: usize) -> Keys {
         let u: FE = self.u_i + factor;
         let y = &ECPoint::generator() * &u;
         let (ek, dk) = Paillier::keypair_safe_primes().keys();

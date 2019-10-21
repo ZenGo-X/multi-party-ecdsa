@@ -348,8 +348,6 @@ fn main() {
 
     // we assume the message is already hashed (by the signer).
     let message_bn = BigInt::from(message);
-    let two = BigInt::from(2);
-    let message_bn = message_bn.modulus(&two.pow(256));
     let local_sig =
         LocalSignature::phase5_local_sig(&sign_keys.k_i, &message_bn, &R, &sigma, &y_sum);
 
