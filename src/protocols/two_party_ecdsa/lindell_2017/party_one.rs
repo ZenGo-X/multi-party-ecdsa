@@ -45,6 +45,7 @@ use curv::BigInt;
 use curv::FE;
 use curv::GE;
 
+use zeroize::Zeroize;
 use Error::{self, InvalidSig};
 
 use subtle::ConstantTimeEq;
@@ -141,10 +142,10 @@ impl KeyGenFirstMsg {
     pub fn create_commitments() -> (KeyGenFirstMsg, CommWitness, EcKeyPair) {
         let base: GE = ECPoint::generator();
 
-        let secret_share: FE = ECScalar::new_random();
+        let mut scalar: FE = ECScalar::new_random();
         //in Lindell's protocol range proof works only for x1<q/3
-        let secret_share: FE =
-            ECScalar::from(&secret_share.to_big_int().div_floor(&BigInt::from(3)));
+        let mut secret_share: FE = ECScalar::from(&scalar.to_big_int().div_floor(&BigInt::from(3)));
+        scalar.zeroize();
 
         let public_share = base.scalar_mul(&secret_share.get_element());
 
@@ -167,6 +168,7 @@ impl KeyGenFirstMsg {
             public_share,
             secret_share,
         };
+        secret_share.zeroize();
         (
             KeyGenFirstMsg {
                 pk_commitment,
@@ -183,7 +185,7 @@ impl KeyGenFirstMsg {
     }
 
     pub fn create_commitments_with_fixed_secret_share(
-        secret_share: FE,
+        mut secret_share: FE,
     ) -> (KeyGenFirstMsg, CommWitness, EcKeyPair) {
         //in Lindell's protocol range proof works only for x1<q/3
         let sk_bigint = secret_share.to_big_int();
@@ -212,6 +214,7 @@ impl KeyGenFirstMsg {
             public_share,
             secret_share,
         };
+        secret_share.zeroize();
         (
             KeyGenFirstMsg {
                 pk_commitment,
@@ -411,7 +414,7 @@ impl PaillierKeyPair {
         let b = pdl_party_two_second_message.decommit.b.clone();
         let blindness = pdl_party_two_second_message.decommit.blindness.clone();
 
-        let ab_concat = a.clone() + b.clone().shl(a.bit_length());
+        let ab_concat = a.clone() + b.clone().shl(a.bit_length()); // b|a (in the paper it is a|b)
         let c_tag_tag_test =
             HashCommitment::create_commitment_with_user_defined_randomness(&ab_concat, &blindness);
         let ax1 = a.clone() * party_one_private.x1.to_big_int();
@@ -429,13 +432,13 @@ impl PaillierKeyPair {
 impl EphKeyGenFirstMsg {
     pub fn create() -> (EphKeyGenFirstMsg, EphEcKeyPair) {
         let base: GE = ECPoint::generator();
-        let secret_share: FE = ECScalar::new_random();
+        let mut secret_share: FE = ECScalar::new_random();
         let public_share = &base * &secret_share;
         let h: GE = GE::base_point2();
-        let w = ECDDHWitness {
-            x: secret_share.clone(),
-        };
+
         let c = &h * &secret_share;
+        let mut x = secret_share;
+        let w = ECDDHWitness { x };
         let delta = ECDDHStatement {
             g1: base.clone(),
             h1: public_share.clone(),
@@ -447,6 +450,8 @@ impl EphKeyGenFirstMsg {
             public_share: public_share.clone(),
             secret_share,
         };
+        secret_share.zeroize();
+        x.zeroize();
         (
             EphKeyGenFirstMsg {
                 d_log_proof,
@@ -517,17 +522,22 @@ impl Signature {
         r = r.scalar_mul(&ephemeral_local_share.secret_share.get_element());
 
         let rx = r.x_coor().unwrap().mod_floor(&FE::q());
-        let k1_inv = &ephemeral_local_share
-            .secret_share
-            .to_big_int()
-            .invert(&FE::q())
-            .unwrap();
+
+        let mut k1_inv = ephemeral_local_share.secret_share.invert();
+
         let s_tag = Paillier::decrypt(
             &party_one_private.paillier_priv,
             &RawCiphertext::from(partial_sig_c3),
-        );
-        let s_tag_tag = BigInt::mod_mul(&k1_inv, &s_tag.0, &FE::q());
-        let s = cmp::min(s_tag_tag.clone(), FE::q().clone() - s_tag_tag.clone());
+        )
+        .0;
+        let mut s_tag_fe: FE = ECScalar::from(&s_tag);
+        let s_tag_tag = s_tag_fe * k1_inv;
+        k1_inv.zeroize();
+        s_tag_fe.zeroize();
+        let s_tag_tag_bn = s_tag_tag.to_big_int();
+
+        let s = cmp::min(s_tag_tag_bn.clone(), FE::q().clone() - s_tag_tag_bn.clone());
+
         Signature { s, r: rx }
     }
 
@@ -543,17 +553,19 @@ impl Signature {
 
         let rx = r.x_coor().unwrap().mod_floor(&FE::q());
         let ry = r.y_coor().unwrap().mod_floor(&FE::q());
-        let k1_inv = &ephemeral_local_share
-            .secret_share
-            .to_big_int()
-            .invert(&FE::q())
-            .unwrap();
+        let mut k1_inv = ephemeral_local_share.secret_share.invert();
+
         let s_tag = Paillier::decrypt(
             &party_one_private.paillier_priv,
             &RawCiphertext::from(partial_sig_c3),
-        );
-        let s_tag_tag = BigInt::mod_mul(&k1_inv, &s_tag.0, &FE::q());
-        let s = cmp::min(s_tag_tag.clone(), FE::q().clone() - s_tag_tag.clone());
+        )
+        .0;
+        let mut s_tag_fe: FE = ECScalar::from(&s_tag);
+        let s_tag_tag = s_tag_fe * k1_inv;
+        k1_inv.zeroize();
+        s_tag_fe.zeroize();
+        let s_tag_tag_bn = s_tag_tag.to_big_int();
+        let s = cmp::min(s_tag_tag_bn.clone(), FE::q().clone() - s_tag_tag_bn.clone());
 
         /*
          Calculate recovery id - it is not possible to compute the public key out of the signature
@@ -563,7 +575,7 @@ impl Signature {
         */
         let is_ry_odd = ry.tstbit(0);
         let mut recid = if is_ry_odd { 1 } else { 0 };
-        if s_tag_tag.clone() > FE::q() - s_tag_tag.clone() {
+        if s_tag_tag_bn.clone() > FE::q() - s_tag_tag_bn.clone() {
             recid = recid ^ 1;
         }
 

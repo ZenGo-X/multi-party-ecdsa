@@ -24,6 +24,7 @@ extern crate centipede;
 extern crate class_group;
 extern crate curv;
 extern crate paillier;
+extern crate zeroize;
 extern crate zk_paillier;
 pub mod protocols;
 

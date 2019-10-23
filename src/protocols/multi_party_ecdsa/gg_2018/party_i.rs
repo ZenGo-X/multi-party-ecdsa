@@ -158,6 +158,21 @@ impl Keys {
         }
     }
 
+    // we recommend using safe primes if the code is used in production
+    pub fn create_safe_prime(index: usize) -> Keys {
+        let u: FE = ECScalar::new_random();
+        let y = &ECPoint::generator() * &u;
+
+        let (ek, dk) = Paillier::keypair_safe_primes().keys();
+
+        Keys {
+            u_i: u,
+            y_i: y,
+            dk,
+            ek,
+            party_index: index.clone(),
+        }
+    }
     pub fn create_from(u: FE, index: usize) -> Keys {
         let y = &ECPoint::generator() * &u;
         let (ek, dk) = Paillier::keypair().keys();
@@ -334,6 +349,21 @@ impl PartyPrivate {
         }
     }
 
+    // we recommend using safe primes if the code is used in production
+    pub fn refresh_private_key_safe_prime(&self, factor: &FE, index: usize) -> Keys {
+        let u: FE = self.u_i + factor;
+        let y = &ECPoint::generator() * &u;
+        let (ek, dk) = Paillier::keypair_safe_primes().keys();
+
+        Keys {
+            u_i: u,
+            y_i: y,
+            dk,
+            ek,
+            party_index: index.clone(),
+        }
+    }
+
     // used for verifiable recovery
     pub fn to_encrypted_segment(
         &self,
@@ -425,10 +455,11 @@ impl SignKeys {
         delta_inv: &FE,
         b_proof_vec: &Vec<&DLogProof>,
         phase1_decommit_vec: Vec<SignDecommitPhase1>,
-        // blind_vec: &Vec<BigInt>,
-        //  g_gamma_i_vec: &Vec<GE>,
         bc1_vec: &Vec<SignBroadcastPhase1>,
     ) -> Result<GE, Error> {
+        // note: b_proof_vec is populated using the results
+        //from the MtAwc, which is handling the proof of knowledge verification of gamma_i such that
+        // Gamme_i = gamma_i * G in the verify_proofs_get_alpha()
         let test_b_vec_and_com = (0..b_proof_vec.len())
             .map(|i| {
                 b_proof_vec[i].pk.get_element() == phase1_decommit_vec[i].g_gamma_i.get_element()
