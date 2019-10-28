@@ -5,7 +5,7 @@ mod bench {
     use curv::arithmetic::traits::Samplable;
     use curv::elliptic::curves::traits::*;
     use curv::BigInt;
-    use multi_party_ecdsa::protocols::two_party_ecdsa::cclst_2019::*;
+    use multi_party_ecdsa::protocols::two_party_ecdsa::cclst_2019::{party_one, party_two};
 
     pub fn bench_full_keygen_party_one_two(c: &mut Criterion) {
         c.bench_function("keygen", move |b| {

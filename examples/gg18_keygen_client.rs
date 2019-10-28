@@ -110,8 +110,8 @@ fn main() {
             let decom_j: KeyGenDecommitMessage1 = serde_json::from_str(&round2_ans_vec[j]).unwrap();
             point_vec.push(decom_j.y_i);
             decom_vec.push(decom_j.clone());
-            enc_keys.push((party_keys.y_i + decom_j.y_i).x_coor().unwrap());
-            j += 1;
+            enc_keys.push((decom_j.y_i.clone() * party_keys.u_i).x_coor().unwrap());
+            j = j + 1;
         }
     }
 
