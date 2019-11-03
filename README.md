@@ -43,7 +43,7 @@ Run `./gg18_sign_client`. The application should be in the same folder as the `k
 
 ### Full demo
 
-Run `./run.sh` (located in `/demo` folder) in the same folder as the excutables (usually `/target/release/examples`). It will spawn a shared state machine, clients in the number of parties and signing requests for the `threshold + 1` first parties.
+Run `./run.sh` (located in `/demo` folder) in the same folder as the excutables (usually `/target/release/examples`. Move `params` file to the same folder). It will spawn a shared state machine, clients in the number of parties and signing requests for the `threshold + 1` first parties.
 
 |          !["Multiparty ECDSA Demo"][demo]          |
 | :------------------------------------------------: |
