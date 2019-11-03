@@ -13,17 +13,12 @@
 
     @license GPL-3.0+ <https://github.com/KZen-networks/multi-party-ecdsa/blob/master/LICENSE>
 */
+use std::cmp;
+
 use class_group::primitives::Ciphertext;
 use class_group::primitives::Witness;
 use class_group::primitives::{CLDLProof, HSMCL};
-
-use std::cmp;
-
-use super::SECURITY_BITS;
 use curv::arithmetic::traits::*;
-
-use curv::elliptic::curves::traits::*;
-
 use curv::cryptographic_primitives::commitments::hash_commitment::HashCommitment;
 use curv::cryptographic_primitives::commitments::traits::Commitment;
 use curv::cryptographic_primitives::hashing::hash_sha256::HSha256;
@@ -31,16 +26,18 @@ use curv::cryptographic_primitives::hashing::traits::Hash;
 use curv::cryptographic_primitives::proofs::sigma_dlog::*;
 use curv::cryptographic_primitives::proofs::sigma_ec_ddh::*;
 use curv::cryptographic_primitives::proofs::ProofError;
-use protocols::two_party_ecdsa::cclst_2019::party_two::EphKeyGenFirstMsg as Party2EphKeyGenFirstMessage;
-use protocols::two_party_ecdsa::cclst_2019::party_two::EphKeyGenSecondMsg as Party2EphKeyGenSecondMessage;
-
+use curv::elliptic::curves::traits::*;
 use curv::BigInt;
 use curv::FE;
 use curv::GE;
-
-use Error::{self, InvalidSig};
-
+use serde::{Deserialize, Serialize};
 use subtle::ConstantTimeEq;
+
+use super::party_two::EphKeyGenFirstMsg as Party2EphKeyGenFirstMessage;
+use super::party_two::EphKeyGenSecondMsg as Party2EphKeyGenSecondMessage;
+use super::SECURITY_BITS;
+
+use crate::Error::{self, InvalidSig};
 
 //****************** Begin: Party One structs ******************//
 #[derive(Clone, Debug, Serialize, Deserialize)]

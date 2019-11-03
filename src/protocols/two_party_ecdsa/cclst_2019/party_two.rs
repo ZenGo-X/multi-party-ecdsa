@@ -13,14 +13,12 @@
 
     @license GPL-3.0+ <https://github.com/KZen-networks/multi-party-ecdsa/blob/master/LICENSE>
 */
-use super::SECURITY_BITS;
-use curv::arithmetic::traits::*;
 
 use class_group::primitives::CLDLProof;
 use class_group::primitives::Ciphertext;
 use class_group::primitives::HSMCL;
 use class_group::primitives::PK as HSMCLPK;
-
+use curv::arithmetic::traits::*;
 use curv::cryptographic_primitives::commitments::hash_commitment::HashCommitment;
 use curv::cryptographic_primitives::commitments::traits::Commitment;
 use curv::cryptographic_primitives::hashing::hash_sha256::HSha256;
@@ -28,15 +26,16 @@ use curv::cryptographic_primitives::hashing::traits::Hash;
 use curv::cryptographic_primitives::proofs::sigma_dlog::*;
 use curv::cryptographic_primitives::proofs::sigma_ec_ddh::*;
 use curv::cryptographic_primitives::proofs::ProofError;
-
 use curv::elliptic::curves::traits::*;
-
 use curv::BigInt;
 use curv::FE;
 use curv::GE;
-use protocols::two_party_ecdsa::cclst_2019::party_one::EphKeyGenFirstMsg as Party1EphKeyGenFirstMsg;
-use protocols::two_party_ecdsa::cclst_2019::party_one::KeyGenFirstMsg as Party1KeyGenFirstMessage;
-use protocols::two_party_ecdsa::cclst_2019::party_one::KeyGenSecondMsg as Party1KeyGenSecondMessage;
+use serde::{Deserialize, Serialize};
+
+use super::party_one::EphKeyGenFirstMsg as Party1EphKeyGenFirstMsg;
+use super::party_one::KeyGenFirstMsg as Party1KeyGenFirstMessage;
+use super::party_one::KeyGenSecondMsg as Party1KeyGenSecondMessage;
+use super::SECURITY_BITS;
 
 //****************** Begin: Party Two structs ******************//
 

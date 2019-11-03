@@ -1,6 +1,7 @@
 [package]
 name = "multi-party-ecdsa"
 version = "0.2.4"
+edition = "2018"
 authors = [
     "Gary <gary@kzencorp.com>",
     "Omer <omer.shlomovits@gmail.com>"
@@ -13,7 +14,8 @@ keywords = [
     "secret-shares",
     "blockchain",
     "cryptography",
-    "cryptocurrency"]
+    "cryptocurrency"
+]
 
 homepage = "https://github.com/KZen-networks/multi-party-ecdsa"
 repository = "https://github.com/KZen-networks/multi-party-ecdsa"
@@ -23,17 +25,15 @@ categories = ["cryptography"]
 [lib]
 crate-type = ["lib"]
 
-
-[dependencies]
-paillier = { git = "https://github.com/KZen-networks/rust-paillier", tag = "v0.3.3" }
-zk-paillier = { git = "https://github.com/KZen-networks/zk-paillier", tag = "v0.2.4" }
-subtle = {version = "2", features = ["nightly"]}
-serde = "1.0"
-serde_derive = "1.0"
-zeroize = "0.10"
-
 [features]
 cclst = ["class_group"]
+
+[dependencies]
+paillier = { git = "https://github.com/KZen-networks/rust-paillier", tag = "v0.3.3"}
+zk-paillier = { git = "https://github.com/KZen-networks/zk-paillier", tag = "v0.2.4"}
+subtle = { version = "2", features = ["nightly"] }
+serde = { version = "1.0", features = ["derive"] }
+zeroize = "0.10.1"
 
 [dependencies.curv]
 git = "https://github.com/KZen-networks/curv"
@@ -49,36 +49,44 @@ git = "https://github.com/KZen-networks/class-groups"
 tag = "v0.1.5"
 optional = true
 
-[dependencies.rocket]
-version = "0.4.2"
-default-features = false
-optional = true
-
-
+[dev-dependencies]
+criterion = "0.3"
+rust-crypto = "0.2"
+hex = "0.4"
+rocket = { version = "0.4.2", default-features = false }
+rocket_contrib = "0.4.2"
+reqwest = { version = "0.9", default-features = false }
+uuid = { version = "0.8", features = ["v4"] }
+serde_json = "1.0"
+libsecp256k1 = "0.3.2"
 
 [patch.crates-io]
 rust-gmp = { version = "0.5.0", features = ["serde_support"], git = "https://github.com/KZen-networks/rust-gmp" }
-
-[dev-dependencies]
-criterion = "0.2"
-hex = "0.3.2"
-rocket_contrib = {version = "0.4.2",default-features = false,features = ["json"]}
-rocket = {version = "0.4.2", default-features = false}
-reqwest = {version = "0.9.5", default-features = false}
-uuid = { version = "0.7", features = ["v4"] }
-rust-crypto = "^0.2"
-serde_json = "1.0"
 
 [[example]]
 name = "sm_manager"
 
 [[example]]
+name = "gg18_sign_client"
+
+[[example]]
 name = "gg18_keygen_client"
 
 [[example]]
-name = "gg18_sign_client"
+name = "common"
+crate-type = ["lib"]
 
 [[bench]]
-name = "keygen"
+name = "cclst"
 path = "benches/two_party_ecdsa/cclst_2019/keygen.rs"
+harness = false
+
+[[bench]]
+name = "gg18"
+path = "benches/multi_party_ecdsa/gg18/keygen.rs"
+harness = false
+
+[[bench]]
+name = "lindel2017"
+path = "benches/two_party_ecdsa/lindell_2017/keygen.rs"
 harness = false
