@@ -405,7 +405,7 @@ impl PaillierKeyPair {
         party_one_private: Party1Private,
         pdl_decommit: PDLdecommit,
         alpha: BigInt,
-    ) -> Result<(PDLSecondMessage), ()> {
+    ) -> Result<PDLSecondMessage, ()> {
         let a = pdl_party_two_second_message.decommit.a.clone();
         let b = pdl_party_two_second_message.decommit.b.clone();
         let blindness = pdl_party_two_second_message.decommit.blindness.clone();
