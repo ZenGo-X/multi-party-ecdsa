@@ -31,14 +31,14 @@ cclst = ["class_group"]
 [dependencies]
 paillier = { git = "https://github.com/KZen-networks/rust-paillier", tag = "v0.3.3"}
 zk-paillier = { git = "https://github.com/KZen-networks/zk-paillier", tag = "v0.2.4"}
-subtle = { version = "2", features = ["nightly"] }
+subtle = { version = "2" }
 serde = { version = "1.0", features = ["derive"] }
 zeroize = "0.10.1"
 
 [dependencies.curv]
 git = "https://github.com/KZen-networks/curv"
 tag = "v0.2.2"
-features =  ["ec_secp256k1"]
+features = ["ec_secp256k1"]
 
 [dependencies.centipede]
 git = "https://github.com/KZen-networks/centipede"

@@ -503,7 +503,7 @@ fn format_vec_from_reads<'a, T: serde::Deserialize<'a> + Clone>(
     }
 }
 
-pub fn signup(client: &Client) -> Result<(PartySignup), ()> {
+pub fn signup(client: &Client) -> Result<PartySignup, ()> {
     let key = "signup-sign".to_string();
 
     let res_body = postb(&client, "signupsign", key).unwrap();

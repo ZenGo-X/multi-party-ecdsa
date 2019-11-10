@@ -260,7 +260,7 @@ fn main() {
     fs::write(env::args().nth(2).unwrap(), keygen_json).expect("Unable to save !");
 }
 
-pub fn signup(client: &Client) -> Result<(PartySignup), ()> {
+pub fn signup(client: &Client) -> Result<PartySignup, ()> {
     let key = "signup-keygen".to_string();
 
     let res_body = postb(&client, "signupkeygen", key).unwrap();
