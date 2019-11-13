@@ -1,12 +1,39 @@
 language: rust
-cache: false
-rust:
-  - nightly
 
 before_script:
   - rustup component add rustfmt-preview
   - cargo fmt --all -- --check
 
-script:
-  - cargo build --verbose
-  - cargo test --verbose
+matrix:
+  include:
+    - os: osx
+      rust: stable
+      script:
+        - cargo build
+
+    - os: osx
+      rust: beta
+      script:
+        - cargo build
+
+    - os: osx
+      rust: nightly
+      script:
+        - cargo build
+        - cargo test --verbose
+
+    - os: linux
+      rust: stable
+      script:
+        - cargo build
+
+    - os: linux
+      rust: beta
+      script:
+        - cargo build
+
+    - os: linux
+      rust: nightly
+      script:
+        - cargo build
+        - cargo test --verbose
