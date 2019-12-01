@@ -6,9 +6,12 @@ mod bench {
     use multi_party_ecdsa::protocols::two_party_ecdsa::cclst_2019::party_two::HSMCLPublic;
     use multi_party_ecdsa::protocols::two_party_ecdsa::cclst_2019::*;
 
-    pub fn bench_full_keygen_party_one_two(c: &mut Criterion) {
-        c.bench_function("keygen", move |b| {
+    pub fn bench_full_sign_party_one_two(c: &mut Criterion) {
+        c.bench_function("sign", move |b| {
             b.iter(|| {
+                // assume party1 and party2 engaged with KeyGen in the past resulting in
+                // party1 owning private share and HSMCL key-pair
+                // party2 owning private share and HSMCL encryption of party1 share
                 let (_party_one_private_share_gen, _comm_witness, ec_key_pair_party1) =
                     party_one::KeyGenFirstMsg::create_commitments();
                 let (party_two_private_share_gen, ec_key_pair_party2) =
@@ -19,10 +22,15 @@ mod bench {
                         &ec_key_pair_party1,
                     );
 
-                let party_two_hsmcl_public = HSMCLPublic {
-                    ek: party_one_hsmcl_key_pair.keypair.pk.clone(),
-                    encrypted_secret_share: party_one_hsmcl_key_pair.encrypted_share.clone(),
-                };
+                let party1_private = party_one::Party1Private::set_private_key(
+                    &ec_key_pair_party1,
+                    &party_one_hsmcl_key_pair,
+                );
+
+                let party_two_hsmcl_public = HSMCLPublic::set(
+                    &party_one_hsmcl_key_pair.keypair.pk,
+                    &party_one_hsmcl_key_pair.encrypted_share,
+                );
                 // creating the ephemeral private shares:
 
                 let (eph_party_two_first_message, eph_comm_witness, eph_ec_key_pair_party2) =
@@ -53,11 +61,6 @@ mod bench {
                     &message,
                 );
 
-                let party1_private = party_one::Party1Private::set_private_key(
-                    &ec_key_pair_party1,
-                    &party_one_hsmcl_key_pair,
-                );
-
                 let signature = party_one::Signature::compute(
                     &party1_private,
                     partial_sig.c3,
@@ -75,9 +78,9 @@ mod bench {
     }
 
     criterion_group! {
-    name = keygen;
+    name = sign;
     config = Criterion::default().sample_size(10);
-    targets =self::bench_full_keygen_party_one_two}
+    targets =self::bench_full_sign_party_one_two}
 }
 
-criterion_main!(bench::keygen);
+criterion_main!(bench::sign);

@@ -1,6 +1,6 @@
 [package]
 name = "multi-party-ecdsa"
-version = "0.2.6"
+version = "0.2.7"
 edition = "2018"
 authors = [
     "Gary <gary@kzencorp.com>",
@@ -45,8 +45,8 @@ git = "https://github.com/KZen-networks/centipede"
 tag = "v0.2.1"
 
 [dependencies.class_group]
-git = "https://github.com/KZen-networks/class-groups"
-tag = "v0.1.5"
+git = "https://github.com/KZen-networks/class"
+tag = "v0.3.0"
 optional = true
 
 [dev-dependencies]
@@ -77,10 +77,17 @@ name = "common"
 crate-type = ["lib"]
 
 [[bench]]
-name = "cclst"
+name = "cclst_keygen"
 path = "benches/two_party_ecdsa/cclst_2019/keygen.rs"
 required-features = ["cclst"]
 harness = false
+
+[[bench]]
+name = "cclst_sign"
+path = "benches/two_party_ecdsa/cclst_2019/sign.rs"
+required-features = ["cclst"]
+harness = false
+
 
 [[bench]]
 name = "gg18"
@@ -88,6 +95,12 @@ path = "benches/multi_party_ecdsa/gg18/keygen.rs"
 harness = false
 
 [[bench]]
-name = "lindel2017"
+name = "lindel2017_keygen"
 path = "benches/two_party_ecdsa/lindell_2017/keygen.rs"
+harness = false
+
+
+[[bench]]
+name = "lindel2017_sign"
+path = "benches/two_party_ecdsa/lindell_2017/sign.rs"
 harness = false

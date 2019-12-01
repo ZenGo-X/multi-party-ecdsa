@@ -71,10 +71,13 @@ fn test_two_party_sign() {
     let party_one_hsmcl_key_pair =
         party_one::HSMCLKeyPair::generate_keypair_and_encrypted_share(&ec_key_pair_party1);
 
-    let party_two_hsmcl_public = HSMCLPublic {
-        ek: party_one_hsmcl_key_pair.keypair.pk.clone(),
-        encrypted_secret_share: party_one_hsmcl_key_pair.encrypted_share.clone(),
-    };
+    let party1_private =
+        party_one::Party1Private::set_private_key(&ec_key_pair_party1, &party_one_hsmcl_key_pair);
+
+    let party_two_hsmcl_public = HSMCLPublic::set(
+        &party_one_hsmcl_key_pair.keypair.pk,
+        &party_one_hsmcl_key_pair.encrypted_share,
+    );
     // creating the ephemeral private shares:
 
     let (eph_party_two_first_message, eph_comm_witness, eph_ec_key_pair_party2) =
@@ -103,9 +106,6 @@ fn test_two_party_sign() {
         &eph_party_one_first_message.public_share,
         &message,
     );
-
-    let party1_private =
-        party_one::Party1Private::set_private_key(&ec_key_pair_party1, &party_one_hsmcl_key_pair);
 
     let signature = party_one::Signature::compute(
         &party1_private,

@@ -1,14 +1,12 @@
 use criterion::criterion_main;
 
 mod bench {
-    use criterion::Criterion;
-    use curv::arithmetic::traits::Samplable;
-    use curv::elliptic::curves::traits::*;
+    use criterion::{criterion_group, Criterion};
     use curv::BigInt;
     use multi_party_ecdsa::protocols::two_party_ecdsa::lindell_2017::*;
 
-    pub fn bench_full_keygen_party_one_two(c: &mut Criterion) {
-        c.bench_function("keygen", move |b| {
+    pub fn bench_full_sign_party_one_two(c: &mut Criterion) {
+        c.bench_function("sign", move |b| {
             b.iter(|| {
                 let (_party_one_private_share_gen, _comm_witness, ec_key_pair_party1) =
                     party_one::KeyGenFirstMsg::create_commitments();
@@ -69,9 +67,9 @@ mod bench {
     }
 
     criterion_group! {
-    name = keygen;
+    name = sign;
     config = Criterion::default().sample_size(10);
-    targets =self::bench_full_keygen_party_one_two}
+    targets =self::bench_full_sign_party_one_two}
 }
 
-criterion_main!(bench::keygen);
+criterion_main!(bench::sign);
