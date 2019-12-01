@@ -17,7 +17,7 @@ use std::cmp;
 
 use class_group::primitives::cl_dl_lcm::Ciphertext;
 use class_group::primitives::cl_dl_lcm::Witness;
-use class_group::primitives::cl_dl_lcm::{CLDLProof, HSMCL};
+use class_group::primitives::cl_dl_lcm::{CLDLProofPublicSetup, HSMCL};
 use curv::arithmetic::traits::*;
 use curv::cryptographic_primitives::commitments::hash_commitment::HashCommitment;
 use curv::cryptographic_primitives::commitments::traits::Commitment;
@@ -241,8 +241,8 @@ impl Party1Private {
 }
 
 impl HSMCLKeyPair {
-    pub fn generate_keypair_and_encrypted_share(keygen: &EcKeyPair) -> HSMCLKeyPair {
-        let hsmcl = HSMCL::keygen(&FE::q(), &516);
+    pub fn generate_keypair_and_encrypted_share(keygen: &EcKeyPair, seed: BigInt) -> HSMCLKeyPair {
+        let hsmcl = HSMCL::keygen_with_setup(&FE::q(), &1348, &seed);
         let ek = hsmcl.pk.clone();
         let randomness = BigInt::sample_below(&(&ek.stilde * BigInt::from(2).pow(40)));
 
@@ -262,16 +262,18 @@ impl HSMCLKeyPair {
     pub fn generate_zkcldl_proof(
         context: &HSMCLKeyPair,
         party_one_private: &Party1Private,
-    ) -> CLDLProof {
+        seed: BigInt,
+    ) -> CLDLProofPublicSetup {
         let witness = Witness {
             x: party_one_private.x1.to_big_int(),
             r: party_one_private.c_key_randomness.clone(),
         };
-        let proof = CLDLProof::prove(
+        let proof = CLDLProofPublicSetup::prove(
             witness,
             context.keypair.pk.clone(),
             context.encrypted_share.clone(),
             GE::generator() * &party_one_private.x1,
+            seed,
         );
 
         proof
@@ -364,9 +366,6 @@ impl Signature {
         ephemeral_local_share: &EphEcKeyPair,
         ephemeral_other_public_share: &GE,
     ) -> Signature {
-        let y_lcm_2_10 : BigInt =   str::parse(
-            "15161806181366890704755537519628428221282838501257142250824360639698299050776571382489681778825684381429314058890905101687022024744606800532531764952734582389201393752832486383043169059475949454418063248428056646723694341952991408637386677631205400831455008554143754794994126167401137152222379676492247471515691285702536834646805381995650206229354446213284302569283840180834930263739794772017863585682362821412785936104792844891075228278568320000",
-        ).unwrap();
         //compute r = k2* R1
         let mut r = ephemeral_other_public_share.clone();
         r = r.scalar_mul(&ephemeral_local_share.secret_share.get_element());
@@ -378,7 +377,6 @@ impl Signature {
             .invert(&FE::q())
             .unwrap();
         let s_tag = party_one_private.keypair.decrypt(&partial_sig_c3);
-        let s_tag = BigInt::mod_mul(&s_tag, &(y_lcm_2_10.invert(&FE::q()).unwrap()), &FE::q());
         let s_tag_tag = BigInt::mod_mul(&k1_inv, &s_tag, &FE::q());
         let s = cmp::min(s_tag_tag.clone(), FE::q().clone() - s_tag_tag.clone());
         Signature { s, r: rx }

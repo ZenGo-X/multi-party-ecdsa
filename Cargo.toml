@@ -1,6 +1,6 @@
 [package]
 name = "multi-party-ecdsa"
-version = "0.2.7"
+version = "0.2.8"
 edition = "2018"
 authors = [
     "Gary <gary@kzencorp.com>",
@@ -46,7 +46,7 @@ tag = "v0.2.1"
 
 [dependencies.class_group]
 git = "https://github.com/KZen-networks/class"
-tag = "v0.3.0"
+tag = "v0.4.2"
 optional = true
 
 [dev-dependencies]

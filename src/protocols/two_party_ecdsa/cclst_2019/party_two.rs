@@ -14,7 +14,7 @@
     @license GPL-3.0+ <https://github.com/KZen-networks/multi-party-ecdsa/blob/master/LICENSE>
 */
 
-use class_group::primitives::cl_dl_lcm::CLDLProof;
+use class_group::primitives::cl_dl_lcm::CLDLProofPublicSetup;
 use class_group::primitives::cl_dl_lcm::Ciphertext;
 use class_group::primitives::cl_dl_lcm::HSMCL;
 use class_group::primitives::cl_dl_lcm::PK as HSMCLPK;
@@ -203,14 +203,9 @@ impl KeyGenSecondMsg {
 
 impl HSMCLPublic {
     pub fn set(ek: &HSMCLPK, encrypted_secret_share: &Ciphertext) -> HSMCLPublic {
-        let y_lcm_2_10 : BigInt =   str::parse(
-            "15161806181366890704755537519628428221282838501257142250824360639698299050776571382489681778825684381429314058890905101687022024744606800532531764952734582389201393752832486383043169059475949454418063248428056646723694341952991408637386677631205400831455008554143754794994126167401137152222379676492247471515691285702536834646805381995650206229354446213284302569283840180834930263739794772017863585682362821412785936104792844891075228278568320000",
-        ).unwrap();
-        let encrypted_share_y = HSMCL::eval_scal(encrypted_secret_share, &y_lcm_2_10);
-
         HSMCLPublic {
             ek: ek.clone(),
-            encrypted_secret_share: encrypted_share_y,
+            encrypted_secret_share: encrypted_secret_share.clone(),
         }
     }
 }
@@ -229,7 +224,7 @@ impl Party2Private {
 }
 
 impl HSMCLPublic {
-    pub fn verify_zkcldl_proof(proof: CLDLProof) -> Result<Self, ()> {
+    pub fn verify_zkcldl_proof(proof: CLDLProofPublicSetup) -> Result<Self, ()> {
         let res = proof.verify();
         match res {
             Ok(_) => Ok(HSMCLPublic {
@@ -320,9 +315,6 @@ impl PartialSig {
         ephemeral_other_public_share: &GE,
         message: &BigInt,
     ) -> PartialSig {
-        let y_lcm_2_10 : BigInt =   str::parse(
-            "15161806181366890704755537519628428221282838501257142250824360639698299050776571382489681778825684381429314058890905101687022024744606800532531764952734582389201393752832486383043169059475949454418063248428056646723694341952991408637386677631205400831455008554143754794994126167401137152222379676492247471515691285702536834646805381995650206229354446213284302569283840180834930263739794772017863585682362821412785936104792844891075228278568320000",
-        ).unwrap();
         let q = FE::q();
         //compute r = k2* R1
         let mut r: GE = ephemeral_other_public_share.clone();
@@ -335,8 +327,7 @@ impl PartialSig {
             .invert(&q)
             .unwrap();
         let k2_inv_m = BigInt::mod_mul(&k2_inv, message, &q);
-        let k2_inv_m_y_lcm_2_10 = BigInt::mod_mul(&k2_inv_m, &y_lcm_2_10, &q);
-        let c1 = HSMCL::encrypt(&party_two_public.ek, &k2_inv_m_y_lcm_2_10);
+        let c1 = HSMCL::encrypt(&party_two_public.ek, &k2_inv_m);
         let v = BigInt::mod_mul(&k2_inv, &local_share.x2.to_big_int(), &q);
         let v = BigInt::mod_mul(&v, &rx, &q);
 
