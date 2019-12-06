@@ -15,7 +15,6 @@
 
     @license GPL-3.0+ <https://github.com/KZen-networks/multi-party-ecdsa/blob/master/LICENSE>
 */
-
 use centipede::juggling::proof_system::{Helgamalsegmented, Witness};
 use centipede::juggling::segmentation::Msegmentation;
 use curv::arithmetic::traits::*;
@@ -35,6 +34,7 @@ use paillier::Paillier;
 use paillier::{Decrypt, RawCiphertext, RawPlaintext};
 use paillier::{DecryptionKey, EncryptionKey};
 use serde::{Deserialize, Serialize};
+use std::cmp;
 use zk_paillier::zkproofs::NICorrectKeyProof;
 
 use crate::Error::{self, InvalidCom, InvalidKey, InvalidSS, InvalidSig};
@@ -138,9 +138,10 @@ pub struct Phase5DDecom2 {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Signature {
+pub struct SignatureRecid {
     pub r: FE,
     pub s: FE,
+    pub recid: u8,
 }
 
 impl Keys {
@@ -667,10 +668,28 @@ impl LocalSignature {
             Err(InvalidCom)
         }
     }
-    pub fn output_signature(&self, s_vec: &[FE]) -> Result<Signature, Error> {
+    pub fn output_signature(&self, s_vec: &[FE]) -> Result<SignatureRecid, Error> {
         let s = s_vec.iter().fold(self.s_i, |acc, x| acc + x);
+
+        let s_tag_bn = s.to_big_int();
+        let s = cmp::min(s_tag_bn.clone(), FE::q() - &s_tag_bn);
+        let s = ECScalar::from(&s);
+
         let r: FE = ECScalar::from(&self.R.x_coor().unwrap().mod_floor(&FE::q()));
-        let sig = Signature { r, s };
+        let ry: BigInt = self.R.y_coor().unwrap().mod_floor(&FE::q());
+
+        /*
+         Calculate recovery id - it is not possible to compute the public key out of the signature
+         itself. Recovery id is used to enable extracting the public key uniquely.
+         1. id = R.y & 1
+         2. if (s > curve.q / 2) id = id ^ 1
+        */
+        let is_ry_odd = ry.tstbit(0);
+        let mut recid = if is_ry_odd { 1 } else { 0 };
+        if s_tag_bn.clone() > FE::q() - &s_tag_bn.clone() {
+            recid = recid ^ 1;
+        }
+        let sig = SignatureRecid { r, s, recid };
         let ver = verify(&sig, &self.y, &self.m).is_ok();
         if ver {
             Ok(sig)
@@ -680,7 +699,7 @@ impl LocalSignature {
     }
 }
 
-pub fn verify(sig: &Signature, y: &GE, message: &BigInt) -> Result<(), Error> {
+pub fn verify(sig: &SignatureRecid, y: &GE, message: &BigInt) -> Result<(), Error> {
     let b = sig.s.invert();
     let a: FE = ECScalar::from(message);
     let u1 = a * b;
