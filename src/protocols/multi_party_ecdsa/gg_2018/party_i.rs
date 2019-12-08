@@ -34,7 +34,6 @@ use paillier::Paillier;
 use paillier::{Decrypt, RawCiphertext, RawPlaintext};
 use paillier::{DecryptionKey, EncryptionKey};
 use serde::{Deserialize, Serialize};
-use std::cmp;
 use zk_paillier::zkproofs::NICorrectKeyProof;
 
 use crate::Error::{self, InvalidCom, InvalidKey, InvalidSS, InvalidSig};
@@ -669,11 +668,8 @@ impl LocalSignature {
         }
     }
     pub fn output_signature(&self, s_vec: &[FE]) -> Result<SignatureRecid, Error> {
-        let s = s_vec.iter().fold(self.s_i, |acc, x| acc + x);
-
-        let s_tag_bn = s.to_big_int();
-        let s = cmp::min(s_tag_bn.clone(), FE::q() - &s_tag_bn);
-        let s = ECScalar::from(&s);
+        let mut s = s_vec.iter().fold(self.s_i, |acc, x| acc + x);
+        let s_bn = s.to_big_int();
 
         let r: FE = ECScalar::from(&self.R.x_coor().unwrap().mod_floor(&FE::q()));
         let ry: BigInt = self.R.y_coor().unwrap().mod_floor(&FE::q());
@@ -686,7 +682,9 @@ impl LocalSignature {
         */
         let is_ry_odd = ry.tstbit(0);
         let mut recid = if is_ry_odd { 1 } else { 0 };
-        if s_tag_bn.clone() > FE::q() - &s_tag_bn.clone() {
+        let s_tag_bn = FE::q() - &s_bn;
+        if s_bn > s_tag_bn {
+            s = ECScalar::from(&s_tag_bn);
             recid = recid ^ 1;
         }
         let sig = SignatureRecid { r, s, recid };
