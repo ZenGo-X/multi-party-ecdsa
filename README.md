@@ -45,6 +45,12 @@ Run `./gg18_sign_client`. The application should be in the same folder as the `k
 
 Run `./run.sh` (located in `/demo` folder) in the same folder as the excutables (usually `/target/release/examples`. Move `params` file to the same folder). It will spawn a shared state machine, clients in the number of parties and signing requests for the `threshold + 1` first parties.
 
+`sm_manager` rocket server runs in _production_ mode by default. You may modify the `./run.sh` to config it to run in different environments. For example, to run rocket server in _development_:
+
+```
+ROCKET_ENV=development ./target/release/examples/sm_manager
+```
+
 |          !["Multiparty ECDSA Demo"][demo]          |
 | :------------------------------------------------: |
 | _A 5 parties setup with 3 signers (threshold = 2)_ |
