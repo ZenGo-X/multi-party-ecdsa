@@ -565,7 +565,7 @@ impl Signature {
         k1_inv.zeroize();
         s_tag_fe.zeroize();
         let s_tag_tag_bn = s_tag_tag.to_big_int();
-        let s = cmp::min(s_tag_tag_bn.clone(), FE::q().clone() - s_tag_tag_bn.clone());
+        let s = cmp::min(s_tag_tag_bn.clone(), FE::q() - &s_tag_tag_bn);
 
         /*
          Calculate recovery id - it is not possible to compute the public key out of the signature

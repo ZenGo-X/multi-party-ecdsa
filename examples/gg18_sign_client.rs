@@ -470,6 +470,7 @@ fn main() {
     println!("party {:?} Output Signature: \n", party_num_int);
     println!("R: {:?}", sig.r.get_element());
     println!("s: {:?} \n", sig.s.get_element());
+    println!("recid: {:?} \n", sig.recid.clone());
 
     let sign_json = serde_json::to_string(&(
         "r",
