@@ -17,7 +17,7 @@ This library can be used to create MultiSig and ThresholdSig crypto wallet.
 
 -   The library supports **2P-ECDSA** based on Lindell's crypto 2017 paper [1]. Project [Gotham-city](https://github.com/KZen-networks/gotham-city) is a proof of concept for a full two-party Bitcoin wallet that uses this library. See benchmarks and white paper there.
 
--   The library supports Gennaro and Goldfeder CCS 2018 protocol [2] for **{t,n}-threshold ECDSA**.
+-   The library supports Gennaro and Goldfeder CCS 2018 protocol [2] for **{t,n}-threshold ECDSA**. See [doc](https://github.com/KZen-networks/multi-party-ecdsa/blob/master/docs/gg19.pdf) for the specifics of the implementation.
 
 -   The library supports **2P-ECDSA** based on Castagnos et. al. crypto 2019 paper [3]. To Enable build with `--features=cclst`.
 
@@ -43,7 +43,7 @@ Run `./gg18_sign_client`. The application should be in the same folder as the `k
 
 ### Full demo
 
-Run `./run.sh` (located in `/demo` folder) in the same folder as the excutables (usually `/target/release/examples`. Move `params` file to the same folder). It will spawn a shared state machine, clients in the number of parties and signing requests for the `threshold + 1` first parties.
+Run `./run.sh` (located in `/demo` folder) in the main folder. Move `params` file to the same folder as the excutables (usually `/target/release/examples`). The script will spawn a shared state machine, clients in the number of parties and signing requests for the `threshold + 1` first parties.
 
 `sm_manager` rocket server runs in _production_ mode by default. You may modify the `./run.sh` to config it to run in different environments. For example, to run rocket server in _development_:
 
