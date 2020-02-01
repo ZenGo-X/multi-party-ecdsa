@@ -307,7 +307,8 @@ fn main() {
     let local_sig =
         LocalSignature::phase5_local_sig(&sign_keys.k_i, &message_bn, &R, &sigma, &y_sum);
 
-    let (phase5_com, phase_5a_decom, helgamal_proof) = local_sig.phase5a_broadcast_5b_zkproof();
+    let (phase5_com, phase_5a_decom, helgamal_proof, dlog_proof_rho) =
+        local_sig.phase5a_broadcast_5b_zkproof();
 
     //phase (5A)  broadcast commit
     assert!(broadcast(
@@ -340,7 +341,12 @@ fn main() {
         &client,
         party_num_int,
         "round6",
-        serde_json::to_string(&(phase_5a_decom.clone(), helgamal_proof.clone())).unwrap(),
+        serde_json::to_string(&(
+            phase_5a_decom.clone(),
+            helgamal_proof.clone(),
+            dlog_proof_rho.clone()
+        ))
+        .unwrap(),
         uuid.clone()
     )
     .is_ok());
@@ -353,27 +359,37 @@ fn main() {
         uuid.clone(),
     );
 
-    let mut decommit5a_and_elgamal_vec: Vec<(Phase5ADecom1, HomoELGamalProof)> = Vec::new();
+    let mut decommit5a_and_elgamal_and_dlog_vec: Vec<(Phase5ADecom1, HomoELGamalProof, DLogProof)> =
+        Vec::new();
     format_vec_from_reads(
         &round6_ans_vec,
         party_num_int as usize,
-        (phase_5a_decom.clone(), helgamal_proof.clone()),
-        &mut decommit5a_and_elgamal_vec,
+        (
+            phase_5a_decom.clone(),
+            helgamal_proof.clone(),
+            dlog_proof_rho.clone(),
+        ),
+        &mut decommit5a_and_elgamal_and_dlog_vec,
     );
-    let decommit5a_and_elgamal_vec_includes_i = decommit5a_and_elgamal_vec.clone();
-    decommit5a_and_elgamal_vec.remove((party_num_int - 1) as usize);
+    let decommit5a_and_elgamal_and_dlog_vec_includes_i =
+        decommit5a_and_elgamal_and_dlog_vec.clone();
+    decommit5a_and_elgamal_and_dlog_vec.remove((party_num_int - 1) as usize);
     commit5a_vec.remove((party_num_int - 1) as usize);
     let phase_5a_decomm_vec = (0..THRESHOLD)
-        .map(|i| decommit5a_and_elgamal_vec[i as usize].0.clone())
+        .map(|i| decommit5a_and_elgamal_and_dlog_vec[i as usize].0.clone())
         .collect::<Vec<Phase5ADecom1>>();
     let phase_5a_elgamal_vec = (0..THRESHOLD)
-        .map(|i| decommit5a_and_elgamal_vec[i as usize].1.clone())
+        .map(|i| decommit5a_and_elgamal_and_dlog_vec[i as usize].1.clone())
         .collect::<Vec<HomoELGamalProof>>();
+    let phase_5a_dlog_vec = (0..THRESHOLD)
+        .map(|i| decommit5a_and_elgamal_and_dlog_vec[i as usize].2.clone())
+        .collect::<Vec<DLogProof>>();
     let (phase5_com2, phase_5d_decom2) = local_sig
         .phase5c(
             &phase_5a_decomm_vec,
             &commit5a_vec,
             &phase_5a_elgamal_vec,
+            &phase_5a_dlog_vec,
             &phase_5a_decom.V_i,
             &R,
         )
@@ -432,7 +448,11 @@ fn main() {
     );
 
     let phase_5a_decomm_vec_includes_i = (0..=THRESHOLD)
-        .map(|i| decommit5a_and_elgamal_vec_includes_i[i as usize].0.clone())
+        .map(|i| {
+            decommit5a_and_elgamal_and_dlog_vec_includes_i[i as usize]
+                .0
+                .clone()
+        })
         .collect::<Vec<Phase5ADecom1>>();
     let s_i = local_sig
         .phase5d(

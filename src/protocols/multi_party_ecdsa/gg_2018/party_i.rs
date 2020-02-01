@@ -504,7 +504,9 @@ impl LocalSignature {
         }
     }
 
-    pub fn phase5a_broadcast_5b_zkproof(&self) -> (Phase5Com1, Phase5ADecom1, HomoELGamalProof) {
+    pub fn phase5a_broadcast_5b_zkproof(
+        &self,
+    ) -> (Phase5Com1, Phase5ADecom1, HomoELGamalProof, DLogProof) {
         let blind_factor = BigInt::sample(SECURITY);
         let g: GE = ECPoint::generator();
         let A_i = g * self.rho_i;
@@ -527,6 +529,7 @@ impl LocalSignature {
             D: V_i,
             E: B_i,
         };
+        let dlog_proof_rho = DLogProof::prove(&self.rho_i);
         let proof = HomoELGamalProof::prove(&witness, &delta);
 
         (
@@ -538,6 +541,7 @@ impl LocalSignature {
                 blind_factor,
             },
             proof,
+            dlog_proof_rho,
         )
     }
 
@@ -546,6 +550,7 @@ impl LocalSignature {
         decom_vec: &[Phase5ADecom1],
         com_vec: &[Phase5Com1],
         elgamal_proofs: &[HomoELGamalProof],
+        dlog_proofs_rho: &[DLogProof],
         v_i: &GE,
         R: &GE,
     ) -> Result<(Phase5Com2, Phase5DDecom2), Error> {
@@ -573,6 +578,7 @@ impl LocalSignature {
                     &decom_vec[i].blind_factor,
                 ) == com_vec[i].com
                     && elgamal_proofs[i].verify(&delta).is_ok()
+                    && DLogProof::verify(&dlog_proofs_rho[i]).is_ok()
             })
             .all(|x| x);
 

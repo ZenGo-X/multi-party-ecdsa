@@ -326,12 +326,15 @@ fn sign(t: u16, n: u16, ttag: u16, s: Vec<usize>) {
     let mut phase5_com_vec: Vec<Phase5Com1> = Vec::new();
     let mut phase_5a_decom_vec: Vec<Phase5ADecom1> = Vec::new();
     let mut helgamal_proof_vec = Vec::new();
+    let mut dlog_proof_rho_vec = Vec::new();
     // we notice that the proof for V= R^sg^l, B = A^l is a general form of homomorphic elgamal.
     for sig in &local_sig_vec {
-        let (phase5_com, phase_5a_decom, helgamal_proof) = sig.phase5a_broadcast_5b_zkproof();
+        let (phase5_com, phase_5a_decom, helgamal_proof, dlog_proof_rho) =
+            sig.phase5a_broadcast_5b_zkproof();
         phase5_com_vec.push(phase5_com);
         phase_5a_decom_vec.push(phase_5a_decom);
         helgamal_proof_vec.push(helgamal_proof);
+        dlog_proof_rho_vec.push(dlog_proof_rho);
     }
 
     let mut phase5_com2_vec = Vec::new();
@@ -350,6 +353,7 @@ fn sign(t: u16, n: u16, ttag: u16, s: Vec<usize>) {
                 &phase_5a_decom_vec_clone,
                 &phase_5a_com_vec_clone,
                 &phase_5b_elgamal_vec_clone,
+                &dlog_proof_rho_vec,
                 &phase_5a_decom_vec[i].V_i,
                 &R_vec[0],
             )
