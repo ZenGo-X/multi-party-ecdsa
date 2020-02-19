@@ -11,15 +11,27 @@ Threshold ECDSA includes two protocols:
 -   Signing for using the secret shares to generate a signature.
 
 ECDSA is used extensively for crypto-currencies such as Bitcoin, Ethereum (secp256k1 curve), NEO (NIST P-256 curve) and much more.
-This library can be used to create MultiSig and ThresholdSig crypto wallet.
+This library can be used to create MultiSig and ThresholdSig crypto wallet. For a full background on threshold signatures please read our Binance academy article [Threshold Signatures Explianed](https://www.binance.vision/security/threshold-signatures-explained).
 
-## Project Status
+## Library Introduction
+The library was built with four core design principles in mind: 
+1. Multi-protocol support
+2. Built for cryptography engineers
+3. Foolproof
+4. Black box use of cryptographic primitives
 
--   The library supports **2P-ECDSA** based on Lindell's crypto 2017 paper [1]. Project [Gotham-city](https://github.com/KZen-networks/gotham-city) is a proof of concept for a full two-party Bitcoin wallet that uses this library. See benchmarks and white paper there.
+To learn about the core principles as well as on the [audit](https://github.com/KZen-networks/multi-party-ecdsa/tree/master/audits) process and security of the library, please read our [Intro to multiparty ecdsa library](https://zengo.com/introducing-multi-party-ecdsa-library/) blog post.
 
--   The library supports Gennaro and Goldfeder CCS 2018 protocol [2] for **{t,n}-threshold ECDSA**. See [doc](https://github.com/KZen-networks/multi-party-ecdsa/blob/master/docs/gg19.pdf) for the specifics of the implementation.
+## Use It
 
--   The library supports **2P-ECDSA** based on Castagnos et. al. crypto 2019 paper [3]. To Enable build with `--features=cclst`.
+
+The library implements three different protocols for threshold ECDSA. The protocols presents differnt tradeoffs in terms of parameters, security assumptions and efficiency. 
+
+|  Protocol                                               | High Level code                                                             |
+| -------------------------------------------- | -------------------------------------------- |
+|  Lindell 17 [1]  |  [Gotham-city](https://github.com/KZen-networks/gotham-city) (accepted to [CIW19](https://ifca.ai/fc19/ciw/program.html)) for two party bitcoin wallet and benchmarks. [KMS](https://github.com/KZen-networks/kms-secp256k1) is a wrapper library that implements a general purpose two party key management system | 
+| Gennaro, Goldfeder 19 [2] ([video](https://www.youtube.com/watch?v=PdfDZIwuZm0)) | [tss-ecdsa-cli](https://github.com/cryptochill/tss-ecdsa-cli) is a wrapper CLI for full threshold access structure, including network and threshold HD keys ([BIP32](https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki)). See [Demo](https://github.com/KZen-networks/multi-party-ecdsa#run-demo) in this library to get better low level understanding| 
+|Castagnos et. al. 19 [3]| WIP, Currently enabled as a feature in this library. To Enable build with `--features=cclst`.|
 
 ## Run Demo
 
