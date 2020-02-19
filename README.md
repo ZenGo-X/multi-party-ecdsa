@@ -29,7 +29,7 @@ The library implements three different protocols for threshold ECDSA. The protoc
 
 |  Protocol                                               | High Level code                                                             |
 | -------------------------------------------- | -------------------------------------------- |
-|  Lindell 17 [1]  |  [Gotham-city](https://github.com/KZen-networks/gotham-city) (accepted to [CIW19](https://ifca.ai/fc19/ciw/program.html)) for two party bitcoin wallet and benchmarks. [KMS](https://github.com/KZen-networks/kms-secp256k1) is a wrapper library that implements a general purpose two party key management system | 
+|  Lindell 17 [1]  |  [Gotham-city](https://github.com/KZen-networks/gotham-city) (accepted to [CIW19](https://ifca.ai/fc19/ciw/program.html)) is a two party bitcoin wallet, including benchmarks. [KMS](https://github.com/KZen-networks/kms-secp256k1) is a wrapper library that implements a general purpose two party key management system | 
 | Gennaro, Goldfeder 19 [2] ([video](https://www.youtube.com/watch?v=PdfDZIwuZm0)) | [tss-ecdsa-cli](https://github.com/cryptochill/tss-ecdsa-cli) is a wrapper CLI for full threshold access structure, including network and threshold HD keys ([BIP32](https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki)). See [Demo](https://github.com/KZen-networks/multi-party-ecdsa#run-demo) in this library to get better low level understanding| 
 |Castagnos et. al. 19 [3]| WIP, Currently enabled as a feature in this library. To Enable build with `--features=cclst`.|
 
