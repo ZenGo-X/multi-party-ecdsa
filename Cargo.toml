@@ -37,12 +37,12 @@ zeroize = "0.10.1"
 
 [dependencies.curv]
 git = "https://github.com/KZen-networks/curv"
-tag = "v0.2.3"
-features = ["ec_secp256k1"]
+branch = "feature/p256"
+features = ["ec_secp256r1"]
 
 [dependencies.centipede]
 git = "https://github.com/KZen-networks/centipede"
-tag = "v0.2.2"
+branch = "feature/p256"
 
 [dependencies.class_group]
 git = "https://github.com/KZen-networks/class"

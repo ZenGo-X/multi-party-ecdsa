@@ -1,4 +1,5 @@
 use std::{env, iter::repeat, thread, time, time::Duration};
+use hex;
 
 use crypto::{
     aead::{AeadDecryptor, AeadEncryptor},
@@ -202,11 +203,13 @@ pub fn check_sig(r: &FE, s: &FE, msg: &BigInt, pk: &GE) {
     let pk = PublicKey::parse_slice(&raw_pk, Some(PublicKeyFormat::Full)).unwrap();
 
     let mut compact: Vec<u8> = Vec::new();
-    let bytes_r = &r.get_element()[..];
+    let bytes_r_vec = hex::decode(r.to_big_int().to_hex()).unwrap();
+    let bytes_r = bytes_r_vec.as_slice();
     compact.extend(vec![0u8; 32 - bytes_r.len()]);
     compact.extend(bytes_r.iter());
 
-    let bytes_s = &s.get_element()[..];
+    let bytes_s_vec = hex::decode(s.to_big_int().to_hex()).unwrap();
+    let bytes_s = bytes_s_vec.as_slice();
     compact.extend(vec![0u8; 32 - bytes_s.len()]);
     compact.extend(bytes_s.iter());
 

@@ -6,6 +6,7 @@ use curv::{
         proofs::sigma_dlog::DLogProof, secret_sharing::feldman_vss::VerifiableSS,
     },
     elliptic::curves::traits::ECScalar,
+    arithmetic::traits::Converter,
     BigInt, FE, GE,
 };
 use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2018::mta::{MessageA, MessageB};
@@ -494,9 +495,9 @@ fn main() {
 
     let sign_json = serde_json::to_string(&(
         "r",
-        (BigInt::from(&(sig.r.get_element())[..])).to_str_radix(16),
+        sig.r.to_big_int().to_hex(),
         "s",
-        (BigInt::from(&(sig.s.get_element())[..])).to_str_radix(16),
+        sig.r.to_big_int().to_hex(),
     ))
     .unwrap();
 
