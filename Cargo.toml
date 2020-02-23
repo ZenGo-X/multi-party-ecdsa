@@ -29,8 +29,8 @@ crate-type = ["lib"]
 cclst = ["class_group"]
 
 [dependencies]
-paillier = { git = "https://github.com/KZen-networks/rust-paillier", tag = "v0.3.4"}
-zk-paillier = { git = "https://github.com/KZen-networks/zk-paillier", tag = "v0.2.5"}
+paillier = { git = "https://github.com/KZen-networks/rust-paillier", branch = "feature/p256" }
+zk-paillier = { git = "https://github.com/KZen-networks/zk-paillier", branch = "feature/p256" }
 subtle = { version = "2" }
 serde = { version = "1.0", features = ["derive"] }
 zeroize = "0.10.1"
