@@ -14,12 +14,6 @@
     @license GPL-3.0+ <https://github.com/KZen-networks/multi-party-ecdsa/blob/master/LICENSE>
 */
 
-pub mod protocols;
-pub mod utilities;
-#[derive(Copy, PartialEq, Eq, Clone, Debug)]
-pub enum Error {
-    InvalidKey,
-    InvalidSS,
-    InvalidCom,
-    InvalidSig,
-}
+#[cfg(test)]
+mod test;
+pub mod zk_pdl;

@@ -14,7 +14,6 @@
     @license GPL-3.0+ <https://github.com/KZen-networks/multi-party-ecdsa/blob/master/LICENSE>
 */
 use std::cmp;
-use std::ops::Shl;
 
 use centipede::juggling::proof_system::{Helgamalsegmented, Witness};
 use centipede::juggling::segmentation::Msegmentation;
@@ -40,12 +39,15 @@ use zk_paillier::zkproofs::{NICorrectKeyProof, RangeProofNi};
 
 use super::party_two::EphKeyGenFirstMsg as Party2EphKeyGenFirstMessage;
 use super::party_two::EphKeyGenSecondMsg as Party2EphKeyGenSecondMessage;
-use super::party_two::PDLFirstMessage as Party2PDLFirstMessage;
-use super::party_two::PDLSecondMessage as Party2PDLSecondMessage;
 use super::SECURITY_BITS;
 
 use crate::protocols::multi_party_ecdsa::gg_2018::mta::MessageB;
 use crate::Error;
+
+use crate::utilities::zk_pdl::Prover as PDLProver;
+use crate::utilities::zk_pdl::Statement as PDLStatement;
+use crate::utilities::zk_pdl::Witness as PDLWitness;
+use crate::utilities::zk_pdl::*;
 
 //****************** Begin: Party One structs ******************//
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -357,71 +359,56 @@ impl PaillierKeyPair {
             randomness: randomness.0,
         }
     }
-
-    pub fn generate_range_proof(
-        paillier_context: &PaillierKeyPair,
-        party_one_private: &Party1Private,
-    ) -> RangeProofNi {
-        RangeProofNi::prove(
-            &paillier_context.ek,
-            &FE::q(),
-            &paillier_context.encrypted_share.clone(),
-            &party_one_private.x1.to_big_int(),
-            &paillier_context.randomness,
-        )
-    }
-
+    /*
+        pub fn generate_range_proof(
+            paillier_context: &PaillierKeyPair,
+            party_one_private: &Party1Private,
+        ) -> RangeProofNi {
+            RangeProofNi::prove(
+                &paillier_context.ek,
+                &FE::q(),
+                &paillier_context.encrypted_share.clone(),
+                &party_one_private.x1.to_big_int(),
+                &paillier_context.randomness,
+            )
+        }
+    */
     pub fn generate_ni_proof_correct_key(paillier_context: &PaillierKeyPair) -> NICorrectKeyProof {
         NICorrectKeyProof::proof(&paillier_context.dk)
     }
 
-    pub fn pdl_first_stage(
+    pub fn pdl_first_message(
         party_one_private: &Party1Private,
-        pdl_first_message: &Party2PDLFirstMessage,
-    ) -> (PDLFirstMessage, PDLdecommit, BigInt) {
-        let c_tag = pdl_first_message.c_tag.clone();
-        let alpha = Paillier::decrypt(
-            &party_one_private.paillier_priv.clone(),
-            &RawCiphertext::from(c_tag.clone()),
-        );
-        let alpha_fe: FE = ECScalar::from(&alpha.0);
-        let g: GE = ECPoint::generator();
-        let q_hat = g * alpha_fe;
-        let blindness = BigInt::sample_below(&FE::q());
-        let c_hat = HashCommitment::create_commitment_with_user_defined_randomness(
-            &q_hat.bytes_compressed_to_big_int(),
-            &blindness,
-        );
-        (
-            PDLFirstMessage { c_hat },
-            PDLdecommit { blindness, q_hat },
-            alpha.0.into_owned(),
-        )
+        verifier_first_messsage: &VerifierFirstMessage,
+        paillier_key_pair: &PaillierKeyPair,
+    ) -> (ProverFirstMessage, ProverState, PDLStatement, PDLWitness) {
+        let statement = PDLStatement {
+            ciphertext: paillier_key_pair.encrypted_share.clone(),
+            ek: paillier_key_pair.ek.clone(),
+            Q: GE::generator() * &party_one_private.x1,
+        };
+        let witness = PDLWitness {
+            x: party_one_private.x1,
+            r: party_one_private.c_key_randomness.clone(),
+            dk: party_one_private.paillier_priv.clone(),
+        };
+        let (prover_message1, prover_state) =
+            PDLProver::message1(&witness, &statement, &verifier_first_messsage);
+        (prover_message1, prover_state, statement, witness)
     }
 
-    pub fn pdl_second_stage(
-        pdl_party_two_first_message: &Party2PDLFirstMessage,
-        pdl_party_two_second_message: &Party2PDLSecondMessage,
-        party_one_private: Party1Private,
-        pdl_decommit: PDLdecommit,
-        alpha: BigInt,
-    ) -> Result<PDLSecondMessage, ()> {
-        let a = pdl_party_two_second_message.decommit.a.clone();
-        let b = pdl_party_two_second_message.decommit.b.clone();
-        let blindness = pdl_party_two_second_message.decommit.blindness.clone();
-
-        let ab_concat = a.clone() + b.clone().shl(a.bit_length()); // b|a (in the paper it is a|b)
-        let c_tag_tag_test =
-            HashCommitment::create_commitment_with_user_defined_randomness(&ab_concat, &blindness);
-        let ax1 = a.clone() * party_one_private.x1.to_big_int();
-        let alpha_test = ax1 + b.clone();
-        if alpha_test == alpha && pdl_party_two_first_message.c_tag_tag.clone() == c_tag_tag_test {
-            Ok(PDLSecondMessage {
-                decommit: pdl_decommit,
-            })
-        } else {
-            Err(())
-        }
+    pub fn pdl_second_message(
+        verifier_first_message: &VerifierFirstMessage,
+        verifier_second_message: &VerifierSecondMessage,
+        wintess: &PDLWitness,
+        prover_state: &ProverState,
+    ) -> Result<ProverSecondMessage, ()> {
+        PDLProver::message2(
+            verifier_first_message,
+            verifier_second_message,
+            wintess,
+            prover_state,
+        )
     }
 }
 
