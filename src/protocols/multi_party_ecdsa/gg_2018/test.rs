@@ -16,13 +16,11 @@
     @license GPL-3.0+ <https://github.com/KZen-networks/multi-party-ecdsa/blob/master/LICENSE>
 */
 
-use crate::protocols::multi_party_ecdsa::gg_2018::{
-    mta::{MessageA, MessageB},
-    party_i::{
-        verify, KeyGenBroadcastMessage1, KeyGenDecommitMessage1, Keys, LocalSignature, Parameters,
-        PartyPrivate, Phase5ADecom1, Phase5Com1, SharedKeys, SignKeys,
-    },
+use crate::protocols::multi_party_ecdsa::gg_2018::party_i::{
+    verify, KeyGenBroadcastMessage1, KeyGenDecommitMessage1, Keys, LocalSignature, Parameters,
+    PartyPrivate, Phase5ADecom1, Phase5Com1, SharedKeys, SignKeys,
 };
+use crate::utilities::mta::{MessageA, MessageB};
 
 use curv::arithmetic::traits::Converter;
 use curv::cryptographic_primitives::hashing::hash_sha256::HSha256;
@@ -145,22 +143,6 @@ fn keygen_t_n_parties(t: u16, n: u16) -> (Vec<Keys>, Vec<SharedKeys>, Vec<GE>, G
         y_sum,
         vss_scheme_for_test[0].clone(),
     )
-}
-
-#[test]
-fn test_mta() {
-    let alice_input: FE = ECScalar::new_random();
-    let (ek_alice, dk_alice) = Paillier::keypair().keys();
-    let bob_input: FE = ECScalar::new_random();
-    let m_a = MessageA::a(&alice_input, &ek_alice);
-    let (m_b, beta) = MessageB::b(&bob_input, &ek_alice, m_a);
-    let alpha = m_b
-        .verify_proofs_get_alpha(&dk_alice, &alice_input)
-        .expect("wrong dlog or m_b");
-
-    let left = alpha + beta;
-    let right = alice_input * bob_input;
-    assert_eq!(left.get_element(), right.get_element());
 }
 
 fn sign(t: u16, n: u16, ttag: u16, s: Vec<usize>) {

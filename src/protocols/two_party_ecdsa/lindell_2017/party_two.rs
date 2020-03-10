@@ -38,7 +38,7 @@ use super::party_one::EphKeyGenFirstMsg as Party1EphKeyGenFirstMsg;
 use super::party_one::KeyGenFirstMsg as Party1KeyGenFirstMessage;
 use super::party_one::KeyGenSecondMsg as Party1KeyGenSecondMessage;
 use super::SECURITY_BITS;
-use crate::protocols::multi_party_ecdsa::gg_2018::mta::{MessageA, MessageB};
+use crate::utilities::mta::{MessageA, MessageB};
 use crate::utilities::zk_pdl::Statement as PDLStatement;
 use crate::utilities::zk_pdl::Verifier as PDLVerifier;
 use crate::utilities::zk_pdl::*;

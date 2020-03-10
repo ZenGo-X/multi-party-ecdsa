@@ -26,13 +26,11 @@ use curv::cryptographic_primitives::proofs::sigma_correct_homomorphic_elgamal_en
 use curv::cryptographic_primitives::proofs::sigma_dlog::{DLogProof, ProveDLog};
 use curv::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS;
 use curv::elliptic::curves::traits::*;
-use curv::BigInt;
-use curv::FE;
-use curv::GE;
-use paillier::KeyGeneration;
-use paillier::Paillier;
-use paillier::{Decrypt, RawCiphertext, RawPlaintext};
-use paillier::{DecryptionKey, EncryptionKey};
+use curv::{BigInt, FE, GE};
+
+use paillier::{
+    Decrypt, DecryptionKey, EncryptionKey, KeyGeneration, Paillier, RawCiphertext, RawPlaintext,
+};
 use serde::{Deserialize, Serialize};
 use zk_paillier::zkproofs::NICorrectKeyProof;
 

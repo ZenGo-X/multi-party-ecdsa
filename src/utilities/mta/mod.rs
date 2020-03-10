@@ -23,7 +23,7 @@ use paillier::{Add, Decrypt, Encrypt, Mul};
 use paillier::{DecryptionKey, EncryptionKey, Paillier, RawCiphertext, RawPlaintext};
 use serde::{Deserialize, Serialize};
 
-use super::party_i::PartyPrivate;
+use crate::protocols::multi_party_ecdsa::gg_2018::party_i::PartyPrivate;
 use crate::Error::{self, InvalidKey};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -118,3 +118,6 @@ impl MessageB {
         public_gb.get_element() == mta_gb.get_element()
     }
 }
+
+#[cfg(test)]
+mod test;
