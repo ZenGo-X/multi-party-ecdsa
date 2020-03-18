@@ -167,7 +167,7 @@ impl Verifier {
                 .bytes_compressed_to_big_int(),
             &prover_second_message.decommit.blindness,
         );
-        
+
         if &prover_first_message.c_hat == &c_hat_test
             && &prover_second_message.decommit.q_hat == &state.q_tag
         {
