@@ -68,7 +68,6 @@ impl MessageB {
             RawPlaintext::from(beta_tag),
             &Randomness::from(randomness.clone()),
         );
-        //let c_beta_tag = Paillier::encrypt(alice_ek, RawPlaintext::from(beta_tag));
 
         let b_bn = b.to_big_int();
         let b_c_a = Paillier::mul(
