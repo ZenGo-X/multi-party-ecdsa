@@ -175,7 +175,7 @@ fn sign(t: u16, n: u16, ttag: u16, s: Vec<usize>) {
     let m_a_vec: Vec<_> = sign_keys_vec
         .iter()
         .enumerate()
-        .map(|(i, k)| MessageA::a(&k.k_i, &party_keys_vec[s[i]].ek))
+        .map(|(i, k)| MessageA::a(&k.k_i, &party_keys_vec[s[i]].ek).0)
         .collect();
 
     // each party i sends responses to m_a_vec she received (one response with input gamma_i and one with w_i)
@@ -196,12 +196,12 @@ fn sign(t: u16, n: u16, ttag: u16, s: Vec<usize>) {
         for j in 0..ttag - 1 {
             let ind = if j < i { j } else { j + 1 };
 
-            let (m_b_gamma, beta_gamma) = MessageB::b(
+            let (m_b_gamma, beta_gamma, _) = MessageB::b(
                 &key.gamma_i,
                 &party_keys_vec[s[ind]].ek,
                 m_a_vec[ind].clone(),
             );
-            let (m_b_w, beta_wi) =
+            let (m_b_w, beta_wi, _) =
                 MessageB::b(&key.w_i, &party_keys_vec[s[ind]].ek, m_a_vec[ind].clone());
 
             m_b_gamma_vec.push(m_b_gamma);

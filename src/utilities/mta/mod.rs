@@ -13,14 +13,17 @@
 
     @license GPL-3.0+ <https://github.com/KZen-networks/multi-party-ecdsa/blob/master/LICENSE>
 */
+
+/// MtA is descrbied in https://eprint.iacr.org/2019/114.pdf section 3
 use curv::arithmetic::traits::Samplable;
 use curv::cryptographic_primitives::proofs::sigma_dlog::{DLogProof, ProveDLog};
 use curv::elliptic::curves::traits::*;
 use curv::BigInt;
 use curv::FE;
 use curv::GE;
-use paillier::{Add, Decrypt, Encrypt, Mul};
-use paillier::{DecryptionKey, EncryptionKey, Paillier, RawCiphertext, RawPlaintext};
+use paillier::traits::EncryptWithChosenRandomness;
+use paillier::{Add, Decrypt, Mul};
+use paillier::{DecryptionKey, EncryptionKey, Paillier, Randomness, RawCiphertext, RawPlaintext};
 use serde::{Deserialize, Serialize};
 
 use crate::protocols::multi_party_ecdsa::gg_2018::party_i::PartyPrivate;
@@ -39,19 +42,33 @@ pub struct MessageB {
 }
 
 impl MessageA {
-    pub fn a(a: &FE, alice_ek: &EncryptionKey) -> Self {
-        let c_a = Paillier::encrypt(alice_ek, RawPlaintext::from(a.to_big_int()));
-        Self {
-            c: c_a.0.clone().into_owned(),
-        }
+    pub fn a(a: &FE, alice_ek: &EncryptionKey) -> (Self, BigInt) {
+        let randomness = BigInt::sample_below(&alice_ek.n);
+        let c_a = Paillier::encrypt_with_chosen_randomness(
+            alice_ek,
+            RawPlaintext::from(a.to_big_int()),
+            &Randomness::from(randomness.clone()),
+        );
+        (
+            Self {
+                c: c_a.0.clone().into_owned(),
+            },
+            randomness,
+        )
     }
 }
 
 impl MessageB {
-    pub fn b(b: &FE, alice_ek: &EncryptionKey, c_a: MessageA) -> (Self, FE) {
+    pub fn b(b: &FE, alice_ek: &EncryptionKey, c_a: MessageA) -> (Self, FE, BigInt) {
         let beta_tag = BigInt::sample_below(&alice_ek.n);
         let beta_tag_fe: FE = ECScalar::from(&beta_tag);
-        let c_beta_tag = Paillier::encrypt(alice_ek, RawPlaintext::from(beta_tag));
+        let randomness = BigInt::sample_below(&alice_ek.n);
+        let c_beta_tag = Paillier::encrypt_with_chosen_randomness(
+            alice_ek,
+            RawPlaintext::from(beta_tag),
+            &Randomness::from(randomness.clone()),
+        );
+        //let c_beta_tag = Paillier::encrypt(alice_ek, RawPlaintext::from(beta_tag));
 
         let b_bn = b.to_big_int();
         let b_c_a = Paillier::mul(
@@ -71,6 +88,7 @@ impl MessageB {
                 beta_tag_proof: dlog_proof_beta_tag,
             },
             beta,
+            randomness,
         )
     }
 

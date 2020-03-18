@@ -22,4 +22,5 @@ pub enum Error {
     InvalidSS,
     InvalidCom,
     InvalidSig,
+    Phase5BadSum,
 }
