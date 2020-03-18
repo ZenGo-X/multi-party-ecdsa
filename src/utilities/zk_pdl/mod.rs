@@ -15,6 +15,10 @@
     @license GPL-3.0+ <https://github.com/KZen-networks/multi-party-ecdsa/blob/master/LICENSE>
 */
 
+/// We use the proof as given in protocol 6.1 in https://eprint.iacr.org/2017/552.pdf
+/// Statement: (c, pk, Q, G)
+/// witness (x, r, sk) such that Q = xG, c = Enc(pk, x, r) and Dec(sk, c) = x.
+/// note that because of the range proof, the proof is sound only for x < q/3
 use curv::arithmetic::traits::Samplable;
 use curv::cryptographic_primitives::commitments::hash_commitment::HashCommitment;
 use curv::cryptographic_primitives::commitments::traits::Commitment;
@@ -28,24 +32,23 @@ use serde::{Deserialize, Serialize};
 use std::ops::Shl;
 use zk_paillier::zkproofs::RangeProofError;
 use zk_paillier::zkproofs::RangeProofNi;
-// We use the proof as given in protocol 6.1 in https://eprint.iacr.org/2017/552.pdf
-// Statement: (c, pk, Q)
-// witness (x, r, sk) such that Q = xG, c = Enc(pk, x, r) and Dec(sk, c) = x.
-// note that because of the range proof, the proof is sound only for x < q/3
-pub struct Statement {
+
+#[derive(Clone)]
+pub struct PDLStatement {
     pub ciphertext: BigInt,
     pub ek: EncryptionKey,
     pub Q: GE,
+    pub G: GE,
 }
-
-pub struct Witness {
+#[derive(Clone)]
+pub struct PDLWitness {
     pub x: FE,
     pub r: BigInt,
     pub dk: DecryptionKey,
 }
 
-#[derive(Debug)]
-pub struct VerifierState {
+#[derive(Debug, Clone)]
+pub struct PDLVerifierState {
     pub c_tag: BigInt,
     pub c_tag_tag: BigInt,
     a: BigInt,
@@ -56,46 +59,46 @@ pub struct VerifierState {
 }
 
 #[derive(Debug, Clone)]
-pub struct ProverState {
-    pub decommit: ProverDecommit,
+pub struct PDLProverState {
+    pub decommit: PDLProverDecommit,
     pub alpha: BigInt,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct VerifierFirstMessage {
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct PDLVerifierFirstMessage {
     pub c_tag: BigInt,
     pub c_tag_tag: BigInt,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ProverFirstMessage {
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct PDLProverFirstMessage {
     pub c_hat: BigInt,
     pub range_proof: RangeProofNi,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct VerifierSecondMessage {
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct PDLVerifierSecondMessage {
     pub a: BigInt,
     pub b: BigInt,
     pub blindness: BigInt,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ProverDecommit {
+pub struct PDLProverDecommit {
     pub q_hat: GE,
     pub blindness: BigInt,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ProverSecondMessage {
-    pub decommit: ProverDecommit,
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct PDLProverSecondMessage {
+    pub decommit: PDLProverDecommit,
 }
 
 pub struct Prover {}
 pub struct Verifier {}
 
 impl Verifier {
-    pub fn message1(statement: &Statement) -> (VerifierFirstMessage, VerifierState) {
+    pub fn message1(statement: &PDLStatement) -> (PDLVerifierFirstMessage, PDLVerifierState) {
         let a_fe: FE = ECScalar::new_random();
         let a = a_fe.to_big_int();
         let q = FE::q();
@@ -113,15 +116,14 @@ impl Verifier {
         let blindness = BigInt::sample_below(&q);
         let c_tag_tag =
             HashCommitment::create_commitment_with_user_defined_randomness(&ab_concat, &blindness);
-        let g: GE = ECPoint::generator();
-        let q_tag = &statement.Q * &a_fe + g * b_fe;
+        let q_tag = &statement.Q * &a_fe + statement.G * b_fe;
 
         (
-            VerifierFirstMessage {
+            PDLVerifierFirstMessage {
                 c_tag: c_tag.clone(),
                 c_tag_tag: c_tag_tag.clone(),
             },
-            VerifierState {
+            PDLVerifierState {
                 c_tag,
                 c_tag_tag,
                 a,
@@ -134,11 +136,11 @@ impl Verifier {
     }
 
     pub fn message2(
-        prover_first_messasge: &ProverFirstMessage,
-        statement: &Statement,
-        state: &mut VerifierState,
-    ) -> Result<VerifierSecondMessage, ()> {
-        let decommit_message = VerifierSecondMessage {
+        prover_first_messasge: &PDLProverFirstMessage,
+        statement: &PDLStatement,
+        state: &mut PDLVerifierState,
+    ) -> Result<PDLVerifierSecondMessage, ()> {
+        let decommit_message = PDLVerifierSecondMessage {
             a: state.a.clone(),
             b: state.b.clone(),
             blindness: state.blindness.clone(),
@@ -154,9 +156,9 @@ impl Verifier {
     }
 
     pub fn finalize(
-        prover_first_message: &ProverFirstMessage,
-        prover_second_message: &ProverSecondMessage,
-        state: &VerifierState,
+        prover_first_message: &PDLProverFirstMessage,
+        prover_second_message: &PDLProverSecondMessage,
+        state: &PDLVerifierState,
     ) -> Result<(), ()> {
         let c_hat_test = HashCommitment::create_commitment_with_user_defined_randomness(
             &prover_second_message
@@ -165,6 +167,7 @@ impl Verifier {
                 .bytes_compressed_to_big_int(),
             &prover_second_message.decommit.blindness,
         );
+
         if &prover_first_message.c_hat == &c_hat_test
             && &prover_second_message.decommit.q_hat == &state.q_tag
         {
@@ -177,15 +180,14 @@ impl Verifier {
 
 impl Prover {
     pub fn message1(
-        witness: &Witness,
-        statement: &Statement,
-        verifier_first_message: &VerifierFirstMessage,
-    ) -> (ProverFirstMessage, ProverState) {
+        witness: &PDLWitness,
+        statement: &PDLStatement,
+        verifier_first_message: &PDLVerifierFirstMessage,
+    ) -> (PDLProverFirstMessage, PDLProverState) {
         let c_tag = verifier_first_message.c_tag.clone();
         let alpha = Paillier::decrypt(&witness.dk, &RawCiphertext::from(c_tag.clone()));
         let alpha_fe: FE = ECScalar::from(&alpha.0);
-        let g: GE = ECPoint::generator();
-        let q_hat = g * alpha_fe;
+        let q_hat = statement.G * alpha_fe;
         let blindness = BigInt::sample_below(&FE::q());
         let c_hat = HashCommitment::create_commitment_with_user_defined_randomness(
             &q_hat.bytes_compressed_to_big_int(),
@@ -194,20 +196,20 @@ impl Prover {
         // in parallel generate range proof:
         let range_proof = generate_range_proof(statement, witness);
         (
-            ProverFirstMessage { c_hat, range_proof },
-            ProverState {
-                decommit: ProverDecommit { blindness, q_hat },
+            PDLProverFirstMessage { c_hat, range_proof },
+            PDLProverState {
+                decommit: PDLProverDecommit { blindness, q_hat },
                 alpha: alpha.0.into_owned(),
             },
         )
     }
 
     pub fn message2(
-        verifier_first_message: &VerifierFirstMessage,
-        verifier_second_message: &VerifierSecondMessage,
-        witness: &Witness,
-        state: &ProverState,
-    ) -> Result<ProverSecondMessage, ()> {
+        verifier_first_message: &PDLVerifierFirstMessage,
+        verifier_second_message: &PDLVerifierSecondMessage,
+        witness: &PDLWitness,
+        state: &PDLProverState,
+    ) -> Result<PDLProverSecondMessage, ()> {
         let ab_concat = &verifier_second_message.a
             + verifier_second_message
                 .b
@@ -220,7 +222,7 @@ impl Prover {
         let ax1 = &verifier_second_message.a * witness.x.to_big_int();
         let alpha_test = ax1 + &verifier_second_message.b;
         if &alpha_test == &state.alpha && verifier_first_message.c_tag_tag == c_tag_tag_test {
-            Ok(ProverSecondMessage {
+            Ok(PDLProverSecondMessage {
                 decommit: state.decommit.clone(),
             })
         } else {
@@ -229,7 +231,7 @@ impl Prover {
     }
 }
 
-fn generate_range_proof(statement: &Statement, witness: &Witness) -> RangeProofNi {
+fn generate_range_proof(statement: &PDLStatement, witness: &PDLWitness) -> RangeProofNi {
     RangeProofNi::prove(
         &statement.ek,
         &FE::q(),
@@ -240,7 +242,7 @@ fn generate_range_proof(statement: &Statement, witness: &Witness) -> RangeProofN
 }
 
 fn verify_range_proof(
-    statement: &Statement,
+    statement: &PDLStatement,
     range_proof: &RangeProofNi,
 ) -> Result<(), RangeProofError> {
     range_proof.verify(&statement.ek, &statement.ciphertext)

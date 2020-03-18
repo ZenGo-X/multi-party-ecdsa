@@ -1,5 +1,5 @@
 #![allow(non_snake_case)]
-use crate::utilities::zk_pdl::{Prover, Statement, Verifier, Witness};
+use crate::utilities::zk_pdl::{PDLStatement, PDLWitness, Prover, Verifier};
 use curv::elliptic::curves::traits::*;
 use curv::{BigInt, FE, GE};
 use paillier::core::Randomness;
@@ -25,12 +25,13 @@ fn test_zk_pdl() {
     )
     .0
     .into_owned();
-    let statement = Statement {
+    let statement = PDLStatement {
         ciphertext: c,
         ek,
         Q,
+        G: GE::generator(),
     };
-    let witness = Witness {
+    let witness = PDLWitness {
         x,
         r: randomness.0,
         dk,

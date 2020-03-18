@@ -153,12 +153,12 @@ fn main() {
     let mut j = 0;
     for i in 1..THRESHOLD + 2 {
         if i != party_num_int {
-            let (m_b_gamma, beta_gamma) = MessageB::b(
+            let (m_b_gamma, beta_gamma, _) = MessageB::b(
                 &sign_keys.gamma_i,
                 &paillier_key_vector[signers_vec[(i - 1) as usize]],
                 m_a_vec[j].clone(),
             );
-            let (m_b_w, beta_wi) = MessageB::b(
+            let (m_b_w, beta_wi, _) = MessageB::b(
                 &sign_keys.w_i,
                 &paillier_key_vector[signers_vec[(i - 1) as usize]],
                 m_a_vec[j].clone(),

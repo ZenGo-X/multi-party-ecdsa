@@ -44,9 +44,9 @@ use super::SECURITY_BITS;
 use crate::utilities::mta::MessageB;
 use crate::Error;
 
+use crate::utilities::zk_pdl::PDLStatement;
+use crate::utilities::zk_pdl::PDLWitness;
 use crate::utilities::zk_pdl::Prover as PDLProver;
-use crate::utilities::zk_pdl::Statement as PDLStatement;
-use crate::utilities::zk_pdl::Witness as PDLWitness;
 use crate::utilities::zk_pdl::*;
 
 //****************** Begin: Party One structs ******************//
@@ -379,13 +379,19 @@ impl PaillierKeyPair {
 
     pub fn pdl_first_message(
         party_one_private: &Party1Private,
-        verifier_first_messsage: &VerifierFirstMessage,
+        verifier_first_messsage: &PDLVerifierFirstMessage,
         paillier_key_pair: &PaillierKeyPair,
-    ) -> (ProverFirstMessage, ProverState, PDLStatement, PDLWitness) {
+    ) -> (
+        PDLProverFirstMessage,
+        PDLProverState,
+        PDLStatement,
+        PDLWitness,
+    ) {
         let statement = PDLStatement {
             ciphertext: paillier_key_pair.encrypted_share.clone(),
             ek: paillier_key_pair.ek.clone(),
             Q: GE::generator() * &party_one_private.x1,
+            G: GE::generator(),
         };
         let witness = PDLWitness {
             x: party_one_private.x1,
@@ -398,11 +404,11 @@ impl PaillierKeyPair {
     }
 
     pub fn pdl_second_message(
-        verifier_first_message: &VerifierFirstMessage,
-        verifier_second_message: &VerifierSecondMessage,
+        verifier_first_message: &PDLVerifierFirstMessage,
+        verifier_second_message: &PDLVerifierSecondMessage,
         wintess: &PDLWitness,
-        prover_state: &ProverState,
-    ) -> Result<ProverSecondMessage, ()> {
+        prover_state: &PDLProverState,
+    ) -> Result<PDLProverSecondMessage, ()> {
         PDLProver::message2(
             verifier_first_message,
             verifier_second_message,

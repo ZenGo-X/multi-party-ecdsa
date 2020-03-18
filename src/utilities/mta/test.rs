@@ -8,8 +8,8 @@ fn test_mta() {
     let alice_input: FE = ECScalar::new_random();
     let (ek_alice, dk_alice) = Paillier::keypair().keys();
     let bob_input: FE = ECScalar::new_random();
-    let m_a = MessageA::a(&alice_input, &ek_alice);
-    let (m_b, beta) = MessageB::b(&bob_input, &ek_alice, m_a);
+    let (m_a, _r) = MessageA::a(&alice_input, &ek_alice);
+    let (m_b, beta, _) = MessageB::b(&bob_input, &ek_alice, m_a);
     let alpha = m_b
         .verify_proofs_get_alpha(&dk_alice, &alice_input)
         .expect("wrong dlog or m_b");

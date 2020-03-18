@@ -39,7 +39,7 @@ use super::party_one::KeyGenFirstMsg as Party1KeyGenFirstMessage;
 use super::party_one::KeyGenSecondMsg as Party1KeyGenSecondMessage;
 use super::SECURITY_BITS;
 use crate::utilities::mta::{MessageA, MessageB};
-use crate::utilities::zk_pdl::Statement as PDLStatement;
+use crate::utilities::zk_pdl::PDLStatement;
 use crate::utilities::zk_pdl::Verifier as PDLVerifier;
 use crate::utilities::zk_pdl::*;
 
@@ -250,7 +250,8 @@ impl Party2Private {
         let message_a = MessageA {
             c: ciphertext.clone(),
         };
-        MessageB::b(&self.x2, &ek, message_a)
+        let (a, b, _) = MessageB::b(&self.x2, &ek, message_a);
+        (a, b)
     }
 }
 
@@ -258,28 +259,29 @@ impl PaillierPublic {
     pub fn pdl_first_message(
         &self,
         other_share_public_share: &GE,
-    ) -> (VerifierFirstMessage, VerifierState, Statement) {
+    ) -> (PDLVerifierFirstMessage, PDLVerifierState, PDLStatement) {
         let statement = PDLStatement {
             ciphertext: self.encrypted_secret_share.clone(),
             ek: self.ek.clone(),
             Q: other_share_public_share.clone(),
+            G: GE::generator(),
         };
         let (verifier_message1, verifier_state) = PDLVerifier::message1(&statement);
         (verifier_message1, verifier_state, statement)
     }
 
     pub fn pdl_second_message(
-        prover_first_message: &ProverFirstMessage,
+        prover_first_message: &PDLProverFirstMessage,
         statement: &PDLStatement,
-        state: &mut VerifierState,
-    ) -> Result<VerifierSecondMessage, ()> {
+        state: &mut PDLVerifierState,
+    ) -> Result<PDLVerifierSecondMessage, ()> {
         PDLVerifier::message2(prover_first_message, statement, state)
     }
 
     pub fn pdl_finalize(
-        prover_first_message: &ProverFirstMessage,
-        prover_second_messasge: &ProverSecondMessage,
-        state: &VerifierState,
+        prover_first_message: &PDLProverFirstMessage,
+        prover_second_messasge: &PDLProverSecondMessage,
+        state: &PDLVerifierState,
     ) -> Result<(), ()> {
         PDLVerifier::finalize(prover_first_message, prover_second_messasge, state)
     }
