@@ -167,17 +167,7 @@ impl Verifier {
                 .bytes_compressed_to_big_int(),
             &prover_second_message.decommit.blindness,
         );
-        println!(
-            "prover_first_message.c_hat {:?}",
-            prover_first_message.c_hat.clone()
-        );
-        println!("c_hat_test {:?}", c_hat_test.clone());
-        println!(
-            "prover_second_message.decommit.q_hat {:?}",
-            prover_second_message.decommit.q_hat.clone()
-        );
-        println!("state.q_tag {:?}", state.q_tag.clone());
-
+        
         if &prover_first_message.c_hat == &c_hat_test
             && &prover_second_message.decommit.q_hat == &state.q_tag
         {
