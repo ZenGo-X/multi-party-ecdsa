@@ -66,8 +66,7 @@ impl PDLwSlackProof {
 
         let alpha = BigInt::sample_below(&q3);
         let one = BigInt::one();
-        let phi = (&witness.dk.p - &one) * (&witness.dk.q - &one);
-        let beta = BigInt::sample_below(&phi);
+        let beta = BigInt::sample_range(&one, &(&statement.ek.n - &one));
         let rho = BigInt::sample_below(&q_N_tilde);
         let gamma = BigInt::sample_below(&q3_N_tilde);
 
