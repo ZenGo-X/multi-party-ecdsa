@@ -106,7 +106,7 @@ fn main() {
     let xi_com_vec = Keys::get_commitments_to_xi(&vss_scheme_vec);
     //////////////////////////////////////////////////////////////////////////////
     let (com, decommit) = sign_keys.phase1_broadcast();
-    let m_a_k = MessageA::a(&sign_keys.k_i, &party_keys.ek);
+    let (m_a_k, _) = MessageA::a(&sign_keys.k_i, &party_keys.ek);
     assert!(broadcast(
         &client,
         party_num_int,
