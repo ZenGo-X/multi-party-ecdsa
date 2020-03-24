@@ -1,13 +1,12 @@
 #!/usr/bin/env bash
 cargo build --examples --release
 
-n=`cat params | sed -n 1p`
-t=`cat params | sed -n 2p`
-params="{\"parties\":\"$n\", \"threshold\":\"$t\"}"
+file_as_string=`cat params.json`
 
-echo "Params: $params"
-echo -n $params > params.json
-echo "$0: Multi-party ECDSA parties:$n threshold:$t"
+n=`echo "$file_as_string" | cut -d "\"" -f 4 `
+t=`echo "$file_as_string" | cut -d "\"" -f 8 `
+
+echo "Multi-party ECDSA parties:$n threshold:$t"
 #clean
 sleep 1
 
