@@ -44,10 +44,10 @@ use super::SECURITY_BITS;
 use crate::utilities::mta::MessageB;
 use crate::Error;
 
-use crate::utilities::zk_pdl::PDLStatement;
-use crate::utilities::zk_pdl::PDLWitness;
-use crate::utilities::zk_pdl::Prover as PDLProver;
-use crate::utilities::zk_pdl::*;
+use crate::utilities::zk_pdl_with_slack::PDLwSlackProof;
+use crate::utilities::zk_pdl_with_slack::PDLwSlackStatement;
+use crate::utilities::zk_pdl_with_slack::PDLwSlackWitness;
+use zk_paillier::zkproofs::{CompositeDLogProof, DLogStatement};
 
 //****************** Begin: Party One structs ******************//
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -141,10 +141,7 @@ impl KeyGenFirstMsg {
     pub fn create_commitments() -> (KeyGenFirstMsg, CommWitness, EcKeyPair) {
         let base: GE = ECPoint::generator();
 
-        let mut scalar: FE = ECScalar::new_random();
-        //in Lindell's protocol range proof works only for x1<q/3
-        let mut secret_share: FE = ECScalar::from(&scalar.to_big_int().div_floor(&BigInt::from(3)));
-        scalar.zeroize();
+        let mut secret_share: FE = ECScalar::new_random();
 
         let public_share = base.scalar_mul(&secret_share.get_element());
 
@@ -186,10 +183,7 @@ impl KeyGenFirstMsg {
     pub fn create_commitments_with_fixed_secret_share(
         mut secret_share: FE,
     ) -> (KeyGenFirstMsg, CommWitness, EcKeyPair) {
-        //in Lindell's protocol range proof works only for x1<q/3
-        let sk_bigint = secret_share.to_big_int();
-        let q_third = FE::q();
-        assert!(sk_bigint < q_third.div_floor(&BigInt::from(3)));
+
         let base: GE = ECPoint::generator();
         let public_share = base.scalar_mul(&secret_share.get_element());
 
@@ -359,63 +353,46 @@ impl PaillierKeyPair {
             randomness: randomness.0,
         }
     }
-    /*
-        pub fn generate_range_proof(
-            paillier_context: &PaillierKeyPair,
-            party_one_private: &Party1Private,
-        ) -> RangeProofNi {
-            RangeProofNi::prove(
-                &paillier_context.ek,
-                &FE::q(),
-                &paillier_context.encrypted_share.clone(),
-                &party_one_private.x1.to_big_int(),
-                &paillier_context.randomness,
-            )
-        }
-    */
+
     pub fn generate_ni_proof_correct_key(paillier_context: &PaillierKeyPair) -> NICorrectKeyProof {
         NICorrectKeyProof::proof(&paillier_context.dk)
     }
 
-    pub fn pdl_first_message(
-        party_one_private: &Party1Private,
-        verifier_first_messsage: &PDLVerifierFirstMessage,
+    pub fn pdl_proof(
+        party1_private :&Party1Private,
         paillier_key_pair: &PaillierKeyPair,
-    ) -> (
-        PDLProverFirstMessage,
-        PDLProverState,
-        PDLStatement,
-        PDLWitness,
-    ) {
-        let statement = PDLStatement {
+    ) -> (PDLwSlackStatement, PDLwSlackProof, CompositeDLogProof ){
+
+        let (n_tilde, h1, h2, xhi) = generate_h1_h2_n_tilde();
+        let dlog_statement = DLogStatement{
+            N: n_tilde,
+            g: h1,
+            ni: h2,
+        };
+        let composite_dlog_proof = CompositeDLogProof::prove(&dlog_statement, &xhi);
+
+        // Generate PDL with slack statement, witness and proof
+        let pdl_w_slack_statement = PDLwSlackStatement {
             ciphertext: paillier_key_pair.encrypted_share.clone(),
             ek: paillier_key_pair.ek.clone(),
-            Q: GE::generator() * &party_one_private.x1,
+            Q: GE::generator() * &party1_private.x1,
             G: GE::generator(),
+            h1: dlog_statement.g.clone(),
+            h2: dlog_statement.ni.clone(),
+            N_tilde: dlog_statement.N.clone(),
         };
-        let witness = PDLWitness {
-            x: party_one_private.x1,
-            r: party_one_private.c_key_randomness.clone(),
-            dk: party_one_private.paillier_priv.clone(),
+
+        let pdl_w_slack_witness = PDLwSlackWitness {
+            x: party1_private.x1.clone(),
+            r: party1_private.c_key_randomness.clone(),
+            dk: party1_private.paillier_priv.clone(),
         };
-        let (prover_message1, prover_state) =
-            PDLProver::message1(&witness, &statement, &verifier_first_messsage);
-        (prover_message1, prover_state, statement, witness)
+
+        let pdl_w_slack_proof = PDLwSlackProof::prove(&pdl_w_slack_witness, &pdl_w_slack_statement);
+        (pdl_w_slack_statement, pdl_w_slack_proof, composite_dlog_proof)
     }
 
-    pub fn pdl_second_message(
-        verifier_first_message: &PDLVerifierFirstMessage,
-        verifier_second_message: &PDLVerifierSecondMessage,
-        wintess: &PDLWitness,
-        prover_state: &PDLProverState,
-    ) -> Result<PDLProverSecondMessage, ()> {
-        PDLProver::message2(
-            verifier_first_message,
-            verifier_second_message,
-            wintess,
-            prover_state,
-        )
-    }
+
 }
 
 impl EphKeyGenFirstMsg {
@@ -597,3 +574,18 @@ pub fn verify(signature: &Signature, pubkey: &GE, message: &BigInt) -> Result<()
         Err(Error::InvalidSig)
     }
 }
+
+pub fn generate_h1_h2_n_tilde() -> (BigInt, BigInt, BigInt, BigInt) {
+    //note, should be safe primes:
+    // let (ek_tilde, dk_tilde) = Paillier::keypair_safe_primes().keys();;
+    let (ek_tilde, dk_tilde) = Paillier::keypair().keys();
+    let one = BigInt::one();
+    let phi = (&dk_tilde.p - &one) * (&dk_tilde.q - &one);
+    let h1 = BigInt::sample_below(&phi);
+    let s = BigInt::from(2).pow(256 as u32);
+    let xhi = BigInt::sample_below(&s);
+    let h2 = BigInt::mod_pow(&h1, &(-&xhi), &ek_tilde.n);
+
+    (ek_tilde.n, h1, h2, xhi)
+}
+

@@ -39,11 +39,13 @@ use super::party_one::KeyGenFirstMsg as Party1KeyGenFirstMessage;
 use super::party_one::KeyGenSecondMsg as Party1KeyGenSecondMessage;
 use super::SECURITY_BITS;
 use crate::utilities::mta::{MessageA, MessageB};
-use crate::utilities::zk_pdl::PDLStatement;
-use crate::utilities::zk_pdl::Verifier as PDLVerifier;
-use crate::utilities::zk_pdl::*;
+
 
 use zeroize::Zeroize;
+use crate::utilities::zk_pdl_with_slack::PDLwSlackProof;
+use crate::utilities::zk_pdl_with_slack::PDLwSlackStatement;
+use zk_paillier::zkproofs::{CompositeDLogProof, DLogStatement};
+
 const PAILLIER_KEY_SIZE: usize = 2048;
 //****************** Begin: Party Two structs ******************//
 
@@ -256,34 +258,31 @@ impl Party2Private {
 }
 
 impl PaillierPublic {
-    pub fn pdl_first_message(
-        &self,
-        other_share_public_share: &GE,
-    ) -> (PDLVerifierFirstMessage, PDLVerifierState, PDLStatement) {
-        let statement = PDLStatement {
-            ciphertext: self.encrypted_secret_share.clone(),
-            ek: self.ek.clone(),
-            Q: other_share_public_share.clone(),
-            G: GE::generator(),
-        };
-        let (verifier_message1, verifier_state) = PDLVerifier::message1(&statement);
-        (verifier_message1, verifier_state, statement)
-    }
 
-    pub fn pdl_second_message(
-        prover_first_message: &PDLProverFirstMessage,
-        statement: &PDLStatement,
-        state: &mut PDLVerifierState,
-    ) -> Result<PDLVerifierSecondMessage, ()> {
-        PDLVerifier::message2(prover_first_message, statement, state)
-    }
-
-    pub fn pdl_finalize(
-        prover_first_message: &PDLProverFirstMessage,
-        prover_second_messasge: &PDLProverSecondMessage,
-        state: &PDLVerifierState,
+    pub fn pdl_verify(
+        composite_dlog_proof: &CompositeDLogProof,
+        pdl_w_slack_statement: &PDLwSlackStatement,
+        pdl_w_slack_proof: &PDLwSlackProof,
+        paillier_public: &PaillierPublic,
+        q1: &GE,
     ) -> Result<(), ()> {
-        PDLVerifier::finalize(prover_first_message, prover_second_messasge, state)
+
+        if &pdl_w_slack_statement.ek != &paillier_public.ek ||
+            &pdl_w_slack_statement.ciphertext != &paillier_public.encrypted_secret_share ||
+            &pdl_w_slack_statement.Q != q1 {
+            return Err(());
+        }
+        let dlog_statement = DLogStatement{
+            N: pdl_w_slack_statement.N_tilde.clone(),
+            g: pdl_w_slack_statement.h1.clone(),
+            ni: pdl_w_slack_statement.h2.clone(),
+        };
+        if composite_dlog_proof.verify(&dlog_statement).is_ok() &&
+        pdl_w_slack_proof.verify(&pdl_w_slack_statement).is_ok(){
+            return Ok(())
+        }
+        else{ return Err(());}
+
     }
 
     pub fn verify_ni_proof_correct_key(
