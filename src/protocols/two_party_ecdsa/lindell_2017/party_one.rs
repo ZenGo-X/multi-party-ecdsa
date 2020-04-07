@@ -35,7 +35,7 @@ use paillier::{DecryptionKey, EncryptionKey, Randomness, RawCiphertext, RawPlain
 use serde::{Deserialize, Serialize};
 use subtle::ConstantTimeEq;
 use zeroize::Zeroize;
-use zk_paillier::zkproofs::{NICorrectKeyProof, RangeProofNi};
+use zk_paillier::zkproofs::NICorrectKeyProof;
 
 use super::party_two::EphKeyGenFirstMsg as Party2EphKeyGenFirstMessage;
 use super::party_two::EphKeyGenSecondMsg as Party2EphKeyGenSecondMessage;
@@ -253,13 +253,14 @@ impl Party1Private {
         BigInt,
         Party1Private,
         NICorrectKeyProof,
-        RangeProofNi,
+        PDLwSlackStatement,
+        PDLwSlackProof,
+        CompositeDLogProof,
     ) {
         let (ek_new, dk_new) = Paillier::keypair().keys();
         let randomness = Randomness::sample(&ek_new);
         let factor_fe: FE = ECScalar::from(&factor);
         let x1_new = party_one_private.x1 * factor_fe;
-        let three = BigInt::from(3);
         let c_key_new = Paillier::encrypt_with_chosen_randomness(
             &ek_new,
             RawPlaintext::from(x1_new.to_big_int().clone()),
@@ -269,13 +270,15 @@ impl Party1Private {
         .into_owned();
         let correct_key_proof_new = NICorrectKeyProof::proof(&dk_new);
 
-        let range_proof_new = RangeProofNi::prove(
-            &ek_new,
-            &(FE::q() * three.clone()),
-            &c_key_new,
-            &x1_new.to_big_int(),
-            &randomness.0,
-        );
+        let paillier_key_pair = PaillierKeyPair {
+            ek: ek_new.clone(),
+            dk: dk_new.clone(),
+            encrypted_share: c_key_new.clone(),
+            randomness: randomness.0.clone(),
+        };
+
+        let (pdl_statement, pdl_proof, composite_dlog_proof) =
+            PaillierKeyPair::pdl_proof(&party_one_private, &paillier_key_pair);
 
         let party_one_private_new = Party1Private {
             x1: x1_new,
@@ -288,7 +291,9 @@ impl Party1Private {
             c_key_new,
             party_one_private_new,
             correct_key_proof_new,
-            range_proof_new,
+            pdl_statement,
+            pdl_proof,
+            composite_dlog_proof,
         )
     }
 
