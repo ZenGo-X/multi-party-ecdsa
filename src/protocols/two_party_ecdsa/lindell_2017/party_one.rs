@@ -277,14 +277,14 @@ impl Party1Private {
             randomness: randomness.0.clone(),
         };
 
-        let (pdl_statement, pdl_proof, composite_dlog_proof) =
-            PaillierKeyPair::pdl_proof(&party_one_private, &paillier_key_pair);
-
         let party_one_private_new = Party1Private {
             x1: x1_new,
             paillier_priv: dk_new.clone(),
             c_key_randomness: randomness.0,
         };
+
+        let (pdl_statement, pdl_proof, composite_dlog_proof) =
+            PaillierKeyPair::pdl_proof(&party_one_private_new, &paillier_key_pair);
 
         (
             ek_new,
