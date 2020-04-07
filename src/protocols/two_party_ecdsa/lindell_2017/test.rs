@@ -76,10 +76,9 @@ fn test_full_key_gen() {
         &pdl_statement,
         &pdl_proof,
         &party_two_paillier,
-        &party_one_second_message.comm_witness.public_share
-    ).expect("PDL error");
-
-
+        &party_one_second_message.comm_witness.public_share,
+    )
+    .expect("PDL error");
 }
 
 #[test]

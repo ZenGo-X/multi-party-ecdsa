@@ -183,7 +183,6 @@ impl KeyGenFirstMsg {
     pub fn create_commitments_with_fixed_secret_share(
         mut secret_share: FE,
     ) -> (KeyGenFirstMsg, CommWitness, EcKeyPair) {
-
         let base: GE = ECPoint::generator();
         let public_share = base.scalar_mul(&secret_share.get_element());
 
@@ -359,12 +358,11 @@ impl PaillierKeyPair {
     }
 
     pub fn pdl_proof(
-        party1_private :&Party1Private,
+        party1_private: &Party1Private,
         paillier_key_pair: &PaillierKeyPair,
-    ) -> (PDLwSlackStatement, PDLwSlackProof, CompositeDLogProof ){
-
+    ) -> (PDLwSlackStatement, PDLwSlackProof, CompositeDLogProof) {
         let (n_tilde, h1, h2, xhi) = generate_h1_h2_n_tilde();
-        let dlog_statement = DLogStatement{
+        let dlog_statement = DLogStatement {
             N: n_tilde,
             g: h1,
             ni: h2,
@@ -389,10 +387,12 @@ impl PaillierKeyPair {
         };
 
         let pdl_w_slack_proof = PDLwSlackProof::prove(&pdl_w_slack_witness, &pdl_w_slack_statement);
-        (pdl_w_slack_statement, pdl_w_slack_proof, composite_dlog_proof)
+        (
+            pdl_w_slack_statement,
+            pdl_w_slack_proof,
+            composite_dlog_proof,
+        )
     }
-
-
 }
 
 impl EphKeyGenFirstMsg {
@@ -588,4 +588,3 @@ pub fn generate_h1_h2_n_tilde() -> (BigInt, BigInt, BigInt, BigInt) {
 
     (ek_tilde.n, h1, h2, xhi)
 }
-

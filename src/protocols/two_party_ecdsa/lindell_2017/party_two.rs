@@ -40,10 +40,9 @@ use super::party_one::KeyGenSecondMsg as Party1KeyGenSecondMessage;
 use super::SECURITY_BITS;
 use crate::utilities::mta::{MessageA, MessageB};
 
-
-use zeroize::Zeroize;
 use crate::utilities::zk_pdl_with_slack::PDLwSlackProof;
 use crate::utilities::zk_pdl_with_slack::PDLwSlackStatement;
+use zeroize::Zeroize;
 use zk_paillier::zkproofs::{CompositeDLogProof, DLogStatement};
 
 const PAILLIER_KEY_SIZE: usize = 2048;
@@ -258,7 +257,6 @@ impl Party2Private {
 }
 
 impl PaillierPublic {
-
     pub fn pdl_verify(
         composite_dlog_proof: &CompositeDLogProof,
         pdl_w_slack_statement: &PDLwSlackStatement,
@@ -266,23 +264,24 @@ impl PaillierPublic {
         paillier_public: &PaillierPublic,
         q1: &GE,
     ) -> Result<(), ()> {
-
-        if &pdl_w_slack_statement.ek != &paillier_public.ek ||
-            &pdl_w_slack_statement.ciphertext != &paillier_public.encrypted_secret_share ||
-            &pdl_w_slack_statement.Q != q1 {
+        if &pdl_w_slack_statement.ek != &paillier_public.ek
+            || &pdl_w_slack_statement.ciphertext != &paillier_public.encrypted_secret_share
+            || &pdl_w_slack_statement.Q != q1
+        {
             return Err(());
         }
-        let dlog_statement = DLogStatement{
+        let dlog_statement = DLogStatement {
             N: pdl_w_slack_statement.N_tilde.clone(),
             g: pdl_w_slack_statement.h1.clone(),
             ni: pdl_w_slack_statement.h2.clone(),
         };
-        if composite_dlog_proof.verify(&dlog_statement).is_ok() &&
-        pdl_w_slack_proof.verify(&pdl_w_slack_statement).is_ok(){
-            return Ok(())
+        if composite_dlog_proof.verify(&dlog_statement).is_ok()
+            && pdl_w_slack_proof.verify(&pdl_w_slack_statement).is_ok()
+        {
+            return Ok(());
+        } else {
+            return Err(());
         }
-        else{ return Err(());}
-
     }
 
     pub fn verify_ni_proof_correct_key(
