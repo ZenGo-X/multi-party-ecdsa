@@ -122,7 +122,6 @@ impl GlobalStatePhase5 {
         // check commitment to g_gamma
         for i in 0..len {
             if self.g_gamma_vec[i] != GE::generator() * self.gamma_vec[i] {
-                println!("TEST1");
                 bad_signers_vec.push(i)
             }
         }
@@ -152,7 +151,6 @@ impl GlobalStatePhase5 {
                         );
                         // check message_b
                         if message_b.c != self.m_b_mat[i][j].c {
-                            println!("TEST3");
                             bad_signers_vec.push(ind)
                         }
 
@@ -202,8 +200,6 @@ impl GlobalStatePhase5 {
 
         for i in 0..len {
             if self.delta_vec[i] != delta_vec_reconstruct[i] {
-                println!("TEST4");
-
                 bad_signers_vec.push(i)
             }
         }
@@ -365,7 +361,6 @@ impl GlobalStatePhase6 {
             }
         }
 
-        println!("g sigma test {:?}", g_sigma_i_vec.clone());
         // check zero knowledge proof
         for i in 0..len {
             let statement = ECDDHStatement {
@@ -377,7 +372,6 @@ impl GlobalStatePhase6 {
 
             let result = self.proof_vec[i].verify(&statement);
             if result.is_err() {
-                println!("TEST2");
                 bad_signers_vec.push(i)
             }
         }
@@ -417,8 +411,7 @@ impl GlobalStatePhase7 {
                 bad_signers_vec.push(i);
             }
         }
-        println!("TEST");
-        println!("bad signer vec: {:?}", bad_signers_vec.clone());
+
         let err_type = ErrorType {
             error_type: "phase7_blame".to_string(),
             bad_actors: bad_signers_vec,
