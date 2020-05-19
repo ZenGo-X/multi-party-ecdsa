@@ -196,12 +196,12 @@ fn sign(t: u16, n: u16, ttag: u16, s: Vec<usize>) {
         for j in 0..ttag - 1 {
             let ind = if j < i { j } else { j + 1 };
 
-            let (m_b_gamma, beta_gamma, _) = MessageB::b(
+            let (m_b_gamma, beta_gamma, _, _) = MessageB::b(
                 &key.gamma_i,
                 &party_keys_vec[s[ind]].ek,
                 m_a_vec[ind].clone(),
             );
-            let (m_b_w, beta_wi, _) =
+            let (m_b_w, beta_wi, _, _) =
                 MessageB::b(&key.w_i, &party_keys_vec[s[ind]].ek, m_a_vec[ind].clone());
 
             m_b_gamma_vec.push(m_b_gamma);
@@ -259,8 +259,15 @@ fn sign(t: u16, n: u16, ttag: u16, s: Vec<usize>) {
     let mut sigma_vec = Vec::new();
 
     for i in 0..ttag {
-        let delta = sign_keys_vec[i].phase2_delta_i(&alpha_vec_all[i], &beta_vec_all[i]);
-        let sigma = sign_keys_vec[i].phase2_sigma_i(&miu_vec_all[i], &ni_vec_all[i]);
+        let alpha_vec: Vec<FE> = (0..alpha_vec_all[i].len())
+            .map(|j| alpha_vec_all[i][j].0)
+            .collect();
+        let miu_vec: Vec<FE> = (0..miu_vec_all[i].len())
+            .map(|j| miu_vec_all[i][j].0)
+            .collect();
+
+        let delta = sign_keys_vec[i].phase2_delta_i(&alpha_vec[..], &beta_vec_all[i]);
+        let sigma = sign_keys_vec[i].phase2_sigma_i(&miu_vec[..], &ni_vec_all[i]);
         delta_vec.push(delta);
         sigma_vec.push(sigma);
     }

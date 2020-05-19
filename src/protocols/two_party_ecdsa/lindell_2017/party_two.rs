@@ -250,7 +250,7 @@ impl Party2Private {
         let message_a = MessageA {
             c: ciphertext.clone(),
         };
-        let (a, b, _) = MessageB::b(&self.x2, &ek, message_a);
+        let (a, b, _, _) = MessageB::b(&self.x2, &ek, message_a);
         (a, b)
     }
 }

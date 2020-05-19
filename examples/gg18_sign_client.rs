@@ -153,12 +153,12 @@ fn main() {
     let mut j = 0;
     for i in 1..THRESHOLD + 2 {
         if i != party_num_int {
-            let (m_b_gamma, beta_gamma, _) = MessageB::b(
+            let (m_b_gamma, beta_gamma, _, _) = MessageB::b(
                 &sign_keys.gamma_i,
                 &paillier_key_vector[signers_vec[(i - 1) as usize]],
                 m_a_vec[j].clone(),
             );
-            let (m_b_w, beta_wi, _) = MessageB::b(
+            let (m_b_w, beta_wi, _, _) = MessageB::b(
                 &sign_keys.w_i,
                 &paillier_key_vector[signers_vec[(i - 1) as usize]],
                 m_a_vec[j].clone(),
@@ -224,8 +224,8 @@ fn main() {
             let alpha_ij_wi = m_b
                 .verify_proofs_get_alpha(&party_keys.dk, &sign_keys.k_i)
                 .expect("wrong dlog or m_b");
-            alpha_vec.push(alpha_ij_gamma);
-            miu_vec.push(alpha_ij_wi);
+            alpha_vec.push(alpha_ij_gamma.0);
+            miu_vec.push(alpha_ij_wi.0);
             let g_w_i = Keys::update_commitments_to_xi(
                 &xi_com_vec[signers_vec[(i - 1) as usize]],
                 &vss_scheme_vec[signers_vec[(i - 1) as usize]],

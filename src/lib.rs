@@ -23,4 +23,5 @@ pub enum Error {
     InvalidCom,
     InvalidSig,
     Phase5BadSum,
+    Phase6Error,
 }

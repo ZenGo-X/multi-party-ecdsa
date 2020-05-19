@@ -311,7 +311,7 @@ impl Party1Private {
     }
 
     // used to transform lindell master key to gg18 master key
-    pub fn to_mta_message_b(&self, message_b: MessageB) -> Result<FE, Error> {
+    pub fn to_mta_message_b(&self, message_b: MessageB) -> Result<(FE, BigInt), Error> {
         message_b.verify_proofs_get_alpha(&self.paillier_priv, &self.x1)
     }
 }
@@ -359,20 +359,7 @@ impl PaillierKeyPair {
             randomness: randomness.0,
         }
     }
-    /*
-        pub fn generate_range_proof(
-            paillier_context: &PaillierKeyPair,
-            party_one_private: &Party1Private,
-        ) -> RangeProofNi {
-            RangeProofNi::prove(
-                &paillier_context.ek,
-                &FE::q(),
-                &paillier_context.encrypted_share.clone(),
-                &party_one_private.x1.to_big_int(),
-                &paillier_context.randomness,
-            )
-        }
-    */
+
     pub fn generate_ni_proof_correct_key(paillier_context: &PaillierKeyPair) -> NICorrectKeyProof {
         NICorrectKeyProof::proof(&paillier_context.dk)
     }
