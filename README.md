@@ -25,13 +25,14 @@ To learn about the core principles as well as on the [audit](https://github.com/
 ## Use It
 
 
-The library implements three different protocols for threshold ECDSA. The protocols presents differnt tradeoffs in terms of parameters, security assumptions and efficiency. 
+The library implements four different protocols for threshold ECDSA. The protocols presents differnt tradeoffs in terms of parameters, security assumptions and efficiency. 
 
 |  Protocol                                               | High Level code                                                             |
 | -------------------------------------------- | -------------------------------------------- |
 |  Lindell 17 [1]  |  [Gotham-city](https://github.com/KZen-networks/gotham-city) (accepted to [CIW19](https://ifca.ai/fc19/ciw/program.html)) is a two party bitcoin wallet, including benchmarks. [KMS](https://github.com/KZen-networks/kms-secp256k1) is a Rust wrapper library that implements a general purpose two party key management system. [thresh-sig-js](https://github.com/KZen-networks/thresh-sig-js) is a Javascript SDK | 
 | Gennaro, Goldfeder 19 [2] ([video](https://www.youtube.com/watch?v=PdfDZIwuZm0)) | [tss-ecdsa-cli](https://github.com/cryptochill/tss-ecdsa-cli) is a wrapper CLI for full threshold access structure, including network and threshold HD keys ([BIP32](https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki)). See [Demo](https://github.com/KZen-networks/multi-party-ecdsa#run-demo) in this library to get better low level understanding| 
-|Castagnos et. al. 19 [3]| WIP, Currently enabled as a feature in this library. To Enable build with `--features=cclst`.|
+|Castagnos et. al. 19 [3]| Currently enabled as a feature in this library. To Enable, build with `--features=cclst`. to Test, use `cargo test --features=cclst -- --test-threads=1` |
+| Gennaro, Goldfeder 20 [4] | A full threshold protocol that supports identifying malicious parties. If signing fails - a list of malicious parties is returned. The protocol requires only a broadcast channel (all messages are broadcasted)| 
 
 ## Run Demo
 
@@ -88,3 +89,5 @@ Feel free to [reach out](mailto:github@kzencorp.com) or join the KZen Research [
 [2] <https://eprint.iacr.org/2019/114.pdf>
 
 [3] <https://eprint.iacr.org/2019/503.pdf>
+
+[4] <https://eprint.iacr.org/2020/540.pdf>
