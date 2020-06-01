@@ -114,7 +114,6 @@ impl GlobalStatePhase5 {
         }
     }
 
-    // TODO: add alpha, beta to input and check correctness
     pub fn phase5_blame(&self) -> Result<(), ErrorType> {
         let len = self.delta_vec.len();
         let mut bad_signers_vec = Vec::new();

@@ -15,9 +15,10 @@
 */
 use std::cmp;
 
-use class_group::primitives::cl_dl_lcm::Ciphertext;
-use class_group::primitives::cl_dl_lcm::Witness;
-use class_group::primitives::cl_dl_lcm::{CLDLProofPublicSetup, HSMCL};
+use class_group::primitives::cl_dl_public_setup::{
+    decrypt, verifiably_encrypt, CLDLProof, CLGroup, Ciphertext as CLCiphertext, PK, SK,
+};
+
 use curv::arithmetic::traits::*;
 use curv::cryptographic_primitives::commitments::hash_commitment::HashCommitment;
 use curv::cryptographic_primitives::commitments::traits::Commitment;
@@ -65,10 +66,19 @@ pub struct KeyGenSecondMsg {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct HSMCLKeyPair {
-    pub keypair: HSMCL,
-    pub encrypted_share: Ciphertext,
-    randomness: BigInt,
+pub struct HSMCL {
+    pub public: PK,
+    pub secret: SK,
+    pub encrypted_share: CLCiphertext,
+    pub cl_group: CLGroup,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct HSMCLPublic {
+    pub cl_pub_key: PK,
+    pub proof: CLDLProof,
+    pub encrypted_share: CLCiphertext,
+    pub cl_group: CLGroup,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -87,8 +97,8 @@ pub struct Signature {
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Party1Private {
     x1: FE,
-    keypair: HSMCL,
-    c_key_randomness: BigInt,
+    hsmcl_pub: PK,
+    hsmcl_priv: SK,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -173,10 +183,6 @@ impl KeyGenFirstMsg {
     pub fn create_commitments_with_fixed_secret_share(
         secret_share: FE,
     ) -> (KeyGenFirstMsg, CommWitness, EcKeyPair) {
-        //in Lindell's protocol range proof works only for x1<q/3
-        let sk_bigint = secret_share.to_big_int();
-        let q_third = FE::q();
-        assert!(&sk_bigint < &q_third.div_floor(&BigInt::from(3)));
         let base: GE = ECPoint::generator();
         let public_share = base.scalar_mul(&secret_share.get_element());
 
@@ -231,52 +237,42 @@ pub fn compute_pubkey(party_one_private: &Party1Private, other_share_public_shar
 }
 
 impl Party1Private {
-    pub fn set_private_key(ec_key: &EcKeyPair, hsmcl_key: &HSMCLKeyPair) -> Party1Private {
+    pub fn set_private_key(ec_key: &EcKeyPair, hsmcl: &HSMCL) -> Party1Private {
         Party1Private {
             x1: ec_key.secret_share.clone(),
-            keypair: hsmcl_key.keypair.clone(),
-            c_key_randomness: hsmcl_key.randomness.clone(),
+            hsmcl_pub: hsmcl.public.clone(),
+            hsmcl_priv: hsmcl.secret.clone(),
         }
     }
 }
 
-impl HSMCLKeyPair {
-    pub fn generate_keypair_and_encrypted_share(keygen: &EcKeyPair, seed: BigInt) -> HSMCLKeyPair {
-        let hsmcl = HSMCL::keygen_with_setup(&FE::q(), &1348, &seed);
-        let ek = hsmcl.pk.clone();
-        let randomness = BigInt::sample_below(&(&ek.stilde * BigInt::from(2).pow(40)));
-
-        let encrypted_share = HSMCL::encrypt_predefined_randomness(
-            &ek,
-            &keygen.secret_share.to_big_int(),
-            &randomness,
+impl HSMCL {
+    pub fn generate_keypair_and_encrypted_share_and_proof(
+        keygen: &EcKeyPair,
+        seed: &BigInt,
+    ) -> (HSMCL, HSMCLPublic) {
+        let cl_group = CLGroup::new_from_setup(&1348, &seed);
+        let (secret_key, public_key) = cl_group.keygen();
+        let (ciphertext, proof) = verifiably_encrypt(
+            &cl_group,
+            &public_key,
+            (&keygen.secret_share, &keygen.public_share),
         );
 
-        HSMCLKeyPair {
-            keypair: hsmcl,
-            encrypted_share,
-            randomness,
-        }
-    }
-
-    pub fn generate_zkcldl_proof(
-        context: &HSMCLKeyPair,
-        party_one_private: &Party1Private,
-        seed: BigInt,
-    ) -> CLDLProofPublicSetup {
-        let witness = Witness {
-            x: party_one_private.x1.to_big_int(),
-            r: party_one_private.c_key_randomness.clone(),
-        };
-        let proof = CLDLProofPublicSetup::prove(
-            witness,
-            context.keypair.pk.clone(),
-            context.encrypted_share.clone(),
-            GE::generator() * &party_one_private.x1,
-            seed,
-        );
-
-        proof
+        (
+            HSMCL {
+                cl_group: cl_group.clone(),
+                public: public_key.clone(),
+                secret: secret_key.clone(),
+                encrypted_share: ciphertext.clone(),
+            },
+            HSMCLPublic {
+                cl_pub_key: public_key.clone(),
+                proof,
+                encrypted_share: ciphertext.clone(),
+                cl_group,
+            },
+        )
     }
 }
 
@@ -361,8 +357,9 @@ impl EphKeyGenSecondMsg {
 
 impl Signature {
     pub fn compute(
+        hsmcl: &HSMCL,
         party_one_private: &Party1Private,
-        partial_sig_c3: Ciphertext,
+        partial_sig_c3: CLCiphertext,
         ephemeral_local_share: &EphEcKeyPair,
         ephemeral_other_public_share: &GE,
     ) -> Signature {
@@ -376,8 +373,12 @@ impl Signature {
             .to_big_int()
             .invert(&FE::q())
             .unwrap();
-        let s_tag = party_one_private.keypair.decrypt(&partial_sig_c3);
-        let s_tag_tag = BigInt::mod_mul(&k1_inv, &s_tag, &FE::q());
+        let s_tag = decrypt(
+            &hsmcl.cl_group,
+            &party_one_private.hsmcl_priv,
+            &partial_sig_c3,
+        );
+        let s_tag_tag = BigInt::mod_mul(&k1_inv, &s_tag.to_big_int(), &FE::q());
         let s = cmp::min(s_tag_tag.clone(), FE::q().clone() - s_tag_tag.clone());
         Signature { s, r: rx }
     }
