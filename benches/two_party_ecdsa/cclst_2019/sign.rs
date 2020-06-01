@@ -9,27 +9,36 @@ mod bench {
     pub fn bench_full_sign_party_one_two(c: &mut Criterion) {
         c.bench_function("sign", move |b| {
             b.iter(|| {
+                ////////// Simulate KeyGen /////////////////
                 // assume party1 and party2 engaged with KeyGen in the past resulting in
                 // party1 owning private share and HSMCL key-pair
                 // party2 owning private share and HSMCL encryption of party1 share
-                let (_party_one_private_share_gen, _comm_witness, ec_key_pair_party1) =
+                let (_party_one_private_share_gen, comm_witness, ec_key_pair_party1) =
                     party_one::KeyGenFirstMsg::create_commitments();
                 let (party_two_private_share_gen, ec_key_pair_party2) = party_two::KeyGenFirstMsg::create();
 
+                //pi (nothing up my sleeve)
                 let seed: BigInt = str::parse(
                     "314159265358979323846264338327950288419716939937510582097494459230781640628620899862803482534211706798214808651328230664709384460955058223172535940812848"
                 ).unwrap();
 
-                let party_one_hsmcl_key_pair =
-                    party_one::HSMCLKeyPair::generate_keypair_and_encrypted_share(&ec_key_pair_party1, seed);
+                let (party_one_hsmcl, hsmcl_public) =
+                    party_one::HSMCL::generate_keypair_and_encrypted_share_and_proof(
+                        &ec_key_pair_party1,
+                        &seed,
+                    );
 
                 let party1_private =
-                    party_one::Party1Private::set_private_key(&ec_key_pair_party1, &party_one_hsmcl_key_pair);
+                    party_one::Party1Private::set_private_key(&ec_key_pair_party1, &party_one_hsmcl);
 
-                let party_two_hsmcl_public = HSMCLPublic::set(
-                    &party_one_hsmcl_key_pair.keypair.pk,
-                    &party_one_hsmcl_key_pair.encrypted_share,
-                );
+                let party_two_hsmcl_pub = party_two::Party2Public::verify_setup_and_zkcldl_proof(
+                    &hsmcl_public,
+                    &seed,
+                    &comm_witness.public_share,
+                )
+                    .expect("proof error");
+
+                ////////// Start Signing /////////////////
                 // creating the ephemeral private shares:
 
                 let (eph_party_two_first_message, eph_comm_witness, eph_ec_key_pair_party2) =
@@ -52,7 +61,7 @@ mod bench {
                 let message = BigInt::from(1234);
 
                 let partial_sig = party_two::PartialSig::compute(
-                    party_two_hsmcl_public,
+                    party_two_hsmcl_pub,
                     &party2_private,
                     &eph_ec_key_pair_party2,
                     &eph_party_one_first_message.public_share,
@@ -60,6 +69,7 @@ mod bench {
                 );
 
                 let signature = party_one::Signature::compute(
+                    &party_one_hsmcl,
                     &party1_private,
                     partial_sig.c3,
                     &eph_ec_key_pair_party1,

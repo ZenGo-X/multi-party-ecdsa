@@ -309,7 +309,7 @@ impl Party1Private {
     }
 
     // used to transform lindell master key to gg18 master key
-    pub fn to_mta_message_b(&self, message_b: MessageB) -> Result<FE, Error> {
+    pub fn to_mta_message_b(&self, message_b: MessageB) -> Result<(FE, BigInt), Error> {
         message_b.verify_proofs_get_alpha(&self.paillier_priv, &self.x1)
     }
 }

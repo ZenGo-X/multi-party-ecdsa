@@ -13,11 +13,11 @@
 
     @license GPL-3.0+ <https://github.com/KZen-networks/multi-party-ecdsa/blob/master/LICENSE>
 */
-
-use class_group::primitives::cl_dl_lcm::CLDLProofPublicSetup;
-use class_group::primitives::cl_dl_lcm::Ciphertext;
-use class_group::primitives::cl_dl_lcm::HSMCL;
-use class_group::primitives::cl_dl_lcm::PK as HSMCLPK;
+use super::party_one::HSMCLPublic;
+use class_group::primitives::cl_dl_public_setup::PK as HSMCLPK;
+use class_group::primitives::cl_dl_public_setup::{
+    encrypt, eval_scal, eval_sum, CLGroup, Ciphertext as CLCiphertext,
+};
 use curv::arithmetic::traits::*;
 use curv::cryptographic_primitives::commitments::hash_commitment::HashCommitment;
 use curv::cryptographic_primitives::commitments::traits::Commitment;
@@ -55,14 +55,15 @@ pub struct KeyGenFirstMsg {
 pub struct KeyGenSecondMsg {}
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct HSMCLPublic {
+pub struct Party2Public {
+    pub group: CLGroup,
     pub ek: HSMCLPK,
-    pub encrypted_secret_share: Ciphertext,
+    pub encrypted_secret_share: CLCiphertext,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PartialSig {
-    pub c3: Ciphertext,
+    pub c3: CLCiphertext,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -201,15 +202,6 @@ impl KeyGenSecondMsg {
     }
 }
 
-impl HSMCLPublic {
-    pub fn set(ek: &HSMCLPK, encrypted_secret_share: &Ciphertext) -> HSMCLPublic {
-        HSMCLPublic {
-            ek: ek.clone(),
-            encrypted_secret_share: encrypted_secret_share.clone(),
-        }
-    }
-}
-
 pub fn compute_pubkey(local_share: &EcKeyPair, other_share_public_share: &GE) -> GE {
     let pubkey = other_share_public_share.clone();
     pubkey.scalar_mul(&local_share.secret_share.get_element())
@@ -223,15 +215,27 @@ impl Party2Private {
     }
 }
 
-impl HSMCLPublic {
-    pub fn verify_zkcldl_proof(proof: CLDLProofPublicSetup) -> Result<Self, ()> {
-        let res = proof.verify();
-        match res {
-            Ok(_) => Ok(HSMCLPublic {
-                ek: proof.pk.clone(),
-                encrypted_secret_share: proof.ciphertext.clone(),
+impl Party2Public {
+    pub fn verify_setup_and_zkcldl_proof(
+        hsmcl_public: &HSMCLPublic,
+        seed: &BigInt,
+        party1_ec_pubkey: &GE,
+    ) -> Result<Self, ()> {
+        let setup_verify = hsmcl_public.cl_group.setup_verify(seed);
+
+        let proof_verify = hsmcl_public.proof.verify(
+            &hsmcl_public.cl_group,
+            &hsmcl_public.cl_pub_key,
+            &hsmcl_public.encrypted_share,
+            party1_ec_pubkey,
+        );
+        match proof_verify.is_ok() && setup_verify.is_ok() {
+            true => Ok(Party2Public {
+                group: hsmcl_public.cl_group.clone(),
+                ek: hsmcl_public.cl_pub_key.clone(),
+                encrypted_secret_share: hsmcl_public.encrypted_share.clone(),
             }),
-            Err(_) => Err(()),
+            false => Err(()),
         }
     }
 }
@@ -309,7 +313,7 @@ impl EphKeyGenSecondMsg {
 
 impl PartialSig {
     pub fn compute(
-        party_two_public: HSMCLPublic,
+        party_two_public: Party2Public,
         local_share: &Party2Private,
         ephemeral_local_share: &EphEcKeyPair,
         ephemeral_other_public_share: &GE,
@@ -327,12 +331,13 @@ impl PartialSig {
             .invert(&q)
             .unwrap();
         let k2_inv_m = BigInt::mod_mul(&k2_inv, message, &q);
-        let c1 = HSMCL::encrypt(&party_two_public.ek, &k2_inv_m);
+        let k2_inv_m_fe: FE = ECScalar::from(&k2_inv_m);
+        let c1 = encrypt(&party_two_public.group, &party_two_public.ek, &k2_inv_m_fe);
         let v = BigInt::mod_mul(&k2_inv, &local_share.x2.to_big_int(), &q);
         let v = BigInt::mod_mul(&v, &rx, &q);
 
-        let c2 = HSMCL::eval_scal(&party_two_public.encrypted_secret_share, &v);
-        let c3 = HSMCL::eval_sum(&c1, &c2);
+        let c2 = eval_scal(&party_two_public.encrypted_secret_share, &v);
+        let c3 = eval_sum(&c1.0, &c2);
 
         //c3:
         PartialSig { c3 }

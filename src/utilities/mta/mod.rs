@@ -56,13 +56,66 @@ impl MessageA {
             randomness,
         )
     }
+
+    pub fn a_with_predefined_randomness(
+        a: &FE,
+        alice_ek: &EncryptionKey,
+        randomness: &BigInt,
+    ) -> Self {
+        let c_a = Paillier::encrypt_with_chosen_randomness(
+            alice_ek,
+            RawPlaintext::from(a.to_big_int()),
+            &Randomness::from(randomness.clone()),
+        );
+
+        Self {
+            c: c_a.0.clone().into_owned(),
+        }
+    }
 }
 
 impl MessageB {
-    pub fn b(b: &FE, alice_ek: &EncryptionKey, c_a: MessageA) -> (Self, FE, BigInt) {
+    pub fn b(b: &FE, alice_ek: &EncryptionKey, c_a: MessageA) -> (Self, FE, BigInt, BigInt) {
         let beta_tag = BigInt::sample_below(&alice_ek.n);
         let beta_tag_fe: FE = ECScalar::from(&beta_tag);
         let randomness = BigInt::sample_below(&alice_ek.n);
+        let c_beta_tag = Paillier::encrypt_with_chosen_randomness(
+            alice_ek,
+            RawPlaintext::from(beta_tag.clone()),
+            &Randomness::from(randomness.clone()),
+        );
+
+        let b_bn = b.to_big_int();
+        let b_c_a = Paillier::mul(
+            alice_ek,
+            RawCiphertext::from(c_a.c),
+            RawPlaintext::from(b_bn),
+        );
+        let c_b = Paillier::add(alice_ek, b_c_a, c_beta_tag);
+        let beta = FE::zero().sub(&beta_tag_fe.get_element());
+        let dlog_proof_b = DLogProof::prove(b);
+        let dlog_proof_beta_tag = DLogProof::prove(&beta_tag_fe);
+
+        (
+            Self {
+                c: c_b.0.clone().into_owned(),
+                b_proof: dlog_proof_b,
+                beta_tag_proof: dlog_proof_beta_tag,
+            },
+            beta,
+            randomness,
+            beta_tag,
+        )
+    }
+
+    pub fn b_with_predefined_randomness(
+        b: &FE,
+        alice_ek: &EncryptionKey,
+        c_a: MessageA,
+        randomness: &BigInt,
+        beta_tag: &BigInt,
+    ) -> (Self, FE) {
+        let beta_tag_fe: FE = ECScalar::from(beta_tag);
         let c_beta_tag = Paillier::encrypt_with_chosen_randomness(
             alice_ek,
             RawPlaintext::from(beta_tag),
@@ -87,11 +140,14 @@ impl MessageB {
                 beta_tag_proof: dlog_proof_beta_tag,
             },
             beta,
-            randomness,
         )
     }
 
-    pub fn verify_proofs_get_alpha(&self, dk: &DecryptionKey, a: &FE) -> Result<FE, Error> {
+    pub fn verify_proofs_get_alpha(
+        &self,
+        dk: &DecryptionKey,
+        a: &FE,
+    ) -> Result<(FE, BigInt), Error> {
         let alice_share = Paillier::decrypt(dk, &RawCiphertext::from(self.c.clone()));
         let g: GE = ECPoint::generator();
         let alpha: FE = ECScalar::from(&alice_share.0);
@@ -102,7 +158,7 @@ impl MessageB {
             // we prove the correctness of the ciphertext using this check and the proof of knowledge of dlog of beta_tag
             && ba_btag.get_element() == g_alpha.get_element()
         {
-            Ok(alpha)
+            Ok((alpha, alice_share.0.into_owned()))
         } else {
             Err(InvalidKey)
         }
