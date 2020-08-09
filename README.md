@@ -80,7 +80,7 @@ Multi-party ECDSA is released under the terms of the GPL-3.0 license. See [LICEN
 
 ## Contact
 
-Feel free to [reach out](mailto:github@kzencorp.com) or join the KZen Research [Telegram](https://t.me/kzen_research) for discussions on code and research.
+Feel free to [reach out](mailto:github@kzencorp.com) or join ZenGo X [Telegram](https://t.me/zengo_x) for discussions on code and research.
 
 ## References
 
