@@ -197,6 +197,8 @@ fn test_sign_n5_t2_ttag4_corrupt_step7_party24() {
 // 1. This participant will create a Commitment, Decommitment pair on a scalar
 //    ui and then publish the Commitment part.
 // 2. It will create a Paillier Keypair and publish the public key for that.
+//
+#[cfg(test)]
 fn keygen_stage1(
     participant: usize,
 ) -> (
@@ -205,7 +207,11 @@ fn keygen_stage1(
     KeyGenDecommitMessage1,
     DLogStatement,
 ) {
-    // Paillier Keys.
+    // Paillier keys and various other values
+    // party_keys.ek is a secret value and it should be encrypted
+    // using a key that is owned by the participant who creates it. Right now it's plaintext but
+    // this is test.
+    //
     let party_keys = Keys::create(participant - 1);
     let (bc1, decom) =
         party_keys.phase1_broadcast_phase3_proof_of_correct_key_proof_of_correct_h1h2();
@@ -218,6 +224,7 @@ fn keygen_stage1(
 // 1. Decommit the value obtained in stage1.
 // 2. Perform a VSS on that value.
 //
+#[cfg(test)]
 fn keygen_stage2(
     participant: usize,
     params: &Parameters,
@@ -240,6 +247,7 @@ fn keygen_stage2(
 // 2. Calculate the corresponding public key for that share.
 // 3. Generate the dlog proof which the orchestrator would check later.
 //
+#[cfg(test)]
 fn keygen_stage3(
     party_keys: &Keys,
     vss_scheme_vec: &[VerifiableSS],
@@ -265,6 +273,13 @@ fn keygen_stage3(
     (shared_keys, dlog_proof)
 }
 
+//
+// The key generation process needs to be orchestrated.
+// All the participants do some work on each stage and return some data.
+// This data needs to be filter/collated and sent back.
+// This test helper is just a demonstration of the same.
+//
+#[cfg(test)]
 fn keygen_orchestrator(
     params: Parameters,
 ) -> Result<
@@ -303,7 +318,10 @@ fn keygen_orchestrator(
         secret_shares_vec.push(secret_shares);
         index_vec.push(index);
     }
-
+    // The party shares are secret values.
+    // Each value in secret_shares_vec[j][i] should be encrypted by a key owned by
+    // participant i. So that those shares are only available to that participant and no
+    // one else.
     let party_shares = (0..params.share_count)
         .map(|i| {
             (0..params.share_count)
@@ -329,6 +347,8 @@ fn keygen_orchestrator(
         shared_keys_vec.push(shared_keys);
         dlog_proof_vec.push(dlog_proof);
     }
+    // At this point the shared_keys contain the secret values.
+    // These values should be encrypted using a key owned by that participant.
     let pk_vec = (0..params.share_count)
         .map(|i| dlog_proof_vec[i as usize].pk)
         .collect::<Vec<GE>>();
@@ -347,9 +367,8 @@ fn keygen_orchestrator(
         return Err(dlog_verification.err().unwrap());
     }
 
-    // important:
-    // This is only for test purposes. This code should never be executed in practice.
-    // x is the private key and all this work is done to never have that at one place in the clear.
+    // Important: This is only for test purposes. This code should never be executed in practice.
+    //            x is the private key and all this work is done to never have that at one place in the clear.
     let xi_vec = (0..=params.threshold)
         .map(|i| shared_keys_vec[i as usize].x_i)
         .collect::<Vec<FE>>();
