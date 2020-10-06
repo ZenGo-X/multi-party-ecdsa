@@ -46,11 +46,6 @@ fn test_keygen_t1_n2() {
 }
 
 #[test]
-fn test_keygen_2_12() {
-    assert!(keygen_t_n_parties(2, 12).is_ok());
-}
-
-#[test]
 fn test_keygen_t2_n3() {
     assert!(keygen_t_n_parties(2, 3).is_ok());
 }
