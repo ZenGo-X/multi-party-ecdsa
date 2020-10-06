@@ -71,11 +71,43 @@ fn test_sign_n8_t4_ttag6() {
 
 #[test]
 fn test_keygen_orchestration() {
-    assert!(keygen_orchestrator(Parameters {
-        share_count: 5,
-        threshold: 2
-    })
-    .is_ok());
+    use rand::Rng;
+    let mut rng = rand::thread_rng();
+    let mut share_count_test: u16;
+    let mut threshold_test: u16;
+    for _count in 0..2 {
+        loop {
+            share_count_test = rng.gen::<u16>() % 16;
+            if share_count_test < 2 {
+                continue;
+            } else {
+                break;
+            }
+        }
+        loop {
+            threshold_test = rng.gen::<u16>() % share_count_test;
+            if threshold_test < 1 || threshold_test == share_count_test - 1 {
+                continue;
+            } else {
+                break;
+            }
+        }
+        println!(
+            " Input params. Threshold {} Share Count {}",
+            threshold_test, share_count_test
+        );
+        assert!(
+            keygen_orchestrator(Parameters {
+                share_count: share_count_test,
+                threshold: threshold_test,
+            })
+            .is_ok(),
+            format!(
+                " Test failed for Threshold {} Share Count {}",
+                threshold_test, share_count_test
+            )
+        );
+    }
 }
 
 // party 1 is corrupting step 5
@@ -160,14 +192,13 @@ fn test_sign_n5_t2_ttag4_corrupt_step7_party24() {
 }
 
 //
-// This API will perform the stage 1 of keygeneration for the participant.
 // As per page13 https://eprint.iacr.org/2020/540.pdf:
 // This step will:
 // 1. This participant will create a Commitment, Decommitment pair on a scalar
 //    ui and then publish the Commitment part.
 // 2. It will create a Paillier Keypair and publish the public key for that.
 fn keygen_stage1(
-    participant: u16,
+    participant: usize,
 ) -> (
     Keys,
     KeyGenBroadcastMessage1,
@@ -175,7 +206,7 @@ fn keygen_stage1(
     DLogStatement,
 ) {
     // Paillier Keys.
-    let party_keys = Keys::create((participant - 1) as usize);
+    let party_keys = Keys::create(participant - 1);
     let (bc1, decom) =
         party_keys.phase1_broadcast_phase3_proof_of_correct_key_proof_of_correct_h1h2();
     let h1_h2_N_tilde = bc1.dlog_statement.clone();
@@ -188,13 +219,13 @@ fn keygen_stage1(
 // 2. Perform a VSS on that value.
 //
 fn keygen_stage2(
-    participant: u16,
+    participant: usize,
     params: &Parameters,
     party_keys: &[Keys],
     bc1_vec: &[KeyGenBroadcastMessage1],
     decom_vec: &[KeyGenDecommitMessage1],
 ) -> (VerifiableSS, Vec<FE>, usize) {
-    let vss_result = party_keys[(participant - 1) as usize]
+    let vss_result = party_keys[participant - 1]
         .phase1_verify_com_phase3_verify_correct_key_verify_dlog_phase2_distribute(
             params, decom_vec, bc1_vec,
         )
@@ -215,7 +246,7 @@ fn keygen_stage3(
     secret_shares_vec: &Vec<Vec<FE>>,
     decom_vec: &[KeyGenDecommitMessage1],
     params: &Parameters,
-    participant: u16,
+    participant: usize,
     index_vec: &[usize],
 ) -> (SharedKeys, DLogProof) {
     let y_vec = (0..params.share_count)
@@ -225,9 +256,9 @@ fn keygen_stage3(
         .phase2_verify_vss_construct_keypair_phase3_pok_dlog(
             &params,
             &y_vec,
-            &secret_shares_vec[(participant - 1) as usize],
+            &secret_shares_vec[participant - 1],
             vss_scheme_vec,
-            &index_vec[(participant - 1) as usize] + 1,
+            &index_vec[participant - 1] + 1,
         )
         .expect("stage3 failed.");
     let (shared_keys, dlog_proof) = res;
@@ -248,7 +279,9 @@ fn keygen_orchestrator(
     ),
     ErrorType,
 > {
-    let participants = (0..params.share_count).map(|k| k + 1).collect::<Vec<u16>>();
+    let participants = (0..(params.share_count as usize))
+        .map(|k| k + 1)
+        .collect::<Vec<usize>>();
     let mut party_keys_vec = vec![];
     let mut bc1_vec = vec![];
     let mut decom_vec = vec![];
@@ -285,7 +318,7 @@ fn keygen_orchestrator(
     let mut dlog_proof_vec = vec![];
     for participant in participants.iter() {
         let (shared_keys, dlog_proof) = keygen_stage3(
-            &party_keys_vec[(participant - 1) as usize],
+            &party_keys_vec[participant - 1],
             &vss_scheme_vec,
             &party_shares,
             &decom_vec,
