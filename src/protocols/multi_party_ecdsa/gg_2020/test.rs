@@ -46,6 +46,11 @@ fn test_keygen_t1_n2() {
 }
 
 #[test]
+fn test_keygen_2_12() {
+    assert!(keygen_t_n_parties(2, 12).is_ok());
+}
+
+#[test]
 fn test_keygen_t2_n3() {
     assert!(keygen_t_n_parties(2, 3).is_ok());
 }
@@ -75,10 +80,10 @@ fn test_keygen_orchestration() {
     let mut rng = rand::thread_rng();
     let mut share_count_test: u16;
     let mut threshold_test: u16;
-    for _count in 0..2 {
+    for _count in 0..5 {
         loop {
             share_count_test = rng.gen::<u16>() % 16;
-            if share_count_test < 2 {
+            if share_count_test < 3 {
                 continue;
             } else {
                 break;
