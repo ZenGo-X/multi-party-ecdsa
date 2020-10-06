@@ -69,6 +69,7 @@ fn test_sign_n8_t4_ttag6() {
     let _ = sign(4, 8, 6, vec![0, 1, 2, 4, 6, 7], 0, &[0]);
 }
 
+// Test the key generation protocol using random values for threshold and share count.
 #[test]
 fn test_keygen_orchestration() {
     use rand::Rng;
@@ -77,8 +78,10 @@ fn test_keygen_orchestration() {
     let mut threshold_test: u16;
     for _count in 0..5 {
         loop {
+            // 16 is just a randomly chosen value. Taking a guess as to how many shares would
+            //    someone want for a key.
             share_count_test = rng.gen::<u16>() % 16;
-            if share_count_test < 3 {
+            if share_count_test < 2 {
                 continue;
             } else {
                 break;
@@ -86,7 +89,7 @@ fn test_keygen_orchestration() {
         }
         loop {
             threshold_test = rng.gen::<u16>() % share_count_test;
-            if threshold_test < 1 || threshold_test == share_count_test - 1 {
+            if threshold_test < 1 {
                 continue;
             } else {
                 break;
@@ -223,7 +226,8 @@ fn keygen_stage1(
 // As per page 13 on https://eprint.iacr.org/2020/540.pdf:
 // 1. Decommit the value obtained in stage1.
 // 2. Perform a VSS on that value.
-//
+// Important to note that all the stages are sequential. Unless all the messages from the previous
+// stage are not delivered, you cannot jump on the next stage.
 #[cfg(test)]
 fn keygen_stage2(
     participant: usize,
@@ -231,14 +235,13 @@ fn keygen_stage2(
     party_keys: &[Keys],
     bc1_vec: &[KeyGenBroadcastMessage1],
     decom_vec: &[KeyGenDecommitMessage1],
-) -> (VerifiableSS, Vec<FE>, usize) {
+) -> Result<(VerifiableSS, Vec<FE>, usize), ErrorType> {
     let vss_result = party_keys[participant - 1]
         .phase1_verify_com_phase3_verify_correct_key_verify_dlog_phase2_distribute(
             params, decom_vec, bc1_vec,
-        )
-        .expect("stage 2 keygen failed");
+        )?;
     let (vss_scheme, secret_shares, index) = vss_result;
-    (vss_scheme, secret_shares, index)
+    Ok((vss_scheme, secret_shares, index))
 }
 
 //
@@ -247,6 +250,8 @@ fn keygen_stage2(
 // 2. Calculate the corresponding public key for that share.
 // 3. Generate the dlog proof which the orchestrator would check later.
 //
+// Important to note that all the stages are sequential. Unless all the messages from the previous
+// stage are not delivered, you cannot jump on the next stage.
 #[cfg(test)]
 fn keygen_stage3(
     party_keys: &Keys,
@@ -256,27 +261,37 @@ fn keygen_stage3(
     params: &Parameters,
     participant: usize,
     index_vec: &[usize],
-) -> (SharedKeys, DLogProof) {
+) -> Result<(SharedKeys, DLogProof), ErrorType> {
     let y_vec = (0..params.share_count)
         .map(|i| decom_vec[i as usize].y_i)
         .collect::<Vec<GE>>();
-    let res = party_keys
-        .phase2_verify_vss_construct_keypair_phase3_pok_dlog(
-            &params,
-            &y_vec,
-            &secret_shares_vec[participant - 1],
-            vss_scheme_vec,
-            &index_vec[participant - 1] + 1,
-        )
-        .expect("stage3 failed.");
+    let res = party_keys.phase2_verify_vss_construct_keypair_phase3_pok_dlog(
+        &params,
+        &y_vec,
+        &secret_shares_vec[participant - 1],
+        vss_scheme_vec,
+        &index_vec[participant - 1] + 1,
+    )?;
     let (shared_keys, dlog_proof) = res;
-    (shared_keys, dlog_proof)
+    Ok((shared_keys, dlog_proof))
 }
-
 //
-// The key generation process needs to be orchestrated.
+// Final stage of key generation. All parties must execute this.
+// Unless this is successful the protocol is not complete.
+//
+#[cfg(test)]
+fn keygen_stage4(
+    params: &Parameters,
+    dlog_proof_vec: &[DLogProof],
+    y_vec: &[GE],
+) -> Result<(), ErrorType> {
+    Ok(Keys::verify_dlog_proofs(params, dlog_proof_vec, y_vec)?)
+}
+// The Distributed key generation protocol can work with a broadcast channel.
+// All the messages are exchanged p2p.
+// On the contrary, the key generation process can be orchestrated as below.
 // All the participants do some work on each stage and return some data.
-// This data needs to be filter/collated and sent back.
+// This data needs to be filtered/collated and sent back as an input to the next stage.
 // This test helper is just a demonstration of the same.
 //
 #[cfg(test)]
@@ -312,8 +327,12 @@ fn keygen_orchestrator(
     let mut secret_shares_vec = vec![];
     let mut index_vec = vec![];
     for participant in participants.iter() {
-        let (vss_scheme, secret_shares, index) =
+        let result_check =
             keygen_stage2(*participant, &params, &party_keys_vec, &bc1_vec, &decom_vec);
+        if let Err(err) = result_check {
+            return Err(err);
+        }
+        let (vss_scheme, secret_shares, index) = result_check.unwrap();
         vss_scheme_vec.push(vss_scheme);
         secret_shares_vec.push(secret_shares);
         index_vec.push(index);
@@ -335,7 +354,7 @@ fn keygen_orchestrator(
     let mut shared_keys_vec = vec![];
     let mut dlog_proof_vec = vec![];
     for participant in participants.iter() {
-        let (shared_keys, dlog_proof) = keygen_stage3(
+        let result_check = keygen_stage3(
             &party_keys_vec[participant - 1],
             &vss_scheme_vec,
             &party_shares,
@@ -344,11 +363,16 @@ fn keygen_orchestrator(
             *participant,
             &index_vec,
         );
+        if let Err(err) = result_check {
+            return Err(err);
+        }
+        let (shared_keys, dlog_proof) = result_check.unwrap();
         shared_keys_vec.push(shared_keys);
         dlog_proof_vec.push(dlog_proof);
     }
     // At this point the shared_keys contain the secret values.
     // These values should be encrypted using a key owned by that participant.
+
     let pk_vec = (0..params.share_count)
         .map(|i| dlog_proof_vec[i as usize].pk)
         .collect::<Vec<GE>>();
@@ -360,13 +384,9 @@ fn keygen_orchestrator(
     let head = y_vec_iter.next().unwrap();
     let tail = y_vec_iter;
     let y_sum = tail.fold(head.clone(), |acc, x| acc + x);
-
-    let dlog_verification = Keys::verify_dlog_proofs(&params, &dlog_proof_vec, &y_vec);
-
-    if dlog_verification.is_err() {
-        return Err(dlog_verification.err().unwrap());
+    for _ in participants.iter() {
+        keygen_stage4(&params, &dlog_proof_vec, &y_vec)?;
     }
-
     // Important: This is only for test purposes. This code should never be executed in practice.
     //            x is the private key and all this work is done to never have that at one place in the clear.
     let xi_vec = (0..=params.threshold)
@@ -385,6 +405,8 @@ fn keygen_orchestrator(
         .iter()
         .map(|bc1| bc1.e.clone())
         .collect::<Vec<EncryptionKey>>();
+    // At this point key generation is complete.
+    // shared_keys_vec contains the private key shares for all the participants.
     Ok((
         party_keys_vec,
         shared_keys_vec,
@@ -506,9 +528,9 @@ fn keygen_t_n_parties(
 
     Ok((
         party_keys_vec,
-        shared_keys_vec,
+        shared_keys_vec, // Private shares for this MPC keypair
         pk_vec,
-        y_sum,
+        y_sum, // public key for this MPC keypair.
         vss_scheme_for_test[0].clone(),
         e_vec,
         h1_h2_N_tilde_vec,
