@@ -19,9 +19,11 @@
 use crate::protocols::multi_party_ecdsa::gg_2020::blame::GlobalStatePhase5;
 use crate::protocols::multi_party_ecdsa::gg_2020::party_i::{
     KeyGenBroadcastMessage1, KeyGenDecommitMessage1, Keys, LocalSignature, Parameters,
-    PartyPrivate, SharedKeys, SignKeys,
+    PartyPrivate, SharedKeys, SignBroadcastPhase1, SignDecommitPhase1, SignKeys,
 };
 use crate::utilities::mta::{MessageA, MessageB};
+use crate::Error;
+use serde::{Deserialize, Serialize};
 
 use crate::protocols::multi_party_ecdsa::gg_2020::blame::GlobalStatePhase6;
 use crate::protocols::multi_party_ecdsa::gg_2020::blame::GlobalStatePhase7;
@@ -112,7 +114,6 @@ fn test_keygen_orchestration() {
         );
     }
 }
-
 // party 1 is corrupting step 5
 #[test]
 fn test_sign_n2_t1_ttag1_corrupt_step5_party1() {
@@ -444,7 +445,6 @@ fn keygen_t_n_parties(
         .map(|k| k.phase1_broadcast_phase3_proof_of_correct_key_proof_of_correct_h1h2())
         .unzip();
 
-    // public vector of paillier public keys
     let e_vec = bc1_vec
         .iter()
         .map(|bc1| bc1.e.clone())
@@ -527,21 +527,189 @@ fn keygen_t_n_parties(
     assert_eq!(x, sum_u_i);
 
     Ok((
-        party_keys_vec,
-        shared_keys_vec, // Private shares for this MPC keypair
-        pk_vec,
-        y_sum, // public key for this MPC keypair.
-        vss_scheme_for_test[0].clone(),
-        e_vec,
+        party_keys_vec,                 // Paillier keys, keypair, N, h1, h2
+        shared_keys_vec,                // Private shares for this MPC keypair
+        pk_vec,                         // dlog proof for x_i
+        y_sum,                          // public key for this MPC keypair.
+        vss_scheme_for_test[0].clone(), // This contains the commitments for each initial share and the shares itself
+        e_vec,                          // paillier encryption keys. Why separate ?
         h1_h2_N_tilde_vec,
     ))
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SignStage1Result {
+    pub g_w: GE,
+    pub sign_keys: SignKeys,
+    pub party_private: PartyPrivate,
+    pub bc1: SignBroadcastPhase1,
+    pub decom1: SignDecommitPhase1,
+    pub m_a: (MessageA, BigInt),
+}
+// Signing stage 1.
+// A sign operation happens between t+1 parties.
+// The way the protocol works needs a t,t+1 share of the secret shares for all
+// the participants taking part in signing.
+// It also creates all the ephemeral values required for signing namely gamma_i, w_i. Those are represented by the
+// SignKeys structure.
+// It also creates the C, D messages for gamma_i and encrypts k_i with the Paillier key.
+// Arguments:
+//  pk: Public key corresponding to the keypair
+//  vss_scheme_vec: Generated during keypair generation
+//  index: 0 based index for the partipant.
+//  s: list of participants taking part in signing.
+//  keypair_result: output of the key generation protocol.
+pub fn sign_stage1(
+    pk: &GE,
+    vss_scheme_vec: &VerifiableSS,
+    index: usize,
+    s: &[usize],
+    keypair_result: &KeyPairResult,
+) -> SignStage1Result {
+    //t,n to t,t for it's share.
+    let pk_local = pk * &vss_scheme_vec.map_share_to_new_params(index, s);
+    let l_party_private = PartyPrivate::set_private(
+        keypair_result.party_keys_vec[index].clone(),
+        keypair_result.shared_keys_vec[index].clone(),
+    );
+    //ephemeral keys. w_i, gamma_i and k_i and the curve points for the same.
+    let l_sign_keys = SignKeys::create(&l_party_private, vss_scheme_vec, index, s);
+    // Commitment for g^gamma_i
+    let (l_bc1, l_decom1) = l_sign_keys.phase1_broadcast();
+    // encryption of k_i
+    let l_m_a = MessageA::a(
+        &l_sign_keys.k_i,
+        &keypair_result.party_keys_vec[s[index]].ek,
+    );
+    SignStage1Result {
+        g_w: pk_local,
+        sign_keys: l_sign_keys,
+        party_private: l_party_private,
+        bc1: l_bc1,
+        decom1: l_decom1,
+        m_a: l_m_a,
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SignStage2Result {
+    pub gamma_i_vec: Vec<(MessageB, FE, BigInt, BigInt)>,
+    pub w_i_vec: Vec<(MessageB, FE, BigInt, BigInt)>,
+}
+// This API will carry our the MtA for gamma_i MtAwc(Check happens later in stage3) for w_i
+// This is basically a P2P between a participant and all it's peers.
+pub fn sign_stage2(
+    m_a: (MessageA, BigInt),
+    gamma_i_vec: &[FE],
+    w_i_vec: &[FE],
+    e_k: &EncryptionKey,
+) -> Result<SignStage2Result, ErrorType> {
+    let res_gamma_i: Vec<(MessageB, FE, BigInt, BigInt)> = (0..gamma_i_vec.len())
+        .map(|i| MessageB::b(&gamma_i_vec[i], &e_k, m_a.0.clone()))
+        .collect::<Vec<(MessageB, FE, BigInt, BigInt)>>();
+    let res_w_i: Vec<(MessageB, FE, BigInt, BigInt)> = (0..w_i_vec.len())
+        .map(|i| MessageB::b(&w_i_vec[i], &e_k, m_a.0.clone()))
+        .collect::<Vec<(MessageB, FE, BigInt, BigInt)>>();
+    Ok(SignStage2Result {
+        gamma_i_vec: res_gamma_i,
+        w_i_vec: res_w_i,
+    })
+}
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SignStage3Result {
+    pub alpha_vec_gamma: Vec<(FE, BigInt)>,
+    pub alpha_vec_w: Vec<(FE, BigInt)>,
+}
+pub fn sign_stage3(
+    dk: &DecryptionKey,
+    k_i: &FE,
+    m_b_gamma: &[MessageB],
+    m_b_w: &[MessageB],
+    index: usize,
+) -> Result<SignStage3Result, Error> {
+    let mut res_alpha_vec_gamma = vec![];
+    for i in 0..m_b_gamma.len() {
+        let i_to_use = if i < index { i } else { i + 1 };
+        let res = m_b_gamma[i_to_use].verify_proofs_get_alpha(dk, k_i)?;
+        /*        if res.is_err() {
+            return res;
+        }*/
+        res_alpha_vec_gamma.push(res);
+    }
+    let mut res_alpha_vec_w = vec![];
+    for i in 0..m_b_w.len() {
+        let i_to_use = if i < index { i } else { i + 1 };
+        let res = m_b_w[i_to_use].verify_proofs_get_alpha(dk, k_i)?;
+        /*        if res.is_err() {
+            return res;
+        }*/
+        res_alpha_vec_w.push(res);
+    }
+    Ok(SignStage3Result {
+        alpha_vec_gamma: res_alpha_vec_gamma,
+        alpha_vec_w: res_alpha_vec_w,
+    })
+}
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct KeyPairResult {
+    pub party_keys_vec: Vec<Keys>,
+    pub shared_keys_vec: Vec<SharedKeys>,
+    pub pk_vec: Vec<GE>,
+    vss_scheme: VerifiableSS,
+    e_vec: Vec<EncryptionKey>,
+    h1_h2_N_tilde_vec: Vec<DLogStatement>,
+}
+pub fn orchestrate_sign(
+    s: &[usize],
+    _bytes_to_sign: &[u8],
+    keypair_result: &KeyPairResult,
+) -> Result<(), ErrorType> {
+    let ttag = s.len();
+    let mut g_w_vec = vec![];
+    let mut private_vec = vec![];
+    let mut sign_keys_vec = vec![];
+    let mut bc1_vec = vec![];
+    let mut decom1_vec = vec![];
+    let mut m_a_vec: Vec<(MessageA, BigInt)> = vec![];
+    (0..ttag).map(|i| i).for_each(|i| {
+        let res_stage1 = sign_stage1(
+            &keypair_result.pk_vec[i],
+            &keypair_result.vss_scheme,
+            i,
+            s,
+            keypair_result,
+        );
+        g_w_vec.push(res_stage1.g_w);
+        private_vec.push(res_stage1.party_private);
+        sign_keys_vec.push(res_stage1.sign_keys);
+        bc1_vec.push(res_stage1.bc1);
+        decom1_vec.push(res_stage1.decom1);
+        m_a_vec.push(res_stage1.m_a);
+    });
+    let gamma_i_vec = (0..ttag)
+        .map(|i| sign_keys_vec[i].gamma_i)
+        .collect::<Vec<FE>>();
+    let w_i_vec = (0..ttag).map(|i| sign_keys_vec[i].w_i).collect::<Vec<FE>>();
+    let mut res_stage2_vec: Vec<SignStage2Result> = vec![];
+    for i in 0..ttag {
+        let res = sign_stage2(
+            m_a_vec[i].clone(),
+            &gamma_i_vec,
+            &w_i_vec,
+            &keypair_result.e_vec[i],
+        );
+        if let Err(err) = res {
+            return Err(err);
+        }
+        res_stage2_vec.push(res.unwrap());
+    }
+    Ok(())
+}
 fn sign(
     t: u16,
     n: u16,
-    ttag: u16,
-    s: Vec<usize>,
+    ttag: u16,     //number of participants
+    s: Vec<usize>, //participant list indexed from zero
     corrupt_step: usize,
     corrupted_parties: &[usize],
 ) -> Result<SignatureRecid, ErrorType> {
@@ -549,6 +717,7 @@ fn sign(
     let (party_keys_vec, shared_keys_vec, pk_vec, y, vss_scheme, ek_vec, dlog_statement_vec) =
         keygen_t_n_parties(t, n).unwrap();
 
+    // transform the t,n share to t,t+1 share. Get the public keys for the same.
     let g_w_vec = SignKeys::g_w_vec(&pk_vec, &s[..], &vss_scheme);
 
     let private_vec = (0..shared_keys_vec.len())
@@ -570,7 +739,7 @@ fn sign(
 
     // each party computes [Ci,Di] = com(g^gamma_i) and broadcast the commitments
     let (bc1_vec, decommit_vec1): (Vec<_>, Vec<_>) =
-        sign_keys_vec.iter().map(|k| k.phase1_broadcast()).unzip();
+        sign_keys_vec.iter().map(|k| k.phase1_broadcast()).unzip(); //number of participants //number of participants
 
     // each party i BROADCASTS encryption of k_i under her Paillier key
     // m_a_vec = [ma_0;ma_1;,...]
