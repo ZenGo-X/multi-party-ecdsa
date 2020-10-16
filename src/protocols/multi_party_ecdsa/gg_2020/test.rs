@@ -312,29 +312,37 @@ fn keygen_orchestrator(params: Parameters) -> Result<KeyPairResult, ErrorType> {
     let participants = (0..(params.share_count as usize))
         .map(|k| k + 1)
         .collect::<Vec<usize>>();
-    let mut party_keys_vec = vec![];
-    let mut bc1_vec = vec![];
-    let mut decom_vec = vec![];
-    let mut h1_h2_N_tilde_vec = vec![];
+    // _l in all the below fields means local.
+    // Just naming them differently than the structure fields so that Rust Analyzer does not
+    // complain about "Shorthand Struct initialization" lint.
+    let mut party_keys_vec_l = vec![];
+    let mut bc1_vec_l = vec![];
+    let mut decom_vec_l = vec![];
+    let mut h1_h2_N_tilde_vec_l = vec![];
     for participant in participants.iter() {
         let (party_keys, bc1, decom, h1_h2_N_tilde) = keygen_stage1(*participant);
-        party_keys_vec.push(party_keys);
-        bc1_vec.push(bc1);
-        decom_vec.push(decom);
-        h1_h2_N_tilde_vec.push(h1_h2_N_tilde);
+        party_keys_vec_l.push(party_keys);
+        bc1_vec_l.push(bc1);
+        decom_vec_l.push(decom);
+        h1_h2_N_tilde_vec_l.push(h1_h2_N_tilde);
     }
-    let mut vss_scheme_vec = vec![];
-    let mut secret_shares_vec = vec![];
+    let mut vss_scheme_vec_l = vec![];
+    let mut secret_shares_vec_l = vec![];
     let mut index_vec = vec![];
     for participant in participants.iter() {
-        let result_check =
-            keygen_stage2(*participant, &params, &party_keys_vec, &bc1_vec, &decom_vec);
+        let result_check = keygen_stage2(
+            *participant,
+            &params,
+            &party_keys_vec_l,
+            &bc1_vec_l,
+            &decom_vec_l,
+        );
         if let Err(err) = result_check {
             return Err(err);
         }
         let (vss_scheme, secret_shares, index) = result_check.unwrap();
-        vss_scheme_vec.push(vss_scheme);
-        secret_shares_vec.push(secret_shares);
+        vss_scheme_vec_l.push(vss_scheme);
+        secret_shares_vec_l.push(secret_shares);
         index_vec.push(index);
     }
     // The party shares are secret values.
@@ -345,20 +353,20 @@ fn keygen_orchestrator(params: Parameters) -> Result<KeyPairResult, ErrorType> {
         .map(|i| {
             (0..params.share_count)
                 .map(|j| {
-                    let vec_j = &secret_shares_vec[j as usize];
+                    let vec_j = &secret_shares_vec_l[j as usize];
                     vec_j[i as usize]
                 })
                 .collect::<Vec<FE>>()
         })
         .collect::<Vec<Vec<FE>>>();
-    let mut shared_keys_vec = vec![];
-    let mut dlog_proof_vec = vec![];
+    let mut shared_keys_vec_l = vec![];
+    let mut dlog_proof_vec_l = vec![];
     for participant in participants.iter() {
         let result_check = keygen_stage3(
-            &party_keys_vec[participant - 1],
-            &vss_scheme_vec,
+            &party_keys_vec_l[participant - 1],
+            &vss_scheme_vec_l,
             &party_shares,
-            &decom_vec,
+            &decom_vec_l,
             &params,
             *participant,
             &index_vec,
@@ -367,54 +375,56 @@ fn keygen_orchestrator(params: Parameters) -> Result<KeyPairResult, ErrorType> {
             return Err(err);
         }
         let (shared_keys, dlog_proof) = result_check.unwrap();
-        shared_keys_vec.push(shared_keys);
-        dlog_proof_vec.push(dlog_proof);
+        shared_keys_vec_l.push(shared_keys);
+        dlog_proof_vec_l.push(dlog_proof);
     }
     // At this point the shared_keys contain the secret values.
     // These values should be encrypted using a key owned by that participant.
 
-    let pk_vec = (0..params.share_count)
-        .map(|i| dlog_proof_vec[i as usize].pk)
+    let pk_vec_l = (0..params.share_count)
+        .map(|i| dlog_proof_vec_l[i as usize].pk)
         .collect::<Vec<GE>>();
 
     let y_vec = (0..params.share_count)
-        .map(|i| decom_vec[i as usize].y_i)
+        .map(|i| decom_vec_l[i as usize].y_i)
         .collect::<Vec<GE>>();
     let mut y_vec_iter = y_vec.iter();
     let head = y_vec_iter.next().unwrap();
     let tail = y_vec_iter;
-    let y_sum = tail.fold(head.clone(), |acc, x| acc + x);
+    let y_sum_l = tail.fold(head.clone(), |acc, x| acc + x);
     for _ in participants.iter() {
-        keygen_stage4(&params, &dlog_proof_vec, &y_vec)?;
+        keygen_stage4(&params, &dlog_proof_vec_l, &y_vec)?;
     }
     // Important: This is only for test purposes. This code should never be executed in practice.
     //            x is the private key and all this work is done to never have that at one place in the clear.
     let xi_vec = (0..=params.threshold)
-        .map(|i| shared_keys_vec[i as usize].x_i)
+        .map(|i| shared_keys_vec_l[i as usize].x_i)
         .collect::<Vec<FE>>();
-    let vss_scheme_for_test = vss_scheme_vec.clone();
+    let vss_scheme_for_test = vss_scheme_vec_l.clone();
     let x = vss_scheme_for_test[0]
         .clone()
         .reconstruct(&index_vec[0..=(params.threshold as usize)], &xi_vec);
-    let sum_u_i = party_keys_vec.iter().fold(FE::zero(), |acc, x| acc + x.u_i);
+    let sum_u_i = party_keys_vec_l
+        .iter()
+        .fold(FE::zero(), |acc, x| acc + x.u_i);
     assert_eq!(x, sum_u_i);
     // test code ends.
 
     // public vector of paillier public keys
-    let e_vec = bc1_vec
+    let e_vec_l = bc1_vec_l
         .iter()
         .map(|bc1| bc1.e.clone())
         .collect::<Vec<EncryptionKey>>();
     // At this point key generation is complete.
     // shared_keys_vec contains the private key shares for all the participants.
     Ok(KeyPairResult {
-        party_keys_vec: party_keys_vec,
-        shared_keys_vec: shared_keys_vec,
-        pk_vec: pk_vec,
-        y_sum: y_sum,
+        party_keys_vec: party_keys_vec_l,
+        shared_keys_vec: shared_keys_vec_l,
+        pk_vec: pk_vec_l,
+        y_sum: y_sum_l,
         vss_scheme: vss_scheme_for_test[0].clone(),
-        e_vec: e_vec,
-        h1_h2_N_tilde_vec: h1_h2_N_tilde_vec,
+        e_vec: e_vec_l,
+        h1_h2_N_tilde_vec: h1_h2_N_tilde_vec_l,
     })
 }
 fn keygen_t_n_parties(
@@ -538,7 +548,6 @@ fn keygen_t_n_parties(
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SignStage1Result {
-    pub g_w: GE,
     pub sign_keys: SignKeys,
     pub party_private: PartyPrivate,
     pub bc1: SignBroadcastPhase1,
@@ -559,14 +568,12 @@ pub struct SignStage1Result {
 //  s: list of participants taking part in signing.
 //  keypair_result: output of the key generation protocol.
 pub fn sign_stage1(
-    pk: &GE,
     vss_scheme_vec: &VerifiableSS,
     index: usize,
     s: &[usize],
     keypair_result: &KeyPairResult,
 ) -> SignStage1Result {
     //t,n to t,t for it's share.
-    let pk_local = pk * &vss_scheme_vec.map_share_to_new_params(index, s);
     let l_party_private = PartyPrivate::set_private(
         keypair_result.party_keys_vec[index].clone(),
         keypair_result.shared_keys_vec[index].clone(),
@@ -581,7 +588,6 @@ pub fn sign_stage1(
         &keypair_result.party_keys_vec[s[index]].ek,
     );
     SignStage1Result {
-        g_w: pk_local,
         sign_keys: l_sign_keys,
         party_private: l_party_private,
         bc1: l_bc1,
@@ -673,21 +679,13 @@ pub fn orchestrate_sign(
     keypair_result: &KeyPairResult,
 ) -> Result<(), ErrorType> {
     let ttag = s.len();
-    let mut g_w_vec = vec![];
     let mut private_vec = vec![];
     let mut sign_keys_vec = vec![];
     let mut bc1_vec = vec![];
     let mut decom1_vec = vec![];
     let mut m_a_vec: Vec<(MessageA, BigInt)> = vec![];
     (0..ttag).map(|i| i).for_each(|i| {
-        let res_stage1 = sign_stage1(
-            &keypair_result.pk_vec[i],
-            &keypair_result.vss_scheme,
-            i,
-            s,
-            keypair_result,
-        );
-        g_w_vec.push(res_stage1.g_w);
+        let res_stage1 = sign_stage1(&keypair_result.vss_scheme, i, s, keypair_result);
         private_vec.push(res_stage1.party_private);
         sign_keys_vec.push(res_stage1.sign_keys);
         bc1_vec.push(res_stage1.bc1);
@@ -951,14 +949,10 @@ pub struct SignStage5Input {
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SignStage5Result {
-    pub T_i: GE,
-    pub l_i: FE,
     pub R_vec_i: GE,
     pub R_dash_vec_i: GE,
 }
 pub fn sign_stage5(input: &SignStage5Input) -> Result<SignStage5Result, ErrorType> {
-    let (Ti, li) = SignKeys::phase3_compute_t_i(&input.sigma_vec[input.index]);
-
     let b_proof_vec = (0..input.s_ttag - 1)
         .map(|j| &input.m_b_gamma_vec[j].b_proof)
         .collect::<Vec<&DLogProof>>();
@@ -976,8 +970,6 @@ pub fn sign_stage5(input: &SignStage5Input) -> Result<SignStage5Result, ErrorTyp
     let Rvec_i = check_Rvec_i.unwrap();
     let Rdash_vec_i = Rvec_i * input.sign_keys.k_i;
     Ok(SignStage5Result {
-        T_i: Ti,
-        l_i: li,
         R_vec_i: Rvec_i,
         R_dash_vec_i: Rdash_vec_i,
     })
