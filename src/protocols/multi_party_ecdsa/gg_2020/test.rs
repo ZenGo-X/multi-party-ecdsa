@@ -116,7 +116,16 @@ fn test_keygen_orchestration() {
 }
 
 #[test]
-fn test_sign_orchestration() {}
+fn test_sign_orchestration() {
+    let keypairs = keygen_orchestrator(Parameters {
+        share_count: 3,
+        threshold: 1,
+    })
+    .unwrap();
+    let s = [0, 1, 2];
+    let sign_result = orchestrate_sign(&s[..], &vec![1, 2, 3, 4], &keypairs);
+    assert!(sign_result.is_ok());
+}
 // party 1 is corrupting step 5
 #[test]
 fn test_sign_n2_t1_ttag1_corrupt_step5_party1() {
@@ -593,13 +602,21 @@ pub fn sign_stage2(
     gamma_i_vec: &[FE],
     w_i_vec: &[FE],
     e_k: &EncryptionKey,
+    s_ttag: usize,
+    index: usize,
 ) -> Result<SignStage2Result, ErrorType> {
-    let res_gamma_i: Vec<(MessageB, FE, BigInt, BigInt)> = (0..gamma_i_vec.len())
-        .map(|i| MessageB::b(&gamma_i_vec[i], &e_k, m_a.0.clone()))
-        .collect::<Vec<(MessageB, FE, BigInt, BigInt)>>();
-    let res_w_i: Vec<(MessageB, FE, BigInt, BigInt)> = (0..w_i_vec.len())
-        .map(|i| MessageB::b(&w_i_vec[i], &e_k, m_a.0.clone()))
-        .collect::<Vec<(MessageB, FE, BigInt, BigInt)>>();
+    let mut res_gamma_i = vec![];
+    let mut res_w_i = vec![];
+    for j in 0..s_ttag - 1 {
+        let ind = if j < index { j } else { j + 1 };
+        let (m_b_gamma, beta_gamma, beta_randomness, beta_tag) =
+            MessageB::b(&gamma_i_vec[ind], &e_k, m_a.0.clone());
+        res_gamma_i.push((m_b_gamma, beta_gamma, beta_randomness, beta_tag));
+        let (m_b_w, beta_wi, beta_randomness, beta_tag) =
+            MessageB::b(&w_i_vec[ind], &e_k, m_a.0.clone());
+
+        res_w_i.push((m_b_w, beta_wi, beta_randomness, beta_tag));
+    }
     Ok(SignStage2Result {
         gamma_i_vec: res_gamma_i,
         w_i_vec: res_w_i,
@@ -616,20 +633,18 @@ pub fn sign_stage3(
     m_b_gamma: &[MessageB],
     m_b_w: &[MessageB],
     index: usize,
+    s_ttag: usize,
 ) -> Result<SignStage3Result, Error> {
     let mut res_alpha_vec_gamma = vec![];
-    for i in 0..m_b_gamma.len() {
-        let i_to_use = if i < index { i } else { i + 1 };
-        let res = m_b_gamma[i_to_use].verify_proofs_get_alpha(dk, k_i)?;
-        /*        if res.is_err() {
-            return res;
-        }*/
+    for i in 0..s_ttag - 1 {
+        let _i_to_use = if i < index { i } else { i + 1 };
+        let res = m_b_gamma[i].verify_proofs_get_alpha(dk, k_i)?;
         res_alpha_vec_gamma.push(res);
     }
     let mut res_alpha_vec_w = vec![];
-    for i in 0..m_b_w.len() {
-        let i_to_use = if i < index { i } else { i + 1 };
-        let res = m_b_w[i_to_use].verify_proofs_get_alpha(dk, k_i)?;
+    for i in 0..s_ttag - 1 {
+        let _i_to_use = if i < index { i } else { i + 1 };
+        let res = m_b_w[i].verify_proofs_get_alpha(dk, k_i)?;
         /*        if res.is_err() {
             return res;
         }*/
@@ -652,7 +667,7 @@ pub struct KeyPairResult {
 }
 pub fn orchestrate_sign(
     s: &[usize],
-    _bytes_to_sign: &[u8],
+    bytes_to_sign: &[u8],
     keypair_result: &KeyPairResult,
 ) -> Result<(), ErrorType> {
     let ttag = s.len();
@@ -687,7 +702,9 @@ pub fn orchestrate_sign(
             m_a_vec[i].clone(),
             &gamma_i_vec,
             &w_i_vec,
-            &keypair_result.e_vec[i],
+            &keypair_result.e_vec[s[i]],
+            ttag,
+            i,
         );
         if let Err(err) = res {
             return Err(err);
@@ -720,6 +737,7 @@ pub fn orchestrate_sign(
             &m_b_gamma_vec_all[i],
             &m_b_w_vec_all[i],
             i,
+            ttag,
         );
         if let Err(_) = res {
             return Err(ErrorType {
@@ -729,6 +747,7 @@ pub fn orchestrate_sign(
         }
         res_stage3_vec.push(res.unwrap());
     }
+    println!("Stage 3 done.");
     let beta_vec_all = (0..res_stage2_vec.len())
         .map(|i| {
             res_stage2_vec[i]
@@ -797,6 +816,8 @@ pub fn orchestrate_sign(
             .unwrap(),
         );
     }
+
+    println!("Stage 4 done.");
     let delta_vec: Vec<FE> = res_stage4_vec.iter().map(|val| val.delta_i).collect();
     // all parties broadcast delta_i and compute delta_i ^(-1)
     let delta_inv = SignKeys::phase3_reconstruct_delta(&delta_vec);
@@ -816,6 +837,7 @@ pub fn orchestrate_sign(
         result_stage5_vec.push(sign_stage5(&input)?);
     }
 
+    println!("Stage 5 done.");
     let R_vec: Vec<GE> = result_stage5_vec.iter().map(|a| a.R_vec_i).collect();
     let R_dash_vec: Vec<GE> = result_stage5_vec.iter().map(|a| a.R_dash_vec_i).collect();
 
@@ -836,6 +858,7 @@ pub fn orchestrate_sign(
         let res = sign_stage6(&input)?;
         res_stage6_vec.push(res);
     }
+    println!("Stage 6 done.");
     let mut phase5_proofs_vec = vec![];
     for i in 0..res_stage6_vec.len() {
         phase5_proofs_vec.push(res_stage6_vec[i].phase5_proof.clone());
@@ -856,8 +879,8 @@ pub fn orchestrate_sign(
         let res = sign_stage7(&input)?;
         res_stage7_vec.push(res);
     }
-    let message: [u8; 4] = [79, 77, 69, 82];
-    let message_bn_ = HSha256::create_hash(&[&BigInt::from(&message[..])]);
+    println!("Stage 7 done.");
+    let message_bn_ = HSha256::create_hash(&[&BigInt::from(bytes_to_sign)]);
     let mut local_sig_vec = Vec::new();
     let mut s_vec = Vec::new();
 
@@ -881,6 +904,8 @@ pub fn orchestrate_sign(
         s_vec.push(local_sig.s_i.clone());
         local_sig_vec.push(local_sig);
     }
+
+    println!("Stage 8 done.");
     let res_sig = local_sig_vec[0].output_signature(&s_vec[1..]);
     if res_sig.is_err() {
         return Err(ErrorType {
@@ -933,13 +958,18 @@ pub fn sign_stage5(input: &SignStage5Input) -> Result<SignStage5Result, ErrorTyp
     let b_proof_vec = (0..input.s_ttag - 1)
         .map(|j| &input.m_b_gamma_vec[j].b_proof)
         .collect::<Vec<&DLogProof>>();
-    let Rvec_i = SignKeys::phase4(
+    let check_Rvec_i = SignKeys::phase4(
         &input.delta_inv,
         &b_proof_vec,
         input.decom_vec1.clone(),
         &input.bc1_vec,
         input.index,
-    )?;
+    );
+    if check_Rvec_i.is_err() {
+        println!("Error->{:?}", check_Rvec_i.clone());
+        return Err(check_Rvec_i.unwrap_err());
+    }
+    let Rvec_i = check_Rvec_i.unwrap();
     let Rdash_vec_i = Rvec_i * input.sign_keys.k_i;
     Ok(SignStage5Result {
         T_i: Ti,
