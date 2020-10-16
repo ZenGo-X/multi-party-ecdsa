@@ -632,22 +632,24 @@ pub fn sign_stage3(
     k_i: &FE,
     m_b_gamma: &[MessageB],
     m_b_w: &[MessageB],
+    g_w_i: &[GE],
     index: usize,
     s_ttag: usize,
 ) -> Result<SignStage3Result, Error> {
     let mut res_alpha_vec_gamma = vec![];
-    for i in 0..s_ttag - 1 {
-        let _i_to_use = if i < index { i } else { i + 1 };
-        let res = m_b_gamma[i].verify_proofs_get_alpha(dk, k_i)?;
-        res_alpha_vec_gamma.push(res);
-    }
     let mut res_alpha_vec_w = vec![];
     for i in 0..s_ttag - 1 {
-        let _i_to_use = if i < index { i } else { i + 1 };
+        let ind = if i < index { i } else { i + 1 };
+        let res = m_b_gamma[i].verify_proofs_get_alpha(dk, k_i)?;
+        res_alpha_vec_gamma.push(res);
         let res = m_b_w[i].verify_proofs_get_alpha(dk, k_i)?;
         /*        if res.is_err() {
             return res;
         }*/
+        if g_w_i[ind] != m_b_w[i].b_proof.pk {
+            println!("MtAwc did not work i = {} ind ={}", i, ind);
+            return Err(Error::InvalidCom);
+        }
         res_alpha_vec_w.push(res);
     }
     Ok(SignStage3Result {
@@ -730,12 +732,14 @@ pub fn orchestrate_sign(
         })
         .collect::<Vec<Vec<MessageB>>>();
     let mut res_stage3_vec: Vec<SignStage3Result> = vec![];
+    let g_wi_vec: Vec<GE> = (0..ttag).map(|a| sign_keys_vec[a].g_w_i).collect();
     for i in 0..ttag {
         let res = sign_stage3(
             &keypair_result.party_keys_vec[s[i]].dk,
             &sign_keys_vec[i].k_i,
             &m_b_gamma_vec_all[i],
             &m_b_w_vec_all[i],
+            &g_wi_vec,
             i,
             ttag,
         );
