@@ -315,9 +315,17 @@ fn keygen_orchestrator(params: Parameters) -> Result<KeyPairResult, ErrorType> {
     // _l in all the below fields means local.
     // Just naming them differently than the structure fields so that Rust Analyzer does not
     // complain about "Shorthand Struct initialization" lint.
+    //
+    // Values to be kept private(Each value needs to be encrypted with a key only known to that
+    // party):
+    // 1. party_keys.u_i
+    // 2. party_keys.dk
     let mut party_keys_vec_l = vec![];
+    // Nothing private in the commitment values.
     let mut bc1_vec_l = vec![];
+    // Nothing private in the decommitment values.
     let mut decom_vec_l = vec![];
+    // Nothing private in the below vector.
     let mut h1_h2_N_tilde_vec_l = vec![];
     for participant in participants.iter() {
         let (party_keys, bc1, decom, h1_h2_N_tilde) = keygen_stage1(*participant);
@@ -327,6 +335,10 @@ fn keygen_orchestrator(params: Parameters) -> Result<KeyPairResult, ErrorType> {
         h1_h2_N_tilde_vec_l.push(h1_h2_N_tilde);
     }
     let mut vss_scheme_vec_l = vec![];
+    // Values to be kept private(Each value needs to be encrypted with a key only known to that
+    // party):
+    // 1. secret_shares_vec_l[i] -
+    //    party.
     let mut secret_shares_vec_l = vec![];
     let mut index_vec = vec![];
     for participant in participants.iter() {
@@ -345,9 +357,9 @@ fn keygen_orchestrator(params: Parameters) -> Result<KeyPairResult, ErrorType> {
         secret_shares_vec_l.push(secret_shares);
         index_vec.push(index);
     }
-    // The party shares are secret values.
-    // Each value in secret_shares_vec[j][i] should be encrypted by a key owned by
-    // participant i. So that those shares are only available to that participant and no
+    // Values to be kept private(Each value needs to be encrypted with a key only known to that
+    // party):
+    // 1. party_shares[party_num] - all shares in this vec belong to the party number party_num.
     // one else.
     let party_shares = (0..params.share_count)
         .map(|i| {
@@ -359,6 +371,10 @@ fn keygen_orchestrator(params: Parameters) -> Result<KeyPairResult, ErrorType> {
                 .collect::<Vec<FE>>()
         })
         .collect::<Vec<Vec<FE>>>();
+
+    // Values to be kept private(Each value needs to be encrypted with a key only known to that
+    // party):
+    // 1. shared_keys_vec_l.x_i - Final shard for this ECDSA keypair.
     let mut shared_keys_vec_l = vec![];
     let mut dlog_proof_vec_l = vec![];
     for participant in participants.iter() {
@@ -378,8 +394,6 @@ fn keygen_orchestrator(params: Parameters) -> Result<KeyPairResult, ErrorType> {
         shared_keys_vec_l.push(shared_keys);
         dlog_proof_vec_l.push(dlog_proof);
     }
-    // At this point the shared_keys contain the secret values.
-    // These values should be encrypted using a key owned by that participant.
 
     let pk_vec_l = (0..params.share_count)
         .map(|i| dlog_proof_vec_l[i as usize].pk)
@@ -392,6 +406,10 @@ fn keygen_orchestrator(params: Parameters) -> Result<KeyPairResult, ErrorType> {
     let head = y_vec_iter.next().unwrap();
     let tail = y_vec_iter;
     let y_sum_l = tail.fold(head.clone(), |acc, x| acc + x);
+    // In practice whenever this keypair will be used to sign it needs to be ensured that the below
+    // stage ran successfully.
+    // One way to do it would be to add a signature to the shared_keys_vec_l[i].x_i once this is
+    // verified.
     for _ in participants.iter() {
         keygen_stage4(&params, &dlog_proof_vec_l, &y_vec)?;
     }
@@ -547,6 +565,15 @@ fn keygen_t_n_parties(
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SignStage1Input {
+    pub vss_scheme: VerifiableSS,
+    pub index: usize,
+    pub s_l: Vec<usize>,
+    pub party_keys: Keys,
+    pub shared_keys: SharedKeys,
+    pub ek: EncryptionKey,
+}
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SignStage1Result {
     pub sign_keys: SignKeys,
     pub party_private: PartyPrivate,
@@ -567,26 +594,21 @@ pub struct SignStage1Result {
 //  index: 0 based index for the partipant.
 //  s: list of participants taking part in signing.
 //  keypair_result: output of the key generation protocol.
-pub fn sign_stage1(
-    vss_scheme_vec: &VerifiableSS,
-    index: usize,
-    s: &[usize],
-    keypair_result: &KeyPairResult,
-) -> SignStage1Result {
+pub fn sign_stage1(input: &SignStage1Input) -> SignStage1Result {
     //t,n to t,t for it's share.
-    let l_party_private = PartyPrivate::set_private(
-        keypair_result.party_keys_vec[index].clone(),
-        keypair_result.shared_keys_vec[index].clone(),
-    );
+    let l_party_private =
+        PartyPrivate::set_private(input.party_keys.clone(), input.shared_keys.clone());
     //ephemeral keys. w_i, gamma_i and k_i and the curve points for the same.
-    let l_sign_keys = SignKeys::create(&l_party_private, vss_scheme_vec, index, s);
+    let l_sign_keys = SignKeys::create(
+        &l_party_private,
+        &input.vss_scheme,
+        input.index,
+        &input.s_l[..],
+    );
     // Commitment for g^gamma_i
     let (l_bc1, l_decom1) = l_sign_keys.phase1_broadcast();
     // encryption of k_i
-    let l_m_a = MessageA::a(
-        &l_sign_keys.k_i,
-        &keypair_result.party_keys_vec[s[index]].ek,
-    );
+    let l_m_a = MessageA::a(&l_sign_keys.k_i, &input.ek);
     SignStage1Result {
         sign_keys: l_sign_keys,
         party_private: l_party_private,
@@ -685,7 +707,15 @@ pub fn orchestrate_sign(
     let mut decom1_vec = vec![];
     let mut m_a_vec: Vec<(MessageA, BigInt)> = vec![];
     (0..ttag).map(|i| i).for_each(|i| {
-        let res_stage1 = sign_stage1(&keypair_result.vss_scheme, i, s, keypair_result);
+        let input = SignStage1Input {
+            vss_scheme: keypair_result.vss_scheme.clone(),
+            index: i,
+            s_l: s.to_vec(),
+            party_keys: keypair_result.party_keys_vec[i].clone(),
+            shared_keys: keypair_result.shared_keys_vec[i].clone(),
+            ek: keypair_result.party_keys_vec[s[i]].ek.clone(),
+        };
+        let res_stage1 = sign_stage1(&input);
         private_vec.push(res_stage1.party_private);
         sign_keys_vec.push(res_stage1.sign_keys);
         bc1_vec.push(res_stage1.bc1);
