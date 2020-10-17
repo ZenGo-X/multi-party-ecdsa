@@ -116,13 +116,46 @@ fn test_keygen_orchestration() {
 }
 
 #[test]
+fn test_sign_orchestration_fail() {
+    /*    let keypairs = keygen_orchestrator(Parameters {
+        share_count: 3,
+        threshold: 1,
+    })
+    .unwrap();*/
+    let key_tuple = keygen_t_n_parties(1, 3).unwrap();
+    let keypairs = KeyPairResult {
+        party_keys_vec: key_tuple.0.clone(),
+        shared_keys_vec: key_tuple.1.clone(),
+        pk_vec: key_tuple.2.clone(),
+        y_sum: key_tuple.3.clone(),
+        vss_scheme: key_tuple.4.clone(),
+        e_vec: key_tuple.5.clone(),
+        h1_h2_N_tilde_vec: key_tuple.6.clone(),
+    };
+
+    let msg: Vec<u8> = vec![44, 56, 78, 90, 100];
+    let mut s = [0, 1];
+    println!("s is {:?}", &s);
+    let sign_result = orchestrate_sign(&s[..], &msg, &keypairs);
+    assert!(sign_result.is_ok());
+    s = [0, 2];
+    println!("s is {:?}", &s);
+    let sign_result = orchestrate_sign(&s[..], &msg, &keypairs);
+    assert!(sign_result.is_ok());
+
+    s = [1, 2];
+    println!("s is {:?}", &s);
+    let sign_result = orchestrate_sign(&s[..], &msg, &keypairs);
+    assert!(sign_result.is_ok());
+}
+#[test]
 fn test_sign_orchestration() {
     let keypairs = keygen_orchestrator(Parameters {
         share_count: 3,
         threshold: 1,
     })
     .unwrap();
-    let s = [1, 2];
+    let s = [0, 1, 2];
     let sign_result = orchestrate_sign(&s[..], &vec![1, 2, 3, 4], &keypairs);
     assert!(sign_result.is_ok());
 }
@@ -635,16 +668,7 @@ pub struct SignStage2Result {
 }
 // This API will carry our the MtA for gamma_i MtAwc(Check happens later in stage3) for w_i
 // This is basically a P2P between a participant and all it's peers.
-pub fn sign_stage2(
-    input: &SignStage2Input,
-    /*   m_a: (MessageA, BigInt),
-    gamma_i_vec: &[FE],
-    w_i_vec: &[FE],
-    e_k: &EncryptionKey,
-    s_ttag: usize,
-    index: usize,
-    */
-) -> Result<SignStage2Result, ErrorType> {
+pub fn sign_stage2(input: &SignStage2Input) -> Result<SignStage2Result, ErrorType> {
     let mut res_gamma_i = vec![];
     let mut res_w_i = vec![];
     for j in 0..input.l_ttag - 1 {
@@ -662,18 +686,6 @@ pub fn sign_stage2(
         );
         res_w_i.push((m_b_w, beta_wi, beta_randomness, beta_tag));
     }
-    /*
-        for j in 0..s_ttag - 1 {
-            let ind = if j < index { j } else { j + 1 };
-            let (m_b_gamma, beta_gamma, beta_randomness, beta_tag) =
-                MessageB::b(&gamma_i_vec[ind], &e_k, m_a.0.clone());
-            res_gamma_i.push((m_b_gamma, beta_gamma, beta_randomness, beta_tag));
-            let (m_b_w, beta_wi, beta_randomness, beta_tag) =
-                MessageB::b(&w_i_vec[ind], &e_k, m_a.0.clone());
-
-            res_w_i.push((m_b_w, beta_wi, beta_randomness, beta_tag));
-        }
-    */
     Ok(SignStage2Result {
         gamma_i_vec: res_gamma_i,
         w_i_vec: res_w_i,
@@ -700,9 +712,6 @@ pub fn sign_stage3(
         let res = m_b_gamma[i].verify_proofs_get_alpha(dk, k_i)?;
         res_alpha_vec_gamma.push(res);
         let res = m_b_w[i].verify_proofs_get_alpha(dk, k_i)?;
-        /*        if res.is_err() {
-            return res;
-        }*/
         if g_w_i[ind] != m_b_w[i].b_proof.pk {
             println!("MtAwc did not work i = {} ind ={}", i, ind);
             return Err(Error::InvalidCom);
@@ -776,22 +785,7 @@ pub fn orchestrate_sign(
         res_stage2_vec.push(res.unwrap());
     }
     println!("Stage2 done");
-    /*
-    for i in 0..ttag {
-        let res = sign_stage2(
-            m_a_vec[i].clone(),
-            &gamma_i_vec,
-            &w_i_vec,
-            &keypair_result.e_vec[s[i]],
-            ttag,
-            i,
-        );
-        if let Err(err) = res {
-            return Err(err);
-        }
-        res_stage2_vec.push(res.unwrap());
-    }
-    */
+
     let mut m_b_gamma_vec_all = vec![vec![]; ttag];
     let mut m_b_w_vec_all = vec![vec![]; ttag];
     for i in 0..ttag {
@@ -806,26 +800,7 @@ pub fn orchestrate_sign(
         m_b_gamma_vec_all[0].len(),
         m_b_gamma_vec_all.len()
     );
-    /*
-    let m_b_gamma_vec_all = (0..res_stage2_vec.len())
-        .map(|i| {
-            res_stage2_vec[i]
-                .gamma_i_vec
-                .iter()
-                .map(|(mb, _, _, _)| mb.clone())
-                .collect::<Vec<MessageB>>()
-        })
-        .collect::<Vec<Vec<MessageB>>>();
-    let m_b_w_vec_all = (0..res_stage2_vec.len())
-        .map(|i| {
-            res_stage2_vec[i]
-                .w_i_vec
-                .iter()
-                .map(|(mb, _, _, _)| mb.clone())
-                .collect::<Vec<MessageB>>()
-        })
-        .collect::<Vec<Vec<MessageB>>>();
-        */
+
     let mut res_stage3_vec: Vec<SignStage3Result> = vec![];
     let g_wi_vec: Vec<GE> = (0..ttag).map(|a| sign_keys_vec[a].g_w_i).collect();
     for i in 0..ttag {
@@ -848,26 +823,7 @@ pub fn orchestrate_sign(
         res_stage3_vec.push(res.unwrap());
     }
     println!("Stage 3 done.");
-    /*
-    let beta_vec_all = (0..res_stage2_vec.len())
-        .map(|i| {
-            res_stage2_vec[i]
-                .gamma_i_vec
-                .iter()
-                .map(|(_, beta, _, _)| *beta)
-                .collect::<Vec<FE>>()
-        })
-        .collect::<Vec<Vec<FE>>>();
-    let ni_vec_all = (0..res_stage2_vec.len())
-        .map(|i| {
-            res_stage2_vec[i]
-                .w_i_vec
-                .iter()
-                .map(|(_, beta_wi, _, _)| *beta_wi)
-                .collect::<Vec<FE>>()
-        })
-        .collect::<Vec<Vec<FE>>>();
-    */
+
     let mut beta_vec_all = vec![vec![]; ttag];
     let mut ni_vec_all = vec![vec![]; ttag];
     for i in 0..ttag {
@@ -1017,7 +973,8 @@ pub fn orchestrate_sign(
         local_sig_vec.push(local_sig);
     }
 
-    println!("Stage 8 done.");
+    println!("Stage 8 done. s_vec len {}", s_vec.len());
+
     let res_sig = local_sig_vec[0].output_signature(&s_vec[1..]);
     if res_sig.is_err() {
         println!("error in combining sigs {:?}", res_sig.unwrap_err());
@@ -1140,7 +1097,7 @@ pub struct SignStage7Input {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SignStage7Result {}
 pub fn sign_stage7(input: &SignStage7Input) -> Result<SignStage7Result, ErrorType> {
-    for _ in 0..input.keypair_result.shared_keys_vec.len() {
+    for _ in 0..input.s.len() {
         let phase5_verify_zk = LocalSignature::phase5_verify_pdl(
             &input.phase5_proof_vec,
             &input.R_dash,
