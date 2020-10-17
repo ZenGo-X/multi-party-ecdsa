@@ -792,19 +792,20 @@ pub fn orchestrate_sign(
         res_stage2_vec.push(res.unwrap());
     }
     */
-    let mut m_b_gamma_vec_all = vec![];
-    let mut m_b_w_vec_all = vec![];
+    let mut m_b_gamma_vec_all = vec![vec![]; ttag];
+    let mut m_b_w_vec_all = vec![vec![]; ttag];
     for i in 0..ttag {
-        let mut m_b_gamma_vec = vec![];
-        let mut m_b_w_vec = vec![];
         for j in 0..ttag - 1 {
             let ind = if j < i { j } else { j + 1 };
-            m_b_gamma_vec.push(res_stage2_vec[ind].gamma_i_vec[j].0.clone());
-            m_b_w_vec.push(res_stage2_vec[ind].w_i_vec[j].0.clone());
+            m_b_gamma_vec_all[ind].push(res_stage2_vec[i].gamma_i_vec[j].0.clone());
+            m_b_w_vec_all[ind].push(res_stage2_vec[i].w_i_vec[j].0.clone());
         }
-        m_b_gamma_vec_all.push(m_b_gamma_vec);
-        m_b_w_vec_all.push(m_b_w_vec);
     }
+    println!(
+        "columns{}rows{}",
+        m_b_gamma_vec_all[0].len(),
+        m_b_gamma_vec_all.len()
+    );
     /*
     let m_b_gamma_vec_all = (0..res_stage2_vec.len())
         .map(|i| {
