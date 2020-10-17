@@ -63,6 +63,10 @@ fn test_sign_n2_t1_ttag1() {
 }
 
 #[test]
+fn test_sign_n3_t1_ttag1() {
+    let _ = sign(1, 3, 2, vec![0, 1], 0, &[0]);
+}
+#[test]
 fn test_sign_n5_t2_ttag4() {
     let _ = sign(2, 5, 4, vec![0, 2, 3, 4], 0, &[0]);
 }
@@ -116,49 +120,34 @@ fn test_keygen_orchestration() {
 }
 
 #[test]
-fn test_sign_orchestration_fail() {
-    /*    let keypairs = keygen_orchestrator(Parameters {
-        share_count: 3,
-        threshold: 1,
-    })
-    .unwrap();*/
-    let key_tuple = keygen_t_n_parties(1, 3).unwrap();
-    let keypairs = KeyPairResult {
-        party_keys_vec: key_tuple.0.clone(),
-        shared_keys_vec: key_tuple.1.clone(),
-        pk_vec: key_tuple.2.clone(),
-        y_sum: key_tuple.3.clone(),
-        vss_scheme: key_tuple.4.clone(),
-        e_vec: key_tuple.5.clone(),
-        h1_h2_N_tilde_vec: key_tuple.6.clone(),
-    };
-
-    let msg: Vec<u8> = vec![44, 56, 78, 90, 100];
-    let mut s = [0, 1];
-    println!("s is {:?}", &s);
-    let sign_result = orchestrate_sign(&s[..], &msg, &keypairs);
-    assert!(sign_result.is_ok());
-    s = [0, 2];
-    println!("s is {:?}", &s);
-    let sign_result = orchestrate_sign(&s[..], &msg, &keypairs);
-    assert!(sign_result.is_ok());
-
-    s = [1, 2];
-    println!("s is {:?}", &s);
-    let sign_result = orchestrate_sign(&s[..], &msg, &keypairs);
-    assert!(sign_result.is_ok());
-}
-#[test]
 fn test_sign_orchestration() {
     let keypairs = keygen_orchestrator(Parameters {
         share_count: 3,
         threshold: 1,
     })
     .unwrap();
-    let s = [0, 1, 2];
-    let sign_result = orchestrate_sign(&s[..], &vec![1, 2, 3, 4], &keypairs);
+    let msg: Vec<u8> = vec![44, 56, 78, 90, 100];
+    let mut s: Vec<usize> = vec![0, 1, 2];
+    println!("s is {:?}", &s);
+    let sign_result = orchestrate_sign(&s[..], &msg, &keypairs);
+    assert!(sign_result.is_ok());
+
+    s = vec![0, 1];
+    println!("s is {:?}", &s);
+    let sign_result = orchestrate_sign(&s[..], &msg, &keypairs);
+    assert!(sign_result.is_ok());
+
+    s = vec![1, 2];
+    println!("s is {:?}", &s);
+    let sign_result = orchestrate_sign(&s[..], &msg, &keypairs);
+    assert!(sign_result.is_ok());
+
+    s = vec![0, 2];
+    println!("s is {:?}", &s);
+    let sign_result = orchestrate_sign(&s[..], &msg, &keypairs);
     assert!(sign_result.is_ok());
 }
+
 // party 1 is corrupting step 5
 #[test]
 fn test_sign_n2_t1_ttag1_corrupt_step5_party1() {
@@ -747,10 +736,10 @@ pub fn orchestrate_sign(
     (0..ttag).map(|i| i).for_each(|i| {
         let input = SignStage1Input {
             vss_scheme: keypair_result.vss_scheme.clone(),
-            index: i,
+            index: s[i],
             s_l: s.to_vec(),
-            party_keys: keypair_result.party_keys_vec[i].clone(),
-            shared_keys: keypair_result.shared_keys_vec[i].clone(),
+            party_keys: keypair_result.party_keys_vec[s[i]].clone(),
+            shared_keys: keypair_result.shared_keys_vec[s[i]].clone(),
             ek: keypair_result.party_keys_vec[s[i]].ek.clone(),
         };
         let res_stage1 = sign_stage1(&input);
