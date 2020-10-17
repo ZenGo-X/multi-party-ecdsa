@@ -63,10 +63,6 @@ fn test_sign_n2_t1_ttag1() {
 }
 
 #[test]
-fn test_sign_n3_t1_ttag1() {
-    let _ = sign(1, 3, 2, vec![0, 1], 0, &[0]);
-}
-#[test]
 fn test_sign_n5_t2_ttag4() {
     let _ = sign(2, 5, 4, vec![0, 2, 3, 4], 0, &[0]);
 }
@@ -228,7 +224,17 @@ fn test_sign_n5_t2_ttag4_corrupt_step7_party24() {
     let res = sign(2, 5, 4, vec![0, 2, 3, 4], 7, &[1, 3]);
     assert!(&res.err().unwrap().bad_actors[..] == &[1, 3])
 }
-
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct KeyGenStage1Input {
+    pub index: usize, // participant indexes start from zero.
+}
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct KeyGenStage1Result {
+    pub party_keys_l: Keys,
+    pub bc_com1_l: KeyGenBroadcastMessage1,
+    pub decom1_l: KeyGenDecommitMessage1,
+    pub h1_h2_N_tilde_l: DLogStatement,
+}
 //
 // As per page13 https://eprint.iacr.org/2020/540.pdf:
 // This step will:
@@ -237,24 +243,22 @@ fn test_sign_n5_t2_ttag4_corrupt_step7_party24() {
 // 2. It will create a Paillier Keypair and publish the public key for that.
 //
 #[cfg(test)]
-fn keygen_stage1(
-    participant: usize,
-) -> (
-    Keys,
-    KeyGenBroadcastMessage1,
-    KeyGenDecommitMessage1,
-    DLogStatement,
-) {
+fn keygen_stage1(input: KeyGenStage1Input) -> KeyGenStage1Result {
     // Paillier keys and various other values
     // party_keys.ek is a secret value and it should be encrypted
     // using a key that is owned by the participant who creates it. Right now it's plaintext but
     // this is test.
     //
-    let party_keys = Keys::create(participant - 1);
+    let party_keys = Keys::create(input.index);
     let (bc1, decom) =
         party_keys.phase1_broadcast_phase3_proof_of_correct_key_proof_of_correct_h1h2();
     let h1_h2_N_tilde = bc1.dlog_statement.clone();
-    (party_keys, bc1, decom, h1_h2_N_tilde)
+    KeyGenStage1Result {
+        party_keys_l: party_keys,
+        bc_com1_l: bc1,
+        decom1_l: decom,
+        h1_h2_N_tilde_l: h1_h2_N_tilde,
+    }
 }
 
 //
@@ -349,12 +353,12 @@ fn keygen_orchestrator(params: Parameters) -> Result<KeyPairResult, ErrorType> {
     let mut decom_vec_l = vec![];
     // Nothing private in the below vector.
     let mut h1_h2_N_tilde_vec_l = vec![];
-    for participant in participants.iter() {
-        let (party_keys, bc1, decom, h1_h2_N_tilde) = keygen_stage1(*participant);
-        party_keys_vec_l.push(party_keys);
-        bc1_vec_l.push(bc1);
-        decom_vec_l.push(decom);
-        h1_h2_N_tilde_vec_l.push(h1_h2_N_tilde);
+    for i in 0..params.share_count {
+        let res = keygen_stage1(KeyGenStage1Input { index: i as usize });
+        party_keys_vec_l.push(res.party_keys_l);
+        bc1_vec_l.push(res.bc_com1_l);
+        decom_vec_l.push(res.decom1_l);
+        h1_h2_N_tilde_vec_l.push(res.h1_h2_N_tilde_l);
     }
     let mut vss_scheme_vec_l = vec![];
     // Values to be kept private(Each value needs to be encrypted with a key only known to that
