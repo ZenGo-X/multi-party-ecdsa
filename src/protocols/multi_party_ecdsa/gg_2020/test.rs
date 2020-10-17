@@ -261,6 +261,20 @@ fn keygen_stage1(input: KeyGenStage1Input) -> KeyGenStage1Result {
     }
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct KeyGenStage2Input {
+    pub index: usize,
+    pub params_s: Parameters,
+    pub party_keys_s: Vec<Keys>,
+    pub bc1_vec_s: Vec<KeyGenBroadcastMessage1>,
+    pub decom1_vec_s: Vec<KeyGenDecommitMessage1>,
+}
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct KeyGenStage2Result {
+    pub vss_scheme_s: VerifiableSS,
+    pub secret_shares_s: Vec<FE>,
+    pub index_s: usize,
+}
 //
 // As per page 13 on https://eprint.iacr.org/2020/540.pdf:
 // 1. Decommit the value obtained in stage1.
@@ -268,19 +282,19 @@ fn keygen_stage1(input: KeyGenStage1Input) -> KeyGenStage1Result {
 // Important to note that all the stages are sequential. Unless all the messages from the previous
 // stage are not delivered, you cannot jump on the next stage.
 #[cfg(test)]
-fn keygen_stage2(
-    participant: usize,
-    params: &Parameters,
-    party_keys: &[Keys],
-    bc1_vec: &[KeyGenBroadcastMessage1],
-    decom_vec: &[KeyGenDecommitMessage1],
-) -> Result<(VerifiableSS, Vec<FE>, usize), ErrorType> {
-    let vss_result = party_keys[participant - 1]
+fn keygen_stage2(input: &KeyGenStage2Input) -> Result<KeyGenStage2Result, ErrorType> {
+    let vss_result = input.party_keys_s[input.index]
         .phase1_verify_com_phase3_verify_correct_key_verify_dlog_phase2_distribute(
-            params, decom_vec, bc1_vec,
+            &input.params_s,
+            &input.decom1_vec_s,
+            &input.bc1_vec_s,
         )?;
     let (vss_scheme, secret_shares, index) = vss_result;
-    Ok((vss_scheme, secret_shares, index))
+    Ok(KeyGenStage2Result {
+        vss_scheme_s: vss_scheme,
+        secret_shares_s: secret_shares,
+        index_s: index,
+    })
 }
 
 //
@@ -367,21 +381,22 @@ fn keygen_orchestrator(params: Parameters) -> Result<KeyPairResult, ErrorType> {
     //    party.
     let mut secret_shares_vec_l = vec![];
     let mut index_vec = vec![];
-    for participant in participants.iter() {
-        let result_check = keygen_stage2(
-            *participant,
-            &params,
-            &party_keys_vec_l,
-            &bc1_vec_l,
-            &decom_vec_l,
-        );
+    for i in 0..params.share_count {
+        let input = KeyGenStage2Input {
+            index: i as usize,
+            params_s: params.clone(),
+            party_keys_s: party_keys_vec_l.clone(),
+            bc1_vec_s: bc1_vec_l.clone(),
+            decom1_vec_s: decom_vec_l.clone(),
+        };
+        let result_check = keygen_stage2(&input);
         if let Err(err) = result_check {
             return Err(err);
         }
-        let (vss_scheme, secret_shares, index) = result_check.unwrap();
-        vss_scheme_vec_l.push(vss_scheme);
-        secret_shares_vec_l.push(secret_shares);
-        index_vec.push(index);
+        let res = result_check.unwrap();
+        vss_scheme_vec_l.push(res.vss_scheme_s);
+        secret_shares_vec_l.push(res.secret_shares_s);
+        index_vec.push(res.index_s);
     }
     // Values to be kept private(Each value needs to be encrypted with a key only known to that
     // party):
