@@ -122,7 +122,7 @@ fn test_sign_orchestration() {
         threshold: 1,
     })
     .unwrap();
-    let s = [0, 1, 2];
+    let s = [1, 2];
     let sign_result = orchestrate_sign(&s[..], &vec![1, 2, 3, 4], &keypairs);
     assert!(sign_result.is_ok());
 }
@@ -848,6 +848,7 @@ pub fn orchestrate_sign(
         res_stage3_vec.push(res.unwrap());
     }
     println!("Stage 3 done.");
+    /*
     let beta_vec_all = (0..res_stage2_vec.len())
         .map(|i| {
             res_stage2_vec[i]
@@ -866,6 +867,17 @@ pub fn orchestrate_sign(
                 .collect::<Vec<FE>>()
         })
         .collect::<Vec<Vec<FE>>>();
+    */
+    let mut beta_vec_all = vec![vec![]; ttag];
+    let mut ni_vec_all = vec![vec![]; ttag];
+    for i in 0..ttag {
+        for j in 0..ttag - 1 {
+            let ind = if j < i { j } else { j + 1 };
+            beta_vec_all[ind].push(res_stage2_vec[i].gamma_i_vec[j].1.clone());
+            ni_vec_all[ind].push(res_stage2_vec[i].w_i_vec[j].1.clone());
+        }
+    }
+
     let miu_vec_all = (0..res_stage3_vec.len())
         .map(|i| {
             res_stage3_vec[i]
@@ -1008,6 +1020,7 @@ pub fn orchestrate_sign(
     println!("Stage 8 done.");
     let res_sig = local_sig_vec[0].output_signature(&s_vec[1..]);
     if res_sig.is_err() {
+        println!("error in combining sigs {:?}", res_sig.unwrap_err());
         return Err(ErrorType {
             error_type: "error in combining signatures".to_string(),
             bad_actors: vec![],
@@ -1093,7 +1106,7 @@ pub struct SignStage6Result {
 pub fn sign_stage6(input: &SignStage6Input) -> Result<SignStage6Result, ErrorType> {
     let mut proof_vec = vec![];
     let index = input.index;
-    for j in 0..input.keypair_result.shared_keys_vec.len() - 1 {
+    for j in 0..input.s.len() - 1 {
         let ind = if j < index { j } else { j + 1 };
         let proof = LocalSignature::phase5_proof_pdl(
             &input.R_dash,
