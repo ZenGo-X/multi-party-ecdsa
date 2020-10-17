@@ -619,6 +619,16 @@ pub fn sign_stage1(input: &SignStage1Input) -> SignStage1Result {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SignStage2Input {
+    pub m_a_vec: Vec<(MessageA, BigInt)>,
+    pub gamma_i: FE,
+    pub w_i: FE,
+    pub ek_vec: Vec<EncryptionKey>,
+    pub index: usize,
+    pub l_ttag: usize,
+    pub l_s: Vec<usize>,
+}
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SignStage2Result {
     pub gamma_i_vec: Vec<(MessageB, FE, BigInt, BigInt)>,
     pub w_i_vec: Vec<(MessageB, FE, BigInt, BigInt)>,
@@ -626,25 +636,44 @@ pub struct SignStage2Result {
 // This API will carry our the MtA for gamma_i MtAwc(Check happens later in stage3) for w_i
 // This is basically a P2P between a participant and all it's peers.
 pub fn sign_stage2(
-    m_a: (MessageA, BigInt),
+    input: &SignStage2Input,
+    /*   m_a: (MessageA, BigInt),
     gamma_i_vec: &[FE],
     w_i_vec: &[FE],
     e_k: &EncryptionKey,
     s_ttag: usize,
     index: usize,
+    */
 ) -> Result<SignStage2Result, ErrorType> {
     let mut res_gamma_i = vec![];
     let mut res_w_i = vec![];
-    for j in 0..s_ttag - 1 {
-        let ind = if j < index { j } else { j + 1 };
-        let (m_b_gamma, beta_gamma, beta_randomness, beta_tag) =
-            MessageB::b(&gamma_i_vec[ind], &e_k, m_a.0.clone());
+    for j in 0..input.l_ttag - 1 {
+        let ind = if j < input.index { j } else { j + 1 };
+        let (m_b_gamma, beta_gamma, beta_randomness, beta_tag) = MessageB::b(
+            &input.gamma_i,
+            &input.ek_vec[input.l_s[ind]],
+            input.m_a_vec[ind].0.clone(),
+        );
         res_gamma_i.push((m_b_gamma, beta_gamma, beta_randomness, beta_tag));
-        let (m_b_w, beta_wi, beta_randomness, beta_tag) =
-            MessageB::b(&w_i_vec[ind], &e_k, m_a.0.clone());
-
+        let (m_b_w, beta_wi, beta_randomness, beta_tag) = MessageB::b(
+            &input.w_i,
+            &input.ek_vec[input.l_s[ind]],
+            input.m_a_vec[ind].0.clone(),
+        );
         res_w_i.push((m_b_w, beta_wi, beta_randomness, beta_tag));
     }
+    /*
+        for j in 0..s_ttag - 1 {
+            let ind = if j < index { j } else { j + 1 };
+            let (m_b_gamma, beta_gamma, beta_randomness, beta_tag) =
+                MessageB::b(&gamma_i_vec[ind], &e_k, m_a.0.clone());
+            res_gamma_i.push((m_b_gamma, beta_gamma, beta_randomness, beta_tag));
+            let (m_b_w, beta_wi, beta_randomness, beta_tag) =
+                MessageB::b(&w_i_vec[ind], &e_k, m_a.0.clone());
+
+            res_w_i.push((m_b_w, beta_wi, beta_randomness, beta_tag));
+        }
+    */
     Ok(SignStage2Result {
         gamma_i_vec: res_gamma_i,
         w_i_vec: res_w_i,
@@ -722,11 +751,32 @@ pub fn orchestrate_sign(
         decom1_vec.push(res_stage1.decom1);
         m_a_vec.push(res_stage1.m_a);
     });
+    println!("Stage1 done");
     let gamma_i_vec = (0..ttag)
         .map(|i| sign_keys_vec[i].gamma_i)
         .collect::<Vec<FE>>();
     let w_i_vec = (0..ttag).map(|i| sign_keys_vec[i].w_i).collect::<Vec<FE>>();
+
     let mut res_stage2_vec: Vec<SignStage2Result> = vec![];
+    for i in 0..ttag {
+        let input = SignStage2Input {
+            m_a_vec: m_a_vec.clone(),
+            gamma_i: gamma_i_vec[i].clone(),
+            w_i: w_i_vec[i].clone(),
+            ek_vec: keypair_result.e_vec.clone(),
+            index: i,
+            l_ttag: ttag,
+            l_s: s.to_vec(),
+        };
+
+        let res = sign_stage2(&input);
+        if let Err(err) = res {
+            return Err(err);
+        }
+        res_stage2_vec.push(res.unwrap());
+    }
+    println!("Stage2 done");
+    /*
     for i in 0..ttag {
         let res = sign_stage2(
             m_a_vec[i].clone(),
@@ -741,6 +791,21 @@ pub fn orchestrate_sign(
         }
         res_stage2_vec.push(res.unwrap());
     }
+    */
+    let mut m_b_gamma_vec_all = vec![];
+    let mut m_b_w_vec_all = vec![];
+    for i in 0..ttag {
+        let mut m_b_gamma_vec = vec![];
+        let mut m_b_w_vec = vec![];
+        for j in 0..ttag - 1 {
+            let ind = if j < i { j } else { j + 1 };
+            m_b_gamma_vec.push(res_stage2_vec[ind].gamma_i_vec[j].0.clone());
+            m_b_w_vec.push(res_stage2_vec[ind].w_i_vec[j].0.clone());
+        }
+        m_b_gamma_vec_all.push(m_b_gamma_vec);
+        m_b_w_vec_all.push(m_b_w_vec);
+    }
+    /*
     let m_b_gamma_vec_all = (0..res_stage2_vec.len())
         .map(|i| {
             res_stage2_vec[i]
@@ -759,6 +824,7 @@ pub fn orchestrate_sign(
                 .collect::<Vec<MessageB>>()
         })
         .collect::<Vec<Vec<MessageB>>>();
+        */
     let mut res_stage3_vec: Vec<SignStage3Result> = vec![];
     let g_wi_vec: Vec<GE> = (0..ttag).map(|a| sign_keys_vec[a].g_w_i).collect();
     for i in 0..ttag {
@@ -771,7 +837,8 @@ pub fn orchestrate_sign(
             i,
             ttag,
         );
-        if let Err(_) = res {
+        if let Err(err) = res {
+            println!("stage 3 error.{:?}", err);
             return Err(ErrorType {
                 error_type: "".to_string(),
                 bad_actors: vec![],
