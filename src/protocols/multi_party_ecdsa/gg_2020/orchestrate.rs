@@ -35,6 +35,9 @@
 //! with:
 //!     shorthand struct initiailization error.
 //!
+//! Another Note: If you set the WRITE_FILE env variable.. the tests in this file will write
+//!               jsons keygen.txt and sign.txt which will contain keygen and sign json
+//!               input/output pairs for all the stages.
 use crate::protocols::multi_party_ecdsa::gg_2020::party_i::{
     KeyGenBroadcastMessage1, KeyGenDecommitMessage1, Keys, LocalSignature, Parameters,
     PartyPrivate, SharedKeys, SignBroadcastPhase1, SignDecommitPhase1, SignKeys,
@@ -193,9 +196,13 @@ pub fn keygen_stage4(input: &KeyGenStage4Input) -> Result<(), ErrorType> {
 }
 
 macro_rules! write_input {
-    ($json_file: expr, $index: expr, $stage: expr, $op: expr, $json: expr) => {{
+    ($index: expr, $stage: expr, $op: expr, $json: expr) => {{
         if var_os("WRITE_FILE").is_some() {
-            let json_file = $json_file;
+            use std::fs::OpenOptions;
+            let mut json_file = OpenOptions::new()
+                .append(true)
+                .open(&format!("{}.txt", $op))
+                .unwrap();
             let index = $index;
             let stage = $stage;
             let op = $op;
@@ -210,9 +217,13 @@ macro_rules! write_input {
     }};
 }
 macro_rules! write_output {
-    ($json_file: expr, $index: expr, $stage: expr, $op: expr, $json: expr) => {{
+    ($index: expr, $stage: expr, $op: expr, $json: expr) => {{
         if var_os("WRITE_FILE").is_some() {
-            let json_file = $json_file;
+            use std::fs::OpenOptions;
+            let mut json_file = OpenOptions::new()
+                .append(true)
+                .open(&format!("{}.txt", $op))
+                .unwrap();
             let index = $index;
             let stage = $stage;
             let op = $op;
@@ -226,32 +237,7 @@ macro_rules! write_output {
         }
     }};
 }
-/*fn write_input!(json_file: &mut File, index: u16, stage: usize, op: &String, json: String) {
-    if should_write_file {
-        json_file
-            .write_all(format!("Input {} stage {} index {}\n", op, stage, index).as_bytes())
-            .unwrap();
-        json_file
-            .write_all(format!("{}\n", json).as_bytes())
-            .unwrap();
-    }
-}
 
-fn write_output!(json_file: &mut File, index: u16, stage: usize, op: &String, json: String) {
-    let should_write_file = if var_os("WRITE_FILE").is_some() {
-        true
-    } else {
-        false
-    };
-    if should_write_file {
-        json_file
-            .write_all(format!("Output {} stage {} index {}\n", op, stage, index).as_bytes())
-            .unwrap();
-        json_file
-            .write_all(format!("{}\n", json).as_bytes())
-            .unwrap();
-    }
-}*/
 // The Distributed key generation protocol can work with a broadcast channel.
 // All the messages are exchanged p2p.
 // On the contrary, the key generation process can be orchestrated as below.
@@ -262,7 +248,7 @@ fn write_output!(json_file: &mut File, index: u16, stage: usize, op: &String, js
 pub fn keygen_orchestrator(params: Parameters) -> Result<KeyPairResult, ErrorType> {
     let op = "keygen".to_string();
     if var_os("WRITE_FILE").is_some() {
-        let json_file = std::fs::File::create("keygen.txt").unwrap();
+        File::create(&format!("{}.txt", &op)).unwrap();
     }
     //
     // Values to be kept private(Each value needs to be encrypted with a key only known to that
@@ -748,7 +734,7 @@ pub fn orchestrate_sign(
 ) -> Result<(), ErrorType> {
     let op = "sign".to_string();
     if var_os("WRITE_FILE").is_some() {
-        let mut json_file = std::fs::File::create("sign.txt").unwrap();
+        let mut json_file = File::create(&format!("{}.txt", &op)).unwrap();
         json_file
             .write_all(
                 format!(
