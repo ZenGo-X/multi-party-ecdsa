@@ -338,17 +338,28 @@ fn keygen_stage3(input: &KeyGenStage3Input) -> Result<KeyGenStage3Result, ErrorT
         dlog_proof_s: dlog_proof,
     })
 }
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct KeyGenStage4Input {
+    pub params_s: Parameters,
+    pub dlog_proof_vec_s: Vec<DLogProof>,
+    pub y_vec_s: Vec<GE>,
+}
+
 //
 // Final stage of key generation. All parties must execute this.
 // Unless this is successful the protocol is not complete.
 //
 #[cfg(test)]
-fn keygen_stage4(
-    params: &Parameters,
-    dlog_proof_vec: &[DLogProof],
-    y_vec: &[GE],
-) -> Result<(), ErrorType> {
-    Ok(Keys::verify_dlog_proofs(params, dlog_proof_vec, y_vec)?)
+fn keygen_stage4(input: &KeyGenStage4Input) -> Result<(), ErrorType> {
+    let result = Keys::verify_dlog_proofs(&input.params_s, &input.dlog_proof_vec_s, &input.y_vec_s);
+    if result.is_err() {
+        let err_obj = result.unwrap_err();
+        println!("KeyGen phase 3 checks failed. {:?}", err_obj.clone());
+        Err(err_obj)
+    } else {
+        Ok(())
+    }
 }
 // The Distributed key generation protocol can work with a broadcast channel.
 // All the messages are exchanged p2p.
@@ -465,9 +476,15 @@ fn keygen_orchestrator(params: Parameters) -> Result<KeyPairResult, ErrorType> {
     // stage ran successfully.
     // One way to do it would be to add a signature to the shared_keys_vec_l[i].x_i once this is
     // verified.
+    let input_stage4 = KeyGenStage4Input {
+        params_s: params.clone(),
+        dlog_proof_vec_s: dlog_proof_vec_l.clone(),
+        y_vec_s: y_vec.clone(),
+    };
     for _ in participants.iter() {
-        keygen_stage4(&params, &dlog_proof_vec_l, &y_vec)?;
+        keygen_stage4(&input_stage4)?;
     }
+
     // Important: This is only for test purposes. This code should never be executed in practice.
     //            x is the private key and all this work is done to never have that at one place in the clear.
     let xi_vec = (0..=params.threshold)
