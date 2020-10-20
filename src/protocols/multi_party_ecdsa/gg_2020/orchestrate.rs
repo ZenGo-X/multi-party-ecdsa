@@ -25,7 +25,7 @@
 //! Usually the input of one stage is one of the output values of a prior stage.
 //!
 //! Each input and output for a stage is defined as a structure.
-//! Using serde_json, this could easily be made a json.
+//! Using serde_json this could easily be made a json.
 //!
 //! Then each stage API basically resembles an HTTP API for a server that would be one of the
 //! parties to this Distributed Key Generation or Signing Protocol.
@@ -261,14 +261,8 @@ fn write_output!(json_file: &mut File, index: u16, stage: usize, op: &String, js
 //
 pub fn keygen_orchestrator(params: Parameters) -> Result<KeyPairResult, ErrorType> {
     let op = "keygen".to_string();
-    let should_write_file = if var_os("WRITE_FILE").is_some() {
-        true
-    } else {
-        false
-    };
-    let mut json_file;
-    if should_write_file {
-        json_file = std::fs::File::create("keygen.txt").unwrap();
+    if var_os("WRITE_FILE").is_some() {
+        let json_file = std::fs::File::create("keygen.txt").unwrap();
     }
     //
     // Values to be kept private(Each value needs to be encrypted with a key only known to that
@@ -338,7 +332,7 @@ pub fn keygen_orchestrator(params: Parameters) -> Result<KeyPairResult, ErrorTyp
             i,
             2,
             &op,
-            serde_json::to_string_pretty(&res).unwrap(),
+            serde_json::to_string_pretty(&res).unwrap()
         );
         vss_scheme_vec_l.push(res.vss_scheme_s);
         secret_shares_vec_l.push(res.secret_shares_s);
@@ -382,7 +376,7 @@ pub fn keygen_orchestrator(params: Parameters) -> Result<KeyPairResult, ErrorTyp
             index,
             3,
             &op,
-            serde_json::to_string_pretty(&input).unwrap(),
+            serde_json::to_string_pretty(&input).unwrap()
         );
         let result_check = keygen_stage3(&input);
         if let Err(err) = result_check {
@@ -394,7 +388,7 @@ pub fn keygen_orchestrator(params: Parameters) -> Result<KeyPairResult, ErrorTyp
             index,
             3,
             &op,
-            serde_json::to_string_pretty(&result).unwrap(),
+            serde_json::to_string_pretty(&result).unwrap()
         );
         shared_keys_vec_l.push(result.shared_keys_s);
         dlog_proof_vec_l.push(result.dlog_proof_s);
@@ -427,7 +421,7 @@ pub fn keygen_orchestrator(params: Parameters) -> Result<KeyPairResult, ErrorTyp
             index,
             4,
             &op,
-            serde_json::to_string_pretty(&input_stage4).unwrap(),
+            serde_json::to_string_pretty(&input_stage4).unwrap()
         );
         keygen_stage4(&input_stage4)?;
     }
@@ -784,16 +778,9 @@ pub fn orchestrate_sign(
     bytes_to_sign: &[u8],
     keypair_result: &KeyPairResult,
 ) -> Result<(), ErrorType> {
-    let should_write_file = if var_os("WRITE_FILE").is_some() {
-        true
-    } else {
-        false
-    };
-
     let op = "sign".to_string();
-    let mut json_file;
-    if should_write_file {
-        json_file = std::fs::File::create("sign.txt").unwrap();
+    if var_os("WRITE_FILE").is_some() {
+        let mut json_file = std::fs::File::create("sign.txt").unwrap();
         json_file
             .write_all(
                 format!(
@@ -841,7 +828,7 @@ pub fn orchestrate_sign(
             i as u16,
             1,
             &op,
-            serde_json::to_string_pretty(&input).unwrap(),
+            serde_json::to_string_pretty(&input).unwrap()
         );
         let res_stage1 = sign_stage1(&input);
         write_output!(
@@ -849,7 +836,7 @@ pub fn orchestrate_sign(
             i as u16,
             1,
             &op,
-            serde_json::to_string_pretty(&res_stage1).unwrap(),
+            serde_json::to_string_pretty(&res_stage1).unwrap()
         );
 
         private_vec.push(res_stage1.party_private);
@@ -881,7 +868,7 @@ pub fn orchestrate_sign(
             i as u16,
             2,
             &op,
-            serde_json::to_string_pretty(&input).unwrap(),
+            serde_json::to_string_pretty(&input).unwrap()
         );
         let res = sign_stage2(&input)?;
         write_output!(
@@ -889,7 +876,7 @@ pub fn orchestrate_sign(
             i as u16,
             2,
             &op,
-            serde_json::to_string_pretty(&res).unwrap(),
+            serde_json::to_string_pretty(&res).unwrap()
         );
         res_stage2_vec.push(res);
     }
@@ -925,7 +912,7 @@ pub fn orchestrate_sign(
             i as u16,
             3,
             &op,
-            serde_json::to_string_pretty(&input).unwrap(),
+            serde_json::to_string_pretty(&input).unwrap()
         );
 
         let res = sign_stage3(&input);
@@ -941,7 +928,7 @@ pub fn orchestrate_sign(
             i as u16,
             3,
             &op,
-            serde_json::to_string_pretty(&(res.clone().unwrap())).unwrap(),
+            serde_json::to_string_pretty(&(res.clone().unwrap())).unwrap()
         );
 
         res_stage3_vec.push(res.unwrap());
@@ -1037,7 +1024,7 @@ pub fn orchestrate_sign(
             i as u16,
             4,
             &op,
-            serde_json::to_string_pretty(&input).unwrap(),
+            serde_json::to_string_pretty(&input).unwrap()
         );
 
         let res = sign_stage4(&input).unwrap();
@@ -1046,7 +1033,7 @@ pub fn orchestrate_sign(
             i as u16,
             4,
             &op,
-            serde_json::to_string_pretty(&res).unwrap(),
+            serde_json::to_string_pretty(&res).unwrap()
         );
 
         res_stage4_vec.push(res);
@@ -1076,7 +1063,7 @@ pub fn orchestrate_sign(
             i as u16,
             5,
             &op,
-            serde_json::to_string_pretty(&input).unwrap(),
+            serde_json::to_string_pretty(&input).unwrap()
         );
 
         let res = sign_stage5(&input)?;
@@ -1085,7 +1072,7 @@ pub fn orchestrate_sign(
             i as u16,
             5,
             &op,
-            serde_json::to_string_pretty(&res).unwrap(),
+            serde_json::to_string_pretty(&res).unwrap()
         );
 
         result_stage5_vec.push(res);
@@ -1114,7 +1101,7 @@ pub fn orchestrate_sign(
             i as u16,
             6,
             &op,
-            serde_json::to_string_pretty(&input).unwrap(),
+            serde_json::to_string_pretty(&input).unwrap()
         );
 
         let res = sign_stage6(&input)?;
@@ -1123,7 +1110,7 @@ pub fn orchestrate_sign(
             i as u16,
             6,
             &op,
-            serde_json::to_string_pretty(&res).unwrap(),
+            serde_json::to_string_pretty(&res).unwrap()
         );
 
         res_stage6_vec.push(res);
@@ -1151,7 +1138,7 @@ pub fn orchestrate_sign(
             i as u16,
             7,
             &op,
-            serde_json::to_string_pretty(&input).unwrap(),
+            serde_json::to_string_pretty(&input).unwrap()
         );
 
         let res = sign_stage7(&input)?;
@@ -1160,7 +1147,7 @@ pub fn orchestrate_sign(
             i as u16,
             7,
             &op,
-            serde_json::to_string_pretty(&res).unwrap(),
+            serde_json::to_string_pretty(&res).unwrap()
         );
 
         res_stage7_vec.push(res);
@@ -1184,7 +1171,7 @@ pub fn orchestrate_sign(
             i as u16,
             8,
             &op,
-            serde_json::to_string_pretty(&input).unwrap(),
+            serde_json::to_string_pretty(&input).unwrap()
         );
 
         let check_local_sig = sign_stage8(&input);
@@ -1200,7 +1187,7 @@ pub fn orchestrate_sign(
             i as u16,
             8,
             &op,
-            serde_json::to_string_pretty(&local_sig).unwrap(),
+            serde_json::to_string_pretty(&local_sig).unwrap()
         );
 
         s_vec.push(local_sig.s_i.clone());
