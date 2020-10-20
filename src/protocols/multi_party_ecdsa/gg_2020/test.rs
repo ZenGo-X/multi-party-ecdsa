@@ -735,23 +735,34 @@ pub struct SignStage3Result {
     pub alpha_vec_gamma: Vec<(FE, BigInt)>,
     pub alpha_vec_w: Vec<(FE, BigInt)>,
 }
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SignStage3Input {
+    pub dk_s: DecryptionKey,
+    pub k_i_s: FE,
+    pub m_b_gamma_s: Vec<MessageB>,
+    pub m_b_w_s: Vec<MessageB>,
+    pub g_w_i_s: Vec<GE>,
+    pub index_s: usize,
+    pub ttag_s: usize,
+}
 pub fn sign_stage3(
-    dk: &DecryptionKey,
+    input: &SignStage3Input,
+    /*    dk: &DecryptionKey,
     k_i: &FE,
     m_b_gamma: &[MessageB],
     m_b_w: &[MessageB],
     g_w_i: &[GE],
     index: usize,
-    s_ttag: usize,
+    s_ttag: usize,*/
 ) -> Result<SignStage3Result, Error> {
     let mut res_alpha_vec_gamma = vec![];
     let mut res_alpha_vec_w = vec![];
-    for i in 0..s_ttag - 1 {
-        let ind = if i < index { i } else { i + 1 };
-        let res = m_b_gamma[i].verify_proofs_get_alpha(dk, k_i)?;
+    for i in 0..input.ttag_s - 1 {
+        let ind = if i < input.index_s { i } else { i + 1 };
+        let res = input.m_b_gamma_s[i].verify_proofs_get_alpha(&input.dk_s, &input.k_i_s)?;
         res_alpha_vec_gamma.push(res);
-        let res = m_b_w[i].verify_proofs_get_alpha(dk, k_i)?;
-        if g_w_i[ind] != m_b_w[i].b_proof.pk {
+        let res = input.m_b_w_s[i].verify_proofs_get_alpha(&input.dk_s, &input.k_i_s)?;
+        if input.g_w_i_s[ind] != input.m_b_w_s[i].b_proof.pk {
             println!("MtAwc did not work i = {} ind ={}", i, ind);
             return Err(Error::InvalidCom);
         }
@@ -843,15 +854,16 @@ pub fn orchestrate_sign(
     let mut res_stage3_vec: Vec<SignStage3Result> = vec![];
     let g_wi_vec: Vec<GE> = (0..ttag).map(|a| sign_keys_vec[a].g_w_i).collect();
     for i in 0..ttag {
-        let res = sign_stage3(
-            &keypair_result.party_keys_vec[s[i]].dk,
-            &sign_keys_vec[i].k_i,
-            &m_b_gamma_vec_all[i],
-            &m_b_w_vec_all[i],
-            &g_wi_vec,
-            i,
-            ttag,
-        );
+        let input = SignStage3Input {
+            dk_s: keypair_result.party_keys_vec[s[i]].dk.clone(),
+            k_i_s: sign_keys_vec[i].k_i.clone(),
+            m_b_gamma_s: m_b_gamma_vec_all[i].clone(),
+            m_b_w_s: m_b_w_vec_all[i].clone(),
+            index_s: i,
+            ttag_s: ttag,
+            g_w_i_s: g_wi_vec.clone(),
+        };
+        let res = sign_stage3(&input);
         if let Err(err) = res {
             println!("stage 3 error.{:?}", err);
             return Err(ErrorType {
@@ -912,15 +924,22 @@ pub fn orchestrate_sign(
                 ni_vec_all[ind1][ind2].clone()
             })
             .collect::<Vec<FE>>();
+        let input = SignStage4Input {
+            alpha_vec_s: alpha_vec_all[i].clone(),
+            beta_vec_s: beta_vec,
+            miu_vec_s: miu_vec_all[i].clone(),
+            ni_vec_s: ni_vec,
+            sign_keys_s: sign_keys_vec[i].clone(),
+        };
         res_stage4_vec.push(
-            sign_stage4(
-                &alpha_vec_all[i],
-                &beta_vec,
-                &miu_vec_all[i],
-                &ni_vec,
-                &sign_keys_vec[i],
-            )
-            .unwrap(),
+            sign_stage4(&input)
+                /*                &alpha_vec_all[i],
+                    &beta_vec,
+                    &miu_vec_all[i],
+                    &ni_vec,
+                    &sign_keys_vec[i],
+                )*/
+                .unwrap(),
         );
     }
 
@@ -1031,16 +1050,30 @@ pub struct SignStage4Result {
     delta_i: FE,
     sigma_i: FE,
 }
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SignStage4Input {
+    pub alpha_vec_s: Vec<FE>,
+    pub beta_vec_s: Vec<FE>,
+    pub miu_vec_s: Vec<FE>,
+    pub ni_vec_s: Vec<FE>,
+    pub sign_keys_s: SignKeys,
+}
 pub fn sign_stage4(
-    alpha_vec: &[FE],
-    beta_vec: &[FE],
-    miu_vec: &[FE],
-    ni_vec: &[FE],
-    sign_keys: &SignKeys,
+    input: &SignStage4Input, /*    alpha_vec: &[FE],
+                             beta_vec: &[FE],
+                             miu_vec: &[FE],
+                             ni_vec: &[FE],
+                             sign_keys: &SignKeys,
+                             */
 ) -> Result<SignStage4Result, ErrorType> {
     Ok(SignStage4Result {
-        delta_i: sign_keys.phase2_delta_i(alpha_vec, beta_vec),
-        sigma_i: sign_keys.phase2_sigma_i(miu_vec, ni_vec),
+        delta_i: input
+            .sign_keys_s
+            .phase2_delta_i(&input.alpha_vec_s[..], &input.beta_vec_s[..]),
+        sigma_i: input
+            .sign_keys_s
+            .phase2_sigma_i(&input.miu_vec_s[..], &input.ni_vec_s[..]),
     })
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
