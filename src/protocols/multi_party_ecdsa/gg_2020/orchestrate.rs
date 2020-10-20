@@ -209,7 +209,9 @@ pub fn keygen_orchestrator(params: Parameters) -> Result<KeyPairResult, ErrorTyp
     let mut party_keys_vec_l = vec![];
     // Nothing private in the commitment values.
     let mut bc1_vec_l = vec![];
-    // Nothing private in the decommitment values.
+    // Values to be kept private(Each value needs to be encrypted with a key only known to that
+    // party):
+    // 1. decommitment values in KeyGenDecommitMessage1 need to be encrypted until they are sent
     let mut decom_vec_l = vec![];
     // Nothing private in the below vector.
     let mut h1_h2_N_tilde_vec_l = vec![];
@@ -662,10 +664,27 @@ pub fn orchestrate_sign(
     bytes_to_sign: &[u8],
     keypair_result: &KeyPairResult,
 ) -> Result<(), ErrorType> {
+    // ttag = is the number of signers involved in the protocol.
     let ttag = s.len();
+    //
+    // Values to be kept private(Each value needs to be encrypted with a key only known to that
+    // party):
+    // 1. private_vec[i].u_i
+    // 2. private_vec[i].x_i
+    // 3. private_vec[i].dk
     let mut private_vec = vec![];
+    //
+    // Values to be kept private(Each value needs to be encrypted with a key only known to that
+    // party):
+    // 1. sign_keys_vec[i].w_i
+    // 2. sign_keys_vec[i].k_i
+    // 3. sign_keys_vec[i].gamma_i
     let mut sign_keys_vec = vec![];
     let mut bc1_vec = vec![];
+    //
+    // Values to be kept private(Each value needs to be encrypted with a key only known to that
+    // party):
+    // 1. decom1_vec[i].blind_factor
     let mut decom1_vec = vec![];
     let mut m_a_vec: Vec<(MessageA, BigInt)> = vec![];
     (0..ttag).map(|i| i).for_each(|i| {
@@ -685,6 +704,7 @@ pub fn orchestrate_sign(
         m_a_vec.push(res_stage1.m_a);
     });
     println!("Stage1 done");
+
     let gamma_i_vec = (0..ttag)
         .map(|i| sign_keys_vec[i].gamma_i)
         .collect::<Vec<FE>>();
@@ -709,8 +729,11 @@ pub fn orchestrate_sign(
         res_stage2_vec.push(res.unwrap());
     }
     println!("Stage2 done");
-
+    // All these values should already be encrypted as they come from the stage2 response above.
+    // All the values m_b_gamma_vec_all[i][..].c need to be private to party i.
     let mut m_b_gamma_vec_all = vec![vec![]; ttag];
+    // All these values should already be encrypted as they come from the stage2 response above.
+    // All the values m_b_w_vec_all[i][..].c need to be private to party i.
     let mut m_b_w_vec_all = vec![vec![]; ttag];
     for i in 0..ttag {
         for j in 0..ttag - 1 {
@@ -744,7 +767,15 @@ pub fn orchestrate_sign(
     }
     println!("Stage 3 done.");
 
+    //
+    // Values to be kept private(Each value needs to be encrypted with a key only known to that
+    // party):
+    // 1. beta_vec_all[i][..] - All these values are private to party i.
     let mut beta_vec_all = vec![vec![]; ttag];
+    //
+    // Values to be kept private(Each value needs to be encrypted with a key only known to that
+    // party):
+    // 1. ni_vec_all[i][..] - All these values are private to party i.
     let mut ni_vec_all = vec![vec![]; ttag];
     for i in 0..ttag {
         for j in 0..ttag - 1 {
@@ -754,6 +785,11 @@ pub fn orchestrate_sign(
         }
     }
 
+    //
+    // Values to be kept private(Each value needs to be encrypted with a key only known to that
+    // party):
+    // miu_vec_all[i][..] <-- all these values are private to party i. They should be encrypted at
+    // the time of their generation in stage3.
     let miu_vec_all = (0..res_stage3_vec.len())
         .map(|i| {
             res_stage3_vec[i]
@@ -763,6 +799,11 @@ pub fn orchestrate_sign(
                 .collect()
         })
         .collect::<Vec<Vec<FE>>>();
+    //
+    // Values to be kept private(Each value needs to be encrypted with a key only known to that
+    // party):
+    // alpha_vec_all[i][..] <-- all these values are private to party i. They should be encrypted at
+    // the time of their generation in stage3.
     let alpha_vec_all = (0..res_stage3_vec.len())
         .map(|i| {
             res_stage3_vec[i]
@@ -775,6 +816,12 @@ pub fn orchestrate_sign(
     let mut res_stage4_vec = vec![];
     for i in 0..ttag {
         // prepare beta_vec of party_i:
+        //
+        // Values to be kept private(Each value needs to be encrypted with a key only known to that
+        // party):
+        // beta_vec[..] <-- all these values are private to party i. They should be encrypted at
+        // the time of their generation in stage3.
+
         let beta_vec = (0..ttag - 1)
             .map(|j| {
                 let ind1 = if j < i { j } else { j + 1 };
@@ -786,6 +833,10 @@ pub fn orchestrate_sign(
             .collect::<Vec<FE>>();
 
         // prepare ni_vec of party_i:
+        // Values to be kept private(Each value needs to be encrypted with a key only known to that
+        // party):
+        // ni_vec[..] <-- all these values are private to party i. They should be encrypted at
+        // the time of their generation in stage3.
         let ni_vec = (0..ttag - 1)
             .map(|j| {
                 let ind1 = if j < i { j } else { j + 1 };
@@ -800,22 +851,15 @@ pub fn orchestrate_sign(
             ni_vec_s: ni_vec,
             sign_keys_s: sign_keys_vec[i].clone(),
         };
-        res_stage4_vec.push(
-            sign_stage4(&input)
-                /*                &alpha_vec_all[i],
-                    &beta_vec,
-                    &miu_vec_all[i],
-                    &ni_vec,
-                    &sign_keys_vec[i],
-                )*/
-                .unwrap(),
-        );
+        res_stage4_vec.push(sign_stage4(&input).unwrap());
     }
 
     println!("Stage 4 done.");
     let delta_vec: Vec<FE> = res_stage4_vec.iter().map(|val| val.delta_i).collect();
     // all parties broadcast delta_i and compute delta_i ^(-1)
     let delta_inv = SignKeys::phase3_reconstruct_delta(&delta_vec);
+
+    // sigma_vec should come out encrypted for each party in the stage 4 response itself.
     let sigma_vec: Vec<FE> = res_stage4_vec.iter().map(|val| val.sigma_i).collect();
     let mut result_stage5_vec = vec![];
     for i in 0..ttag {
