@@ -297,6 +297,22 @@ fn keygen_stage2(input: &KeyGenStage2Input) -> Result<KeyGenStage2Result, ErrorT
     })
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct KeyGenStage3Input {
+    pub party_keys_s: Keys,
+    pub vss_scheme_vec_s: Vec<VerifiableSS>,
+    pub secret_shares_vec_s: Vec<FE>,
+    pub y_vec_s: Vec<GE>,
+    pub params_s: Parameters,
+    pub index_s: usize,
+    pub index_vec_s: Vec<usize>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct KeyGenStage3Result {
+    pub shared_keys_s: SharedKeys,
+    pub dlog_proof_s: DLogProof,
+}
 //
 // As per page 13 on https://eprint.iacr.org/2020/540.pdf:
 // 1. Participant adds there private shares to obtain their final share of the keypair.
@@ -306,27 +322,21 @@ fn keygen_stage2(input: &KeyGenStage2Input) -> Result<KeyGenStage2Result, ErrorT
 // Important to note that all the stages are sequential. Unless all the messages from the previous
 // stage are not delivered, you cannot jump on the next stage.
 #[cfg(test)]
-fn keygen_stage3(
-    party_keys: &Keys,
-    vss_scheme_vec: &[VerifiableSS],
-    secret_shares_vec: &Vec<Vec<FE>>,
-    decom_vec: &[KeyGenDecommitMessage1],
-    params: &Parameters,
-    participant: usize,
-    index_vec: &[usize],
-) -> Result<(SharedKeys, DLogProof), ErrorType> {
-    let y_vec = (0..params.share_count)
-        .map(|i| decom_vec[i as usize].y_i)
-        .collect::<Vec<GE>>();
-    let res = party_keys.phase2_verify_vss_construct_keypair_phase3_pok_dlog(
-        &params,
-        &y_vec,
-        &secret_shares_vec[participant - 1],
-        vss_scheme_vec,
-        &index_vec[participant - 1] + 1,
-    )?;
+fn keygen_stage3(input: &KeyGenStage3Input) -> Result<KeyGenStage3Result, ErrorType> {
+    let res = input
+        .party_keys_s
+        .phase2_verify_vss_construct_keypair_phase3_pok_dlog(
+            &input.params_s,
+            &input.y_vec_s,
+            &input.secret_shares_vec_s,
+            &input.vss_scheme_vec_s,
+            &input.index_vec_s[input.index_s] + 1,
+        )?;
     let (shared_keys, dlog_proof) = res;
-    Ok((shared_keys, dlog_proof))
+    Ok(KeyGenStage3Result {
+        shared_keys_s: shared_keys,
+        dlog_proof_s: dlog_proof,
+    })
 }
 //
 // Final stage of key generation. All parties must execute this.
@@ -418,22 +428,26 @@ fn keygen_orchestrator(params: Parameters) -> Result<KeyPairResult, ErrorType> {
     // 1. shared_keys_vec_l.x_i - Final shard for this ECDSA keypair.
     let mut shared_keys_vec_l = vec![];
     let mut dlog_proof_vec_l = vec![];
-    for participant in participants.iter() {
-        let result_check = keygen_stage3(
-            &party_keys_vec_l[participant - 1],
-            &vss_scheme_vec_l,
-            &party_shares,
-            &decom_vec_l,
-            &params,
-            *participant,
-            &index_vec,
-        );
+    let y_vec = (0..params.share_count)
+        .map(|i| decom_vec_l[i as usize].y_i)
+        .collect::<Vec<GE>>();
+    for index in 0..params.share_count {
+        let input = KeyGenStage3Input {
+            party_keys_s: party_keys_vec_l[index as usize].clone(),
+            vss_scheme_vec_s: vss_scheme_vec_l.clone(),
+            secret_shares_vec_s: party_shares[index as usize].clone(),
+            y_vec_s: y_vec.clone(),
+            params_s: params.clone(),
+            index_s: index as usize,
+            index_vec_s: index_vec.clone(),
+        };
+        let result_check = keygen_stage3(&input);
         if let Err(err) = result_check {
             return Err(err);
         }
-        let (shared_keys, dlog_proof) = result_check.unwrap();
-        shared_keys_vec_l.push(shared_keys);
-        dlog_proof_vec_l.push(dlog_proof);
+        let result = result_check.unwrap();
+        shared_keys_vec_l.push(result.shared_keys_s);
+        dlog_proof_vec_l.push(result.dlog_proof_s);
     }
 
     let pk_vec_l = (0..params.share_count)
