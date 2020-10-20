@@ -280,21 +280,9 @@ pub fn keygen_orchestrator(params: Parameters) -> Result<KeyPairResult, ErrorTyp
     let mut h1_h2_N_tilde_vec_l = vec![];
     for i in 0..params.share_count {
         let input = KeyGenStage1Input { index: i as usize };
-        write_input!(
-            &mut json_file,
-            i,
-            1,
-            &op,
-            serde_json::to_string_pretty(&input).unwrap()
-        );
+        write_input!(i, 1, &op, serde_json::to_string_pretty(&input).unwrap());
         let res = keygen_stage1(&input);
-        write_output!(
-            &mut json_file,
-            i,
-            1,
-            &op,
-            serde_json::to_string_pretty(&res).unwrap()
-        );
+        write_output!(i, 1, &op, serde_json::to_string_pretty(&res).unwrap());
         party_keys_vec_l.push(res.party_keys_l);
         bc1_vec_l.push(res.bc_com1_l);
         decom_vec_l.push(res.decom1_l);
@@ -315,25 +303,13 @@ pub fn keygen_orchestrator(params: Parameters) -> Result<KeyPairResult, ErrorTyp
             bc1_vec_s: bc1_vec_l.clone(),
             decom1_vec_s: decom_vec_l.clone(),
         };
-        write_input!(
-            &mut json_file,
-            i,
-            2,
-            &op,
-            serde_json::to_string_pretty(&input).unwrap()
-        );
+        write_input!(i, 2, &op, serde_json::to_string_pretty(&input).unwrap());
         let result_check = keygen_stage2(&input);
         if let Err(err) = result_check {
             return Err(err);
         }
         let res = result_check.unwrap();
-        write_output!(
-            &mut json_file,
-            i,
-            2,
-            &op,
-            serde_json::to_string_pretty(&res).unwrap()
-        );
+        write_output!(i, 2, &op, serde_json::to_string_pretty(&res).unwrap());
         vss_scheme_vec_l.push(res.vss_scheme_s);
         secret_shares_vec_l.push(res.secret_shares_s);
         index_vec.push(res.index_s);
@@ -371,20 +347,13 @@ pub fn keygen_orchestrator(params: Parameters) -> Result<KeyPairResult, ErrorTyp
             index_s: index as usize,
             index_vec_s: index_vec.clone(),
         };
-        write_input!(
-            &mut json_file,
-            index,
-            3,
-            &op,
-            serde_json::to_string_pretty(&input).unwrap()
-        );
+        write_input!(index, 3, &op, serde_json::to_string_pretty(&input).unwrap());
         let result_check = keygen_stage3(&input);
         if let Err(err) = result_check {
             return Err(err);
         }
         let result = result_check.unwrap();
         write_output!(
-            &mut json_file,
             index,
             3,
             &op,
@@ -417,7 +386,6 @@ pub fn keygen_orchestrator(params: Parameters) -> Result<KeyPairResult, ErrorTyp
 
     for index in 0..params.share_count {
         write_input!(
-            &mut json_file,
             index,
             4,
             &op,
@@ -824,7 +792,6 @@ pub fn orchestrate_sign(
             ek: keypair_result.party_keys_vec[s[i]].ek.clone(),
         };
         write_input!(
-            &mut json_file,
             i as u16,
             1,
             &op,
@@ -832,7 +799,6 @@ pub fn orchestrate_sign(
         );
         let res_stage1 = sign_stage1(&input);
         write_output!(
-            &mut json_file,
             i as u16,
             1,
             &op,
@@ -864,7 +830,6 @@ pub fn orchestrate_sign(
             l_s: s.to_vec(),
         };
         write_input!(
-            &mut json_file,
             i as u16,
             2,
             &op,
@@ -872,7 +837,6 @@ pub fn orchestrate_sign(
         );
         let res = sign_stage2(&input)?;
         write_output!(
-            &mut json_file,
             i as u16,
             2,
             &op,
@@ -908,7 +872,6 @@ pub fn orchestrate_sign(
             g_w_i_s: g_wi_vec.clone(),
         };
         write_input!(
-            &mut json_file,
             i as u16,
             3,
             &op,
@@ -924,7 +887,6 @@ pub fn orchestrate_sign(
             });
         }
         write_output!(
-            &mut json_file,
             i as u16,
             3,
             &op,
@@ -1020,7 +982,6 @@ pub fn orchestrate_sign(
             sign_keys_s: sign_keys_vec[i].clone(),
         };
         write_input!(
-            &mut json_file,
             i as u16,
             4,
             &op,
@@ -1029,7 +990,6 @@ pub fn orchestrate_sign(
 
         let res = sign_stage4(&input).unwrap();
         write_output!(
-            &mut json_file,
             i as u16,
             4,
             &op,
@@ -1059,7 +1019,6 @@ pub fn orchestrate_sign(
             s_ttag: ttag,
         };
         write_input!(
-            &mut json_file,
             i as u16,
             5,
             &op,
@@ -1068,7 +1027,6 @@ pub fn orchestrate_sign(
 
         let res = sign_stage5(&input)?;
         write_output!(
-            &mut json_file,
             i as u16,
             5,
             &op,
@@ -1097,7 +1055,6 @@ pub fn orchestrate_sign(
             s: s.to_vec(),
         };
         write_input!(
-            &mut json_file,
             i as u16,
             6,
             &op,
@@ -1106,7 +1063,6 @@ pub fn orchestrate_sign(
 
         let res = sign_stage6(&input)?;
         write_output!(
-            &mut json_file,
             i as u16,
             6,
             &op,
@@ -1134,7 +1090,6 @@ pub fn orchestrate_sign(
             index: i,
         };
         write_input!(
-            &mut json_file,
             i as u16,
             7,
             &op,
@@ -1143,7 +1098,6 @@ pub fn orchestrate_sign(
 
         let res = sign_stage7(&input)?;
         write_input!(
-            &mut json_file,
             i as u16,
             7,
             &op,
@@ -1167,7 +1121,6 @@ pub fn orchestrate_sign(
             ysum: keypair_result.y_sum.clone(),
         };
         write_input!(
-            &mut json_file,
             i as u16,
             8,
             &op,
@@ -1183,7 +1136,6 @@ pub fn orchestrate_sign(
         }
         let local_sig = check_local_sig.unwrap();
         write_output!(
-            &mut json_file,
             i as u16,
             8,
             &op,
