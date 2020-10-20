@@ -35,18 +35,15 @@
 //! with:
 //!     shorthand struct initiailization error.
 //!
-
 use crate::protocols::multi_party_ecdsa::gg_2020::party_i::{
     KeyGenBroadcastMessage1, KeyGenDecommitMessage1, Keys, LocalSignature, Parameters,
     PartyPrivate, SharedKeys, SignBroadcastPhase1, SignDecommitPhase1, SignKeys,
 };
-use crate::utilities::mta::{MessageA, MessageB};
-use crate::Error;
-use serde::{Deserialize, Serialize};
-
 use crate::protocols::multi_party_ecdsa::gg_2020::test::check_sig;
 use crate::protocols::multi_party_ecdsa::gg_2020::ErrorType;
+use crate::utilities::mta::{MessageA, MessageB};
 use crate::utilities::zk_pdl_with_slack::PDLwSlackProof;
+use crate::Error;
 use curv::cryptographic_primitives::hashing::hash_sha256::HSha256;
 use curv::cryptographic_primitives::hashing::traits::Hash;
 use curv::cryptographic_primitives::proofs::sigma_dlog::DLogProof;
@@ -54,6 +51,11 @@ use curv::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS;
 use curv::elliptic::curves::traits::*;
 use curv::{FE, GE};
 use paillier::*;
+use serde::{Deserialize, Serialize};
+use serde_json;
+use std::env::var_os;
+use std::fs::File;
+use std::io::Write;
 use zk_paillier::zkproofs::DLogStatement;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -74,7 +76,7 @@ pub struct KeyGenStage1Result {
 //    ui and then publish the Commitment part.
 // 2. It will create a Paillier Keypair and publish the public key for that.
 //
-pub fn keygen_stage1(input: KeyGenStage1Input) -> KeyGenStage1Result {
+pub fn keygen_stage1(input: &KeyGenStage1Input) -> KeyGenStage1Result {
     // Paillier keys and various other values
     // party_keys.ek is a secret value and it should be encrypted
     // using a key that is owned by the participant who creates it. Right now it's plaintext but
@@ -190,6 +192,66 @@ pub fn keygen_stage4(input: &KeyGenStage4Input) -> Result<(), ErrorType> {
     }
 }
 
+macro_rules! write_input {
+    ($json_file: expr, $index: expr, $stage: expr, $op: expr, $json: expr) => {{
+        if var_os("WRITE_FILE").is_some() {
+            let json_file = $json_file;
+            let index = $index;
+            let stage = $stage;
+            let op = $op;
+            let json = $json;
+            json_file
+                .write_all(format!("Input {} stage {} index {}\n", op, stage, index).as_bytes())
+                .unwrap();
+            json_file
+                .write_all(format!("{}\n", json).as_bytes())
+                .unwrap();
+        }
+    }};
+}
+macro_rules! write_output {
+    ($json_file: expr, $index: expr, $stage: expr, $op: expr, $json: expr) => {{
+        if var_os("WRITE_FILE").is_some() {
+            let json_file = $json_file;
+            let index = $index;
+            let stage = $stage;
+            let op = $op;
+            let json = $json;
+            json_file
+                .write_all(format!("Output {} stage {} index {}\n", op, stage, index).as_bytes())
+                .unwrap();
+            json_file
+                .write_all(format!("{}\n", json).as_bytes())
+                .unwrap();
+        }
+    }};
+}
+/*fn write_input!(json_file: &mut File, index: u16, stage: usize, op: &String, json: String) {
+    if should_write_file {
+        json_file
+            .write_all(format!("Input {} stage {} index {}\n", op, stage, index).as_bytes())
+            .unwrap();
+        json_file
+            .write_all(format!("{}\n", json).as_bytes())
+            .unwrap();
+    }
+}
+
+fn write_output!(json_file: &mut File, index: u16, stage: usize, op: &String, json: String) {
+    let should_write_file = if var_os("WRITE_FILE").is_some() {
+        true
+    } else {
+        false
+    };
+    if should_write_file {
+        json_file
+            .write_all(format!("Output {} stage {} index {}\n", op, stage, index).as_bytes())
+            .unwrap();
+        json_file
+            .write_all(format!("{}\n", json).as_bytes())
+            .unwrap();
+    }
+}*/
 // The Distributed key generation protocol can work with a broadcast channel.
 // All the messages are exchanged p2p.
 // On the contrary, the key generation process can be orchestrated as below.
@@ -198,9 +260,16 @@ pub fn keygen_stage4(input: &KeyGenStage4Input) -> Result<(), ErrorType> {
 // This test helper is just a demonstration of the same.
 //
 pub fn keygen_orchestrator(params: Parameters) -> Result<KeyPairResult, ErrorType> {
-    let participants = (0..(params.share_count as usize))
-        .map(|k| k + 1)
-        .collect::<Vec<usize>>();
+    let op = "keygen".to_string();
+    let should_write_file = if var_os("WRITE_FILE").is_some() {
+        true
+    } else {
+        false
+    };
+    let mut json_file;
+    if should_write_file {
+        json_file = std::fs::File::create("keygen.txt").unwrap();
+    }
     //
     // Values to be kept private(Each value needs to be encrypted with a key only known to that
     // party):
@@ -216,7 +285,22 @@ pub fn keygen_orchestrator(params: Parameters) -> Result<KeyPairResult, ErrorTyp
     // Nothing private in the below vector.
     let mut h1_h2_N_tilde_vec_l = vec![];
     for i in 0..params.share_count {
-        let res = keygen_stage1(KeyGenStage1Input { index: i as usize });
+        let input = KeyGenStage1Input { index: i as usize };
+        write_input!(
+            &mut json_file,
+            i,
+            1,
+            &op,
+            serde_json::to_string_pretty(&input).unwrap()
+        );
+        let res = keygen_stage1(&input);
+        write_output!(
+            &mut json_file,
+            i,
+            1,
+            &op,
+            serde_json::to_string_pretty(&res).unwrap()
+        );
         party_keys_vec_l.push(res.party_keys_l);
         bc1_vec_l.push(res.bc_com1_l);
         decom_vec_l.push(res.decom1_l);
@@ -237,11 +321,25 @@ pub fn keygen_orchestrator(params: Parameters) -> Result<KeyPairResult, ErrorTyp
             bc1_vec_s: bc1_vec_l.clone(),
             decom1_vec_s: decom_vec_l.clone(),
         };
+        write_input!(
+            &mut json_file,
+            i,
+            2,
+            &op,
+            serde_json::to_string_pretty(&input).unwrap()
+        );
         let result_check = keygen_stage2(&input);
         if let Err(err) = result_check {
             return Err(err);
         }
         let res = result_check.unwrap();
+        write_output!(
+            &mut json_file,
+            i,
+            2,
+            &op,
+            serde_json::to_string_pretty(&res).unwrap(),
+        );
         vss_scheme_vec_l.push(res.vss_scheme_s);
         secret_shares_vec_l.push(res.secret_shares_s);
         index_vec.push(res.index_s);
@@ -279,11 +377,25 @@ pub fn keygen_orchestrator(params: Parameters) -> Result<KeyPairResult, ErrorTyp
             index_s: index as usize,
             index_vec_s: index_vec.clone(),
         };
+        write_input!(
+            &mut json_file,
+            index,
+            3,
+            &op,
+            serde_json::to_string_pretty(&input).unwrap(),
+        );
         let result_check = keygen_stage3(&input);
         if let Err(err) = result_check {
             return Err(err);
         }
         let result = result_check.unwrap();
+        write_output!(
+            &mut json_file,
+            index,
+            3,
+            &op,
+            serde_json::to_string_pretty(&result).unwrap(),
+        );
         shared_keys_vec_l.push(result.shared_keys_s);
         dlog_proof_vec_l.push(result.dlog_proof_s);
     }
@@ -308,7 +420,15 @@ pub fn keygen_orchestrator(params: Parameters) -> Result<KeyPairResult, ErrorTyp
         dlog_proof_vec_s: dlog_proof_vec_l.clone(),
         y_vec_s: y_vec.clone(),
     };
-    for _ in participants.iter() {
+
+    for index in 0..params.share_count {
+        write_input!(
+            &mut json_file,
+            index,
+            4,
+            &op,
+            serde_json::to_string_pretty(&input_stage4).unwrap(),
+        );
         keygen_stage4(&input_stage4)?;
     }
 
@@ -664,6 +784,26 @@ pub fn orchestrate_sign(
     bytes_to_sign: &[u8],
     keypair_result: &KeyPairResult,
 ) -> Result<(), ErrorType> {
+    let should_write_file = if var_os("WRITE_FILE").is_some() {
+        true
+    } else {
+        false
+    };
+
+    let op = "sign".to_string();
+    let mut json_file;
+    if should_write_file {
+        json_file = std::fs::File::create("sign.txt").unwrap();
+        json_file
+            .write_all(
+                format!(
+                    "Keypair information\n{}\n",
+                    serde_json::to_string_pretty(keypair_result).unwrap()
+                )
+                .as_bytes(),
+            )
+            .unwrap();
+    }
     // ttag = is the number of signers involved in the protocol.
     let ttag = s.len();
     //
@@ -696,7 +836,22 @@ pub fn orchestrate_sign(
             shared_keys: keypair_result.shared_keys_vec[s[i]].clone(),
             ek: keypair_result.party_keys_vec[s[i]].ek.clone(),
         };
+        write_input!(
+            &mut json_file,
+            i as u16,
+            1,
+            &op,
+            serde_json::to_string_pretty(&input).unwrap(),
+        );
         let res_stage1 = sign_stage1(&input);
+        write_output!(
+            &mut json_file,
+            i as u16,
+            1,
+            &op,
+            serde_json::to_string_pretty(&res_stage1).unwrap(),
+        );
+
         private_vec.push(res_stage1.party_private);
         sign_keys_vec.push(res_stage1.sign_keys);
         bc1_vec.push(res_stage1.bc1);
@@ -721,12 +876,22 @@ pub fn orchestrate_sign(
             l_ttag: ttag,
             l_s: s.to_vec(),
         };
-
-        let res = sign_stage2(&input);
-        if let Err(err) = res {
-            return Err(err);
-        }
-        res_stage2_vec.push(res.unwrap());
+        write_input!(
+            &mut json_file,
+            i as u16,
+            2,
+            &op,
+            serde_json::to_string_pretty(&input).unwrap(),
+        );
+        let res = sign_stage2(&input)?;
+        write_output!(
+            &mut json_file,
+            i as u16,
+            2,
+            &op,
+            serde_json::to_string_pretty(&res).unwrap(),
+        );
+        res_stage2_vec.push(res);
     }
     println!("Stage2 done");
     // All these values should already be encrypted as they come from the stage2 response above.
@@ -755,6 +920,14 @@ pub fn orchestrate_sign(
             ttag_s: ttag,
             g_w_i_s: g_wi_vec.clone(),
         };
+        write_input!(
+            &mut json_file,
+            i as u16,
+            3,
+            &op,
+            serde_json::to_string_pretty(&input).unwrap(),
+        );
+
         let res = sign_stage3(&input);
         if let Err(err) = res {
             println!("stage 3 error.{:?}", err);
@@ -763,6 +936,14 @@ pub fn orchestrate_sign(
                 bad_actors: vec![],
             });
         }
+        write_output!(
+            &mut json_file,
+            i as u16,
+            3,
+            &op,
+            serde_json::to_string_pretty(&(res.clone().unwrap())).unwrap(),
+        );
+
         res_stage3_vec.push(res.unwrap());
     }
     println!("Stage 3 done.");
@@ -851,7 +1032,24 @@ pub fn orchestrate_sign(
             ni_vec_s: ni_vec,
             sign_keys_s: sign_keys_vec[i].clone(),
         };
-        res_stage4_vec.push(sign_stage4(&input).unwrap());
+        write_input!(
+            &mut json_file,
+            i as u16,
+            4,
+            &op,
+            serde_json::to_string_pretty(&input).unwrap(),
+        );
+
+        let res = sign_stage4(&input).unwrap();
+        write_output!(
+            &mut json_file,
+            i as u16,
+            4,
+            &op,
+            serde_json::to_string_pretty(&res).unwrap(),
+        );
+
+        res_stage4_vec.push(res);
     }
 
     println!("Stage 4 done.");
@@ -873,7 +1071,24 @@ pub fn orchestrate_sign(
             sign_keys: sign_keys_vec[i].clone(),
             s_ttag: ttag,
         };
-        result_stage5_vec.push(sign_stage5(&input)?);
+        write_input!(
+            &mut json_file,
+            i as u16,
+            5,
+            &op,
+            serde_json::to_string_pretty(&input).unwrap(),
+        );
+
+        let res = sign_stage5(&input)?;
+        write_output!(
+            &mut json_file,
+            i as u16,
+            5,
+            &op,
+            serde_json::to_string_pretty(&res).unwrap(),
+        );
+
+        result_stage5_vec.push(res);
     }
 
     println!("Stage 5 done.");
@@ -894,7 +1109,23 @@ pub fn orchestrate_sign(
             index: i,
             s: s.to_vec(),
         };
+        write_input!(
+            &mut json_file,
+            i as u16,
+            6,
+            &op,
+            serde_json::to_string_pretty(&input).unwrap(),
+        );
+
         let res = sign_stage6(&input)?;
+        write_output!(
+            &mut json_file,
+            i as u16,
+            6,
+            &op,
+            serde_json::to_string_pretty(&res).unwrap(),
+        );
+
         res_stage6_vec.push(res);
     }
     println!("Stage 6 done.");
@@ -915,7 +1146,23 @@ pub fn orchestrate_sign(
             s: s.to_vec(),
             index: i,
         };
+        write_input!(
+            &mut json_file,
+            i as u16,
+            7,
+            &op,
+            serde_json::to_string_pretty(&input).unwrap(),
+        );
+
         let res = sign_stage7(&input)?;
+        write_input!(
+            &mut json_file,
+            i as u16,
+            7,
+            &op,
+            serde_json::to_string_pretty(&res).unwrap(),
+        );
+
         res_stage7_vec.push(res);
     }
     println!("Stage 7 done.");
@@ -932,6 +1179,14 @@ pub fn orchestrate_sign(
             sigma: sigma_vec[i],
             ysum: keypair_result.y_sum.clone(),
         };
+        write_input!(
+            &mut json_file,
+            i as u16,
+            8,
+            &op,
+            serde_json::to_string_pretty(&input).unwrap(),
+        );
+
         let check_local_sig = sign_stage8(&input);
         if check_local_sig.is_err() {
             return Err(ErrorType {
@@ -940,6 +1195,14 @@ pub fn orchestrate_sign(
             });
         }
         let local_sig = check_local_sig.unwrap();
+        write_output!(
+            &mut json_file,
+            i as u16,
+            8,
+            &op,
+            serde_json::to_string_pretty(&local_sig).unwrap(),
+        );
+
         s_vec.push(local_sig.s_i.clone());
         local_sig_vec.push(local_sig);
     }
@@ -1007,7 +1270,7 @@ mod tests {
     }
 
     #[test]
-    fn test_sign_orchestration() {
+    fn test_sign_orchestration_all() {
         let keypairs = keygen_orchestrator(Parameters {
             share_count: 3,
             threshold: 1,
@@ -1019,6 +1282,26 @@ mod tests {
         assert!(sign_result.is_ok());
 
         s = vec![0, 1];
+        let sign_result = orchestrate_sign(&s[..], &msg, &keypairs);
+        assert!(sign_result.is_ok());
+
+        s = vec![1, 2];
+        let sign_result = orchestrate_sign(&s[..], &msg, &keypairs);
+        assert!(sign_result.is_ok());
+
+        s = vec![0, 2];
+        let sign_result = orchestrate_sign(&s[..], &msg, &keypairs);
+        assert!(sign_result.is_ok());
+    }
+    #[test]
+    fn test_sign_orchestration_selected() {
+        let keypairs = keygen_orchestrator(Parameters {
+            share_count: 3,
+            threshold: 1,
+        })
+        .unwrap();
+        let msg: Vec<u8> = vec![44, 56, 78, 90, 100];
+        let mut s: Vec<usize> = vec![0, 1];
         let sign_result = orchestrate_sign(&s[..], &msg, &keypairs);
         assert!(sign_result.is_ok());
 
