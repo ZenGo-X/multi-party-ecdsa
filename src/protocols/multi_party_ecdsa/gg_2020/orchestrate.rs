@@ -42,11 +42,11 @@ use crate::protocols::multi_party_ecdsa::gg_2020::party_i::{
     KeyGenBroadcastMessage1, KeyGenDecommitMessage1, Keys, LocalSignature, Parameters,
     PartyPrivate, SharedKeys, SignBroadcastPhase1, SignDecommitPhase1, SignKeys,
 };
-use crate::protocols::multi_party_ecdsa::gg_2020::test::check_sig;
 use crate::protocols::multi_party_ecdsa::gg_2020::ErrorType;
 use crate::utilities::mta::{MessageA, MessageB};
 use crate::utilities::zk_pdl_with_slack::PDLwSlackProof;
 use crate::Error;
+use curv::arithmetic::traits::Converter;
 use curv::cryptographic_primitives::hashing::hash_sha256::HSha256;
 use curv::cryptographic_primitives::hashing::traits::Hash;
 use curv::cryptographic_primitives::proofs::sigma_dlog::DLogProof;
@@ -101,7 +101,7 @@ pub fn keygen_stage1(input: &KeyGenStage1Input) -> KeyGenStage1Result {
 pub struct KeyGenStage2Input {
     pub index: usize,
     pub params_s: Parameters,
-    pub party_keys_s: Vec<Keys>,
+    pub party_keys_s: Keys,
     pub bc1_vec_s: Vec<KeyGenBroadcastMessage1>,
     pub decom1_vec_s: Vec<KeyGenDecommitMessage1>,
 }
@@ -117,7 +117,8 @@ pub struct KeyGenStage2Result {
 // 2. Perform a VSS on that value.
 
 pub fn keygen_stage2(input: &KeyGenStage2Input) -> Result<KeyGenStage2Result, ErrorType> {
-    let vss_result = input.party_keys_s[input.index]
+    let vss_result = input
+        .party_keys_s
         .phase1_verify_com_phase3_verify_correct_key_verify_dlog_phase2_distribute(
             &input.params_s,
             &input.decom1_vec_s,
@@ -139,7 +140,6 @@ pub struct KeyGenStage3Input {
     pub y_vec_s: Vec<GE>,
     pub params_s: Parameters,
     pub index_s: usize,
-    pub index_vec_s: Vec<usize>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -156,7 +156,7 @@ pub struct KeyGenStage3Result {
 // Important to note that all the stages are sequential. Unless all the messages from the previous
 // stage are not delivered, you cannot jump on the next stage.
 
-fn keygen_stage3(input: &KeyGenStage3Input) -> Result<KeyGenStage3Result, ErrorType> {
+pub fn keygen_stage3(input: &KeyGenStage3Input) -> Result<KeyGenStage3Result, ErrorType> {
     let res = input
         .party_keys_s
         .phase2_verify_vss_construct_keypair_phase3_pok_dlog(
@@ -164,7 +164,7 @@ fn keygen_stage3(input: &KeyGenStage3Input) -> Result<KeyGenStage3Result, ErrorT
             &input.y_vec_s,
             &input.secret_shares_vec_s,
             &input.vss_scheme_vec_s,
-            &input.index_vec_s[input.index_s] + 1,
+            &input.index_s + 1,
         )?;
     let (shared_keys, dlog_proof) = res;
     Ok(KeyGenStage3Result {
@@ -285,7 +285,7 @@ pub fn keygen_orchestrator(params: Parameters) -> Result<KeyPairResult, ErrorTyp
         let input = KeyGenStage2Input {
             index: i as usize,
             params_s: params.clone(),
-            party_keys_s: party_keys_vec_l.clone(),
+            party_keys_s: party_keys_vec_l[i as usize].clone(),
             bc1_vec_s: bc1_vec_l.clone(),
             decom1_vec_s: decom_vec_l.clone(),
         };
@@ -331,7 +331,6 @@ pub fn keygen_orchestrator(params: Parameters) -> Result<KeyPairResult, ErrorTyp
             y_vec_s: y_vec.clone(),
             params_s: params.clone(),
             index_s: index as usize,
-            index_vec_s: index_vec.clone(),
         };
         write_input!(index, 3, &op, serde_json::to_string_pretty(&input).unwrap());
         let result_check = keygen_stage3(&input);
@@ -1238,4 +1237,42 @@ mod tests {
         let sign_result = orchestrate_sign(&s[..], &msg, &keypairs);
         assert!(sign_result.is_ok());
     }
+}
+pub fn check_sig(r: &FE, s: &FE, msg: &BigInt, pk: &GE) {
+    use secp256k1::{verify, Message, PublicKey, PublicKeyFormat, Signature};
+
+    let raw_msg = BigInt::to_vec(&msg);
+    let mut msg: Vec<u8> = Vec::new(); // padding
+    msg.extend(vec![0u8; 32 - raw_msg.len()]);
+    msg.extend(raw_msg.iter());
+
+    let msg = Message::parse_slice(msg.as_slice()).unwrap();
+    let slice = pk.pk_to_key_slice();
+    let mut raw_pk = Vec::new();
+    if slice.len() != 65 {
+        // after curv's pk_to_key_slice return 65 bytes, this can be removed
+        raw_pk.insert(0, 4u8);
+        raw_pk.extend(vec![0u8; 64 - slice.len()]);
+        raw_pk.extend(slice);
+    } else {
+        raw_pk.extend(slice);
+    }
+
+    assert_eq!(raw_pk.len(), 65);
+
+    let pk = PublicKey::parse_slice(&raw_pk, Some(PublicKeyFormat::Full)).unwrap();
+
+    let mut compact: Vec<u8> = Vec::new();
+    let bytes_r = &r.get_element()[..];
+    compact.extend(vec![0u8; 32 - bytes_r.len()]);
+    compact.extend(bytes_r.iter());
+
+    let bytes_s = &s.get_element()[..];
+    compact.extend(vec![0u8; 32 - bytes_s.len()]);
+    compact.extend(bytes_s.iter());
+
+    let secp_sig = Signature::parse_slice(compact.as_slice()).unwrap();
+
+    let is_correct = verify(&msg, &secp_sig, &pk);
+    assert!(is_correct);
 }

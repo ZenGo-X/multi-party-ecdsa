@@ -53,10 +53,10 @@ pub struct Keys {
     pub dk: DecryptionKey,
     pub ek: EncryptionKey,
     pub party_index: usize,
-    N_tilde: BigInt,
-    h1: BigInt,
-    h2: BigInt,
-    xhi: BigInt,
+    pub N_tilde: BigInt,
+    pub h1: BigInt,
+    pub h2: BigInt,
+    pub xhi: BigInt,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
