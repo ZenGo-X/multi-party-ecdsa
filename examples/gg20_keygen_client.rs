@@ -349,6 +349,7 @@ fn main() {
         vss_scheme_vec_s: vss_scheme_vec.clone(),
         paillier_key_vec_s: paillier_key_vec,
         y_sum_s: y_sum,
+        h1_h2_N_tilde_l_s: res_stage1.h1_h2_N_tilde_l.clone(),
     };
     fs::write(
         &env::args().nth(2).unwrap(),
@@ -364,6 +365,7 @@ pub struct PartyKeyPair {
     pub vss_scheme_vec_s: Vec<VerifiableSS>,
     pub paillier_key_vec_s: Vec<EncryptionKey>,
     pub y_sum_s: GE,
+    pub h1_h2_N_tilde_l_s: DLogStatement,
 }
 pub fn signup(client: &Client) -> Result<PartySignup, ()> {
     let key = "signup-keygen".to_string();

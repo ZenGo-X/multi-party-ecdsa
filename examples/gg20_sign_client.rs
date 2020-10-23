@@ -53,6 +53,7 @@ pub struct PartyKeyPair {
     pub vss_scheme_vec_s: Vec<VerifiableSS>,
     pub paillier_key_vec_s: Vec<EncryptionKey>,
     pub y_sum_s: GE,
+    pub h1_h2_N_tilde_l_s: DLogStatement,
 }
 pub fn signup(client: &Client) -> Result<PartySignup, ()> {
     let key = "signup-sign".to_string();
