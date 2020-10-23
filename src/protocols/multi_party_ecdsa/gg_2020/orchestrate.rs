@@ -46,20 +46,22 @@ use crate::protocols::multi_party_ecdsa::gg_2020::ErrorType;
 use crate::utilities::mta::{MessageA, MessageB};
 use crate::utilities::zk_pdl_with_slack::PDLwSlackProof;
 use crate::Error;
-use curv::arithmetic::traits::Converter;
-use curv::cryptographic_primitives::hashing::hash_sha256::HSha256;
-use curv::cryptographic_primitives::hashing::traits::Hash;
 use curv::cryptographic_primitives::proofs::sigma_dlog::DLogProof;
 use curv::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS;
-use curv::elliptic::curves::traits::*;
 use curv::{FE, GE};
 use paillier::*;
 use serde::{Deserialize, Serialize};
+use zk_paillier::zkproofs::DLogStatement;
+/*
+use curv::arithmetic::traits::Converter;
+use curv::cryptographic_primitives::hashing::hash_sha256::HSha256;
+use curv::cryptographic_primitives::hashing::traits::Hash;
+use curv::elliptic::curves::traits::*;
 use serde_json;
 use std::env::var_os;
 use std::fs::File;
 use std::io::Write;
-use zk_paillier::zkproofs::DLogStatement;
+*/
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct KeyGenStage1Input {
@@ -195,6 +197,7 @@ pub fn keygen_stage4(input: &KeyGenStage4Input) -> Result<(), ErrorType> {
     }
 }
 
+#[cfg(test)]
 macro_rules! write_input {
     ($index: expr, $stage: expr, $op: expr, $json: expr) => {{
         if var_os("WRITE_FILE").is_some() {
@@ -216,6 +219,7 @@ macro_rules! write_input {
         }
     }};
 }
+#[cfg(test)]
 macro_rules! write_output {
     ($index: expr, $stage: expr, $op: expr, $json: expr) => {{
         if var_os("WRITE_FILE").is_some() {
@@ -236,180 +240,6 @@ macro_rules! write_output {
                 .unwrap();
         }
     }};
-}
-
-// The Distributed key generation protocol can work with a broadcast channel.
-// All the messages are exchanged p2p.
-// On the contrary, the key generation process can be orchestrated as below.
-// All the participants do some work on each stage and return some data.
-// This data needs to be filtered/collated and sent back as an input to the next stage.
-// This test helper is just a demonstration of the same.
-//
-pub fn keygen_orchestrator(params: Parameters) -> Result<KeyPairResult, ErrorType> {
-    let op = "keygen".to_string();
-    if var_os("WRITE_FILE").is_some() {
-        File::create(&format!("{}.txt", &op)).unwrap();
-    }
-    //
-    // Values to be kept private(Each value needs to be encrypted with a key only known to that
-    // party):
-    // 1. party_keys.u_i
-    // 2. party_keys.dk
-    let mut party_keys_vec_l = vec![];
-    // Nothing private in the commitment values.
-    let mut bc1_vec_l = vec![];
-    // Values to be kept private(Each value needs to be encrypted with a key only known to that
-    // party):
-    // 1. decommitment values in KeyGenDecommitMessage1 need to be encrypted until they are sent
-    let mut decom_vec_l = vec![];
-    // Nothing private in the below vector.
-    let mut h1_h2_N_tilde_vec_l = vec![];
-    for i in 0..params.share_count {
-        let input = KeyGenStage1Input { index: i as usize };
-        write_input!(i, 1, &op, serde_json::to_string_pretty(&input).unwrap());
-        let res = keygen_stage1(&input);
-        write_output!(i, 1, &op, serde_json::to_string_pretty(&res).unwrap());
-        party_keys_vec_l.push(res.party_keys_l);
-        bc1_vec_l.push(res.bc_com1_l);
-        decom_vec_l.push(res.decom1_l);
-        h1_h2_N_tilde_vec_l.push(res.h1_h2_N_tilde_l);
-    }
-    let mut vss_scheme_vec_l = vec![];
-    // Values to be kept private(Each value needs to be encrypted with a key only known to that
-    // party):
-    // 1. secret_shares_vec_l[i] -
-    //    party.
-    let mut secret_shares_vec_l = vec![];
-    let mut index_vec = vec![];
-    for i in 0..params.share_count {
-        let input = KeyGenStage2Input {
-            index: i as usize,
-            params_s: params.clone(),
-            party_keys_s: party_keys_vec_l[i as usize].clone(),
-            bc1_vec_s: bc1_vec_l.clone(),
-            decom1_vec_s: decom_vec_l.clone(),
-        };
-        write_input!(i, 2, &op, serde_json::to_string_pretty(&input).unwrap());
-        let result_check = keygen_stage2(&input);
-        if let Err(err) = result_check {
-            return Err(err);
-        }
-        let res = result_check.unwrap();
-        write_output!(i, 2, &op, serde_json::to_string_pretty(&res).unwrap());
-        vss_scheme_vec_l.push(res.vss_scheme_s);
-        secret_shares_vec_l.push(res.secret_shares_s);
-        index_vec.push(res.index_s);
-    }
-    // Values to be kept private(Each value needs to be encrypted with a key only known to that
-    // party):
-    // 1. party_shares[party_num] - all shares in this vec belong to the party number party_num.
-    // one else.
-    let party_shares = (0..params.share_count)
-        .map(|i| {
-            (0..params.share_count)
-                .map(|j| {
-                    let vec_j = &secret_shares_vec_l[j as usize];
-                    vec_j[i as usize]
-                })
-                .collect::<Vec<FE>>()
-        })
-        .collect::<Vec<Vec<FE>>>();
-
-    // Values to be kept private(Each value needs to be encrypted with a key only known to that
-    // party):
-    // 1. shared_keys_vec_l.x_i - Final shard for this ECDSA keypair.
-    let mut shared_keys_vec_l = vec![];
-    let mut dlog_proof_vec_l = vec![];
-    let y_vec = (0..params.share_count)
-        .map(|i| decom_vec_l[i as usize].y_i)
-        .collect::<Vec<GE>>();
-    for index in 0..params.share_count {
-        let input = KeyGenStage3Input {
-            party_keys_s: party_keys_vec_l[index as usize].clone(),
-            vss_scheme_vec_s: vss_scheme_vec_l.clone(),
-            secret_shares_vec_s: party_shares[index as usize].clone(),
-            y_vec_s: y_vec.clone(),
-            params_s: params.clone(),
-            index_s: index as usize,
-        };
-        write_input!(index, 3, &op, serde_json::to_string_pretty(&input).unwrap());
-        let result_check = keygen_stage3(&input);
-        if let Err(err) = result_check {
-            return Err(err);
-        }
-        let result = result_check.unwrap();
-        write_output!(
-            index,
-            3,
-            &op,
-            serde_json::to_string_pretty(&result).unwrap()
-        );
-        shared_keys_vec_l.push(result.shared_keys_s);
-        dlog_proof_vec_l.push(result.dlog_proof_s);
-    }
-
-    let pk_vec_l = (0..params.share_count)
-        .map(|i| dlog_proof_vec_l[i as usize].pk)
-        .collect::<Vec<GE>>();
-
-    let y_vec = (0..params.share_count)
-        .map(|i| decom_vec_l[i as usize].y_i)
-        .collect::<Vec<GE>>();
-    let mut y_vec_iter = y_vec.iter();
-    let head = y_vec_iter.next().unwrap();
-    let tail = y_vec_iter;
-    let y_sum_l = tail.fold(head.clone(), |acc, x| acc + x);
-    // In practice whenever this keypair will be used to sign it needs to be ensured that the below
-    // stage ran successfully.
-    // One way to do it would be to add a signature to the shared_keys_vec_l[i].x_i once this is
-    // verified.
-    let input_stage4 = KeyGenStage4Input {
-        params_s: params.clone(),
-        dlog_proof_vec_s: dlog_proof_vec_l.clone(),
-        y_vec_s: y_vec.clone(),
-    };
-
-    for index in 0..params.share_count {
-        write_input!(
-            index,
-            4,
-            &op,
-            serde_json::to_string_pretty(&input_stage4).unwrap()
-        );
-        keygen_stage4(&input_stage4)?;
-    }
-
-    // Important: This is only for test purposes. This code should never be executed in practice.
-    //            x is the private key and all this work is done to never have that at one place in the clear.
-    let xi_vec = (0..=params.threshold)
-        .map(|i| shared_keys_vec_l[i as usize].x_i)
-        .collect::<Vec<FE>>();
-    let vss_scheme_for_test = vss_scheme_vec_l.clone();
-    let x = vss_scheme_for_test[0]
-        .clone()
-        .reconstruct(&index_vec[0..=(params.threshold as usize)], &xi_vec);
-    let sum_u_i = party_keys_vec_l
-        .iter()
-        .fold(FE::zero(), |acc, x| acc + x.u_i);
-    assert_eq!(x, sum_u_i);
-    // test code ends.
-
-    // public vector of paillier public keys
-    let e_vec_l = bc1_vec_l
-        .iter()
-        .map(|bc1| bc1.e.clone())
-        .collect::<Vec<EncryptionKey>>();
-    // At this point key generation is complete.
-    // shared_keys_vec contains the private key shares for all the participants.
-    Ok(KeyPairResult {
-        party_keys_vec: party_keys_vec_l,
-        shared_keys_vec: shared_keys_vec_l,
-        pk_vec: pk_vec_l,
-        y_sum: y_sum_l,
-        vss_scheme: vss_scheme_for_test[0].clone(),
-        e_vec: e_vec_l,
-        h1_h2_N_tilde_vec: h1_h2_N_tilde_vec_l,
-    })
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -725,417 +555,58 @@ pub fn sign_stage8(input: &SignStage8Input) -> Result<LocalSignature, Error> {
     ))
 }
 
-pub fn orchestrate_sign(
-    s: &[usize],
-    bytes_to_sign: &[u8],
-    keypair_result: &KeyPairResult,
-) -> Result<(), ErrorType> {
-    let op = "sign".to_string();
-    if var_os("WRITE_FILE").is_some() {
-        let mut json_file = File::create(&format!("{}.txt", &op)).unwrap();
-        json_file
-            .write_all(
-                format!(
-                    "Keypair information\n{}\n",
-                    serde_json::to_string_pretty(keypair_result).unwrap()
-                )
-                .as_bytes(),
-            )
-            .unwrap();
-    }
-    // ttag = is the number of signers involved in the protocol.
-    let ttag = s.len();
-    //
-    // Values to be kept private(Each value needs to be encrypted with a key only known to that
-    // party):
-    // 1. private_vec[i].u_i
-    // 2. private_vec[i].x_i
-    // 3. private_vec[i].dk
-    let mut private_vec = vec![];
-    //
-    // Values to be kept private(Each value needs to be encrypted with a key only known to that
-    // party):
-    // 1. sign_keys_vec[i].w_i
-    // 2. sign_keys_vec[i].k_i
-    // 3. sign_keys_vec[i].gamma_i
-    let mut sign_keys_vec = vec![];
-    let mut bc1_vec = vec![];
-    //
-    // Values to be kept private(Each value needs to be encrypted with a key only known to that
-    // party):
-    // 1. decom1_vec[i].blind_factor
-    let mut decom1_vec = vec![];
-    let mut m_a_vec: Vec<(MessageA, BigInt)> = vec![];
-    (0..ttag).map(|i| i).for_each(|i| {
-        let input = SignStage1Input {
-            vss_scheme: keypair_result.vss_scheme.clone(),
-            index: s[i],
-            s_l: s.to_vec(),
-            party_keys: keypair_result.party_keys_vec[s[i]].clone(),
-            shared_keys: keypair_result.shared_keys_vec[s[i]].clone(),
-        };
-        write_input!(
-            i as u16,
-            1,
-            &op,
-            serde_json::to_string_pretty(&input).unwrap()
-        );
-        let res_stage1 = sign_stage1(&input);
-        write_output!(
-            i as u16,
-            1,
-            &op,
-            serde_json::to_string_pretty(&res_stage1).unwrap()
-        );
-
-        private_vec.push(res_stage1.party_private);
-        sign_keys_vec.push(res_stage1.sign_keys);
-        bc1_vec.push(res_stage1.bc1);
-        decom1_vec.push(res_stage1.decom1);
-        m_a_vec.push(res_stage1.m_a);
-    });
-    println!("Stage1 done");
-
-    let gamma_i_vec = (0..ttag)
-        .map(|i| sign_keys_vec[i].gamma_i)
-        .collect::<Vec<FE>>();
-    let w_i_vec = (0..ttag).map(|i| sign_keys_vec[i].w_i).collect::<Vec<FE>>();
-    let m_a_messagea_vec: Vec<MessageA> = m_a_vec.iter().map(|(a, _)| a.clone()).collect();
-    let mut res_stage2_vec: Vec<SignStage2Result> = vec![];
-    for i in 0..ttag {
-        let input = SignStage2Input {
-            m_a_vec: m_a_messagea_vec.clone(),
-            gamma_i: gamma_i_vec[i].clone(),
-            w_i: w_i_vec[i].clone(),
-            ek_vec: keypair_result.e_vec.clone(),
-            index: i,
-            l_ttag: ttag,
-            l_s: s.to_vec(),
-        };
-        write_input!(
-            i as u16,
-            2,
-            &op,
-            serde_json::to_string_pretty(&input).unwrap()
-        );
-        let res = sign_stage2(&input)?;
-        write_output!(
-            i as u16,
-            2,
-            &op,
-            serde_json::to_string_pretty(&res).unwrap()
-        );
-        res_stage2_vec.push(res);
-    }
-    println!("Stage2 done");
-    // All these values should already be encrypted as they come from the stage2 response above.
-    // All the values m_b_gamma_vec_all[i][..].c need to be private to party i.
-    let mut m_b_gamma_vec_all = vec![vec![]; ttag];
-    // All these values should already be encrypted as they come from the stage2 response above.
-    // All the values m_b_w_vec_all[i][..].c need to be private to party i.
-    let mut m_b_w_vec_all = vec![vec![]; ttag];
-    for i in 0..ttag {
-        for j in 0..ttag - 1 {
-            let ind = if j < i { j } else { j + 1 };
-            m_b_gamma_vec_all[ind].push(res_stage2_vec[i].gamma_i_vec[j].0.clone());
-            m_b_w_vec_all[ind].push(res_stage2_vec[i].w_i_vec[j].0.clone());
-        }
-    }
-
-    let mut res_stage3_vec: Vec<SignStage3Result> = vec![];
-    let g_wi_vec: Vec<GE> = (0..ttag).map(|a| sign_keys_vec[a].g_w_i).collect();
-    for i in 0..ttag {
-        let input = SignStage3Input {
-            dk_s: keypair_result.party_keys_vec[s[i]].dk.clone(),
-            k_i_s: sign_keys_vec[i].k_i.clone(),
-            m_b_gamma_s: m_b_gamma_vec_all[i].clone(),
-            m_b_w_s: m_b_w_vec_all[i].clone(),
-            index_s: i,
-            ttag_s: ttag,
-            g_w_i_s: g_wi_vec.clone(),
-        };
-        write_input!(
-            i as u16,
-            3,
-            &op,
-            serde_json::to_string_pretty(&input).unwrap()
-        );
-
-        let res = sign_stage3(&input);
-        if let Err(err) = res {
-            println!("stage 3 error.{:?}", err);
-            return Err(ErrorType {
-                error_type: "".to_string(),
-                bad_actors: vec![],
-            });
-        }
-        write_output!(
-            i as u16,
-            3,
-            &op,
-            serde_json::to_string_pretty(&(res.clone().unwrap())).unwrap()
-        );
-
-        res_stage3_vec.push(res.unwrap());
-    }
-    println!("Stage 3 done.");
-
-    //
-    // Values to be kept private(Each value needs to be encrypted with a key only known to that
-    // party):
-    // 1. beta_vec_all[i][..] - All these values are private to party i.
-    let mut beta_vec_all = vec![vec![]; ttag];
-    //
-    // Values to be kept private(Each value needs to be encrypted with a key only known to that
-    // party):
-    // 1. ni_vec_all[i][..] - All these values are private to party i.
-    let mut ni_vec_all = vec![vec![]; ttag];
-    for i in 0..ttag {
-        for j in 0..ttag - 1 {
-            let ind = if j < i { j } else { j + 1 };
-            beta_vec_all[ind].push(res_stage2_vec[i].gamma_i_vec[j].1.clone());
-            ni_vec_all[ind].push(res_stage2_vec[i].w_i_vec[j].1.clone());
-        }
-    }
-
-    //
-    // Values to be kept private(Each value needs to be encrypted with a key only known to that
-    // party):
-    // miu_vec_all[i][..] <-- all these values are private to party i. They should be encrypted at
-    // the time of their generation in stage3.
-    let miu_vec_all = (0..res_stage3_vec.len())
-        .map(|i| res_stage3_vec[i].alpha_vec_w.clone())
-        .collect::<Vec<Vec<FE>>>();
-    //
-    // Values to be kept private(Each value needs to be encrypted with a key only known to that
-    // party):
-    // alpha_vec_all[i][..] <-- all these values are private to party i. They should be encrypted at
-    // the time of their generation in stage3.
-    let alpha_vec_all = (0..res_stage3_vec.len())
-        .map(|i| res_stage3_vec[i].alpha_vec_gamma.clone())
-        .collect::<Vec<Vec<FE>>>();
-    let mut res_stage4_vec = vec![];
-    for i in 0..ttag {
-        // prepare beta_vec of party_i:
-        //
-        // Values to be kept private(Each value needs to be encrypted with a key only known to that
-        // party):
-        // beta_vec[..] <-- all these values are private to party i. They should be encrypted at
-        // the time of their generation in stage3.
-
-        let beta_vec = (0..ttag - 1)
-            .map(|j| {
-                let ind1 = if j < i { j } else { j + 1 };
-                let ind2 = if j < i { i - 1 } else { i };
-                let beta = beta_vec_all[ind1][ind2].clone();
-
-                beta
-            })
-            .collect::<Vec<FE>>();
-
-        // prepare ni_vec of party_i:
-        // Values to be kept private(Each value needs to be encrypted with a key only known to that
-        // party):
-        // ni_vec[..] <-- all these values are private to party i. They should be encrypted at
-        // the time of their generation in stage3.
-        let ni_vec = (0..ttag - 1)
-            .map(|j| {
-                let ind1 = if j < i { j } else { j + 1 };
-                let ind2 = if j < i { i - 1 } else { i };
-                ni_vec_all[ind1][ind2].clone()
-            })
-            .collect::<Vec<FE>>();
-        let input = SignStage4Input {
-            alpha_vec_s: alpha_vec_all[i].clone(),
-            beta_vec_s: beta_vec,
-            miu_vec_s: miu_vec_all[i].clone(),
-            ni_vec_s: ni_vec,
-            sign_keys_s: sign_keys_vec[i].clone(),
-        };
-        write_input!(
-            i as u16,
-            4,
-            &op,
-            serde_json::to_string_pretty(&input).unwrap()
-        );
-
-        let res = sign_stage4(&input).unwrap();
-        write_output!(
-            i as u16,
-            4,
-            &op,
-            serde_json::to_string_pretty(&res).unwrap()
-        );
-
-        res_stage4_vec.push(res);
-    }
-
-    println!("Stage 4 done.");
-    let delta_vec: Vec<FE> = res_stage4_vec.iter().map(|val| val.delta_i).collect();
-    // all parties broadcast delta_i and compute delta_i ^(-1)
-    let delta_inv = SignKeys::phase3_reconstruct_delta(&delta_vec);
-
-    let mut result_stage5_vec = vec![];
-    for i in 0..ttag {
-        let input: SignStage5Input = SignStage5Input {
-            m_b_gamma_vec: m_b_gamma_vec_all[i].clone(),
-            delta_inv: delta_inv.clone(),
-            decom_vec1: decom1_vec.clone(),
-            bc1_vec: bc1_vec.clone(),
-            index: i,
-            sign_keys: sign_keys_vec[i].clone(),
-            s_ttag: ttag,
-        };
-        write_input!(
-            i as u16,
-            5,
-            &op,
-            serde_json::to_string_pretty(&input).unwrap()
-        );
-
-        let res = sign_stage5(&input)?;
-        write_output!(
-            i as u16,
-            5,
-            &op,
-            serde_json::to_string_pretty(&res).unwrap()
-        );
-
-        result_stage5_vec.push(res);
-    }
-
-    println!("Stage 5 done.");
-    let R_vec: Vec<GE> = result_stage5_vec.iter().map(|a| a.R).collect();
-    let R_dash_vec: Vec<GE> = result_stage5_vec.iter().map(|a| a.R_dash).collect();
-
-    let mut res_stage6_vec = vec![];
-    for i in 0..ttag {
-        let input = SignStage6Input {
-            R_dash: R_dash_vec[i].clone(),
-            R: R_vec[i].clone(),
-            m_a: m_a_vec[i].0.clone(),
-            e_k: keypair_result.e_vec[s[i]].clone(),
-            k_i: sign_keys_vec[i].k_i.clone(),
-            randomness: m_a_vec[i].1.clone(),
-            party_keys: keypair_result.party_keys_vec[s[i]].clone(),
-            h1_h2_N_tilde_vec: keypair_result.h1_h2_N_tilde_vec.clone(),
-            index: i as usize,
-            s: s.to_vec(),
-        };
-        write_input!(
-            i as u16,
-            6,
-            &op,
-            serde_json::to_string_pretty(&input).unwrap()
-        );
-
-        let res = sign_stage6(&input)?;
-        write_output!(
-            i as u16,
-            6,
-            &op,
-            serde_json::to_string_pretty(&res).unwrap()
-        );
-
-        res_stage6_vec.push(res);
-    }
-    println!("Stage 6 done.");
-    let mut phase5_proofs_vec = vec![];
-    for i in 0..res_stage6_vec.len() {
-        phase5_proofs_vec.push(res_stage6_vec[i].phase5_proof.clone());
-    }
-    //let phase5_proofs_vec = res_stage6_vec.iter().map(|a| *a.phase5_proof).collect();
-    let mut res_stage7_vec = vec![];
-    for i in 0..ttag {
-        let input = SignStage7Input {
-            phase5_proof_vec: phase5_proofs_vec[i].clone(),
-            R_dash: R_dash_vec[i].clone(),
-            R: R_vec[i].clone(),
-            m_a: m_a_vec[i].0.clone(),
-            ek: keypair_result.e_vec[s[i]].clone(),
-            h1_h2_N_tilde_vec: keypair_result.h1_h2_N_tilde_vec.clone(),
-            s: s.to_vec(),
-            index: i,
-        };
-        write_input!(
-            i as u16,
-            7,
-            &op,
-            serde_json::to_string_pretty(&input).unwrap()
-        );
-
-        let res = sign_stage7(&input)?;
-        write_input!(
-            i as u16,
-            7,
-            &op,
-            serde_json::to_string_pretty(&res).unwrap()
-        );
-
-        res_stage7_vec.push(res);
-    }
-    println!("Stage 7 done.");
-    let message_bn_ = HSha256::create_hash(&[&BigInt::from(bytes_to_sign)]);
-    let mut local_sig_vec = Vec::new();
-    let mut s_vec = Vec::new();
-
-    // sigma_vec This is just to facilitate writing the code. It should never be collected like
-    // this IRL.
-    let sigma_vec: Vec<FE> = res_stage4_vec.iter().map(|val| val.sigma_i).collect();
-    for i in 0..ttag {
-        let input = SignStage8Input {
-            R_dash_vec: R_dash_vec.clone(),
-            sign_key: sign_keys_vec[i].clone(),
-            message_bn: message_bn_.clone(),
-            R: R_vec[i],
-            sigma: sigma_vec[i],
-            ysum: keypair_result.y_sum.clone(),
-        };
-        write_input!(
-            i as u16,
-            8,
-            &op,
-            serde_json::to_string_pretty(&input).unwrap()
-        );
-
-        let check_local_sig = sign_stage8(&input);
-        if check_local_sig.is_err() {
-            return Err(ErrorType {
-                error_type: format!(" Signature error on index {}", i),
-                bad_actors: vec![],
-            });
-        }
-        let local_sig = check_local_sig.unwrap();
-        write_output!(
-            i as u16,
-            8,
-            &op,
-            serde_json::to_string_pretty(&local_sig).unwrap()
-        );
-
-        s_vec.push(local_sig.s_i.clone());
-        local_sig_vec.push(local_sig);
-    }
-
-    println!("Stage 8 done. s_vec len {}", s_vec.len());
-
-    let res_sig = local_sig_vec[0].output_signature(&s_vec[1..]);
-    if res_sig.is_err() {
-        println!("error in combining sigs {:?}", res_sig.unwrap_err());
-        return Err(ErrorType {
-            error_type: "error in combining signatures".to_string(),
-            bad_actors: vec![],
-        });
-    }
-    let sig = res_sig.unwrap();
-    check_sig(&sig.r, &sig.s, &local_sig_vec[0].m, &keypair_result.y_sum);
-    Ok(())
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use curv::arithmetic::traits::Converter;
+    use curv::cryptographic_primitives::hashing::hash_sha256::HSha256;
+    use curv::cryptographic_primitives::hashing::traits::Hash;
+    use curv::elliptic::curves::traits::*;
+    use serde_json;
+    use std::env::var_os;
+    use std::fs::File;
+    use std::io::Write;
+
+    pub fn check_sig(r: &FE, s: &FE, msg: &BigInt, pk: &GE) {
+        use secp256k1::{verify, Message, PublicKey, PublicKeyFormat, Signature};
+
+        let raw_msg = BigInt::to_vec(&msg);
+        let mut msg: Vec<u8> = Vec::new(); // padding
+        msg.extend(vec![0u8; 32 - raw_msg.len()]);
+        msg.extend(raw_msg.iter());
+
+        let msg = Message::parse_slice(msg.as_slice()).unwrap();
+        let slice = pk.pk_to_key_slice();
+        let mut raw_pk = Vec::new();
+        if slice.len() != 65 {
+            // after curv's pk_to_key_slice return 65 bytes, this can be removed
+            raw_pk.insert(0, 4u8);
+            raw_pk.extend(vec![0u8; 64 - slice.len()]);
+            raw_pk.extend(slice);
+        } else {
+            raw_pk.extend(slice);
+        }
+
+        assert_eq!(raw_pk.len(), 65);
+
+        let pk = PublicKey::parse_slice(&raw_pk, Some(PublicKeyFormat::Full)).unwrap();
+
+        let mut compact: Vec<u8> = Vec::new();
+        let bytes_r = &r.get_element()[..];
+        compact.extend(vec![0u8; 32 - bytes_r.len()]);
+        compact.extend(bytes_r.iter());
+
+        let bytes_s = &s.get_element()[..];
+        compact.extend(vec![0u8; 32 - bytes_s.len()]);
+        compact.extend(bytes_s.iter());
+
+        let secp_sig = Signature::parse_slice(compact.as_slice()).unwrap();
+
+        let is_correct = verify(&msg, &secp_sig, &pk);
+        assert!(is_correct);
+    }
     // Test the key generation protocol using random values for threshold and share count.
+
     #[test]
     fn test_keygen_orchestration() {
         use rand::Rng;
@@ -1223,42 +694,584 @@ mod tests {
         let sign_result = orchestrate_sign(&s[..], &msg, &keypairs);
         assert!(sign_result.is_ok());
     }
-}
-pub fn check_sig(r: &FE, s: &FE, msg: &BigInt, pk: &GE) {
-    use secp256k1::{verify, Message, PublicKey, PublicKeyFormat, Signature};
+    // The Distributed key generation protocol can work with a broadcast channel.
+    // All the messages are exchanged p2p.
+    // On the contrary, the key generation process can be orchestrated as below.
+    // All the participants do some work on each stage and return some data.
+    // This data needs to be filtered/collated and sent back as an input to the next stage.
+    // This test helper is just a demonstration of the same.
+    //
+    pub fn keygen_orchestrator(params: Parameters) -> Result<KeyPairResult, ErrorType> {
+        let op = "keygen".to_string();
+        if var_os("WRITE_FILE").is_some() {
+            File::create(&format!("{}.txt", &op)).unwrap();
+        }
+        //
+        // Values to be kept private(Each value needs to be encrypted with a key only known to that
+        // party):
+        // 1. party_keys.u_i
+        // 2. party_keys.dk
+        let mut party_keys_vec_l = vec![];
+        // Nothing private in the commitment values.
+        let mut bc1_vec_l = vec![];
+        // Values to be kept private(Each value needs to be encrypted with a key only known to that
+        // party):
+        // 1. decommitment values in KeyGenDecommitMessage1 need to be encrypted until they are sent
+        let mut decom_vec_l = vec![];
+        // Nothing private in the below vector.
+        let mut h1_h2_N_tilde_vec_l = vec![];
+        for i in 0..params.share_count {
+            let input = KeyGenStage1Input { index: i as usize };
+            write_input!(i, 1, &op, serde_json::to_string_pretty(&input).unwrap());
+            let res = keygen_stage1(&input);
+            write_output!(i, 1, &op, serde_json::to_string_pretty(&res).unwrap());
+            party_keys_vec_l.push(res.party_keys_l);
+            bc1_vec_l.push(res.bc_com1_l);
+            decom_vec_l.push(res.decom1_l);
+            h1_h2_N_tilde_vec_l.push(res.h1_h2_N_tilde_l);
+        }
+        let mut vss_scheme_vec_l = vec![];
+        // Values to be kept private(Each value needs to be encrypted with a key only known to that
+        // party):
+        // 1. secret_shares_vec_l[i] -
+        //    party.
+        let mut secret_shares_vec_l = vec![];
+        let mut index_vec = vec![];
+        for i in 0..params.share_count {
+            let input = KeyGenStage2Input {
+                index: i as usize,
+                params_s: params.clone(),
+                party_keys_s: party_keys_vec_l[i as usize].clone(),
+                bc1_vec_s: bc1_vec_l.clone(),
+                decom1_vec_s: decom_vec_l.clone(),
+            };
+            write_input!(i, 2, &op, serde_json::to_string_pretty(&input).unwrap());
+            let result_check = keygen_stage2(&input);
+            if let Err(err) = result_check {
+                return Err(err);
+            }
+            let res = result_check.unwrap();
+            write_output!(i, 2, &op, serde_json::to_string_pretty(&res).unwrap());
+            vss_scheme_vec_l.push(res.vss_scheme_s);
+            secret_shares_vec_l.push(res.secret_shares_s);
+            index_vec.push(res.index_s);
+        }
+        // Values to be kept private(Each value needs to be encrypted with a key only known to that
+        // party):
+        // 1. party_shares[party_num] - all shares in this vec belong to the party number party_num.
+        // one else.
+        let party_shares = (0..params.share_count)
+            .map(|i| {
+                (0..params.share_count)
+                    .map(|j| {
+                        let vec_j = &secret_shares_vec_l[j as usize];
+                        vec_j[i as usize]
+                    })
+                    .collect::<Vec<FE>>()
+            })
+            .collect::<Vec<Vec<FE>>>();
 
-    let raw_msg = BigInt::to_vec(&msg);
-    let mut msg: Vec<u8> = Vec::new(); // padding
-    msg.extend(vec![0u8; 32 - raw_msg.len()]);
-    msg.extend(raw_msg.iter());
+        // Values to be kept private(Each value needs to be encrypted with a key only known to that
+        // party):
+        // 1. shared_keys_vec_l.x_i - Final shard for this ECDSA keypair.
+        let mut shared_keys_vec_l = vec![];
+        let mut dlog_proof_vec_l = vec![];
+        let y_vec = (0..params.share_count)
+            .map(|i| decom_vec_l[i as usize].y_i)
+            .collect::<Vec<GE>>();
+        for index in 0..params.share_count {
+            let input = KeyGenStage3Input {
+                party_keys_s: party_keys_vec_l[index as usize].clone(),
+                vss_scheme_vec_s: vss_scheme_vec_l.clone(),
+                secret_shares_vec_s: party_shares[index as usize].clone(),
+                y_vec_s: y_vec.clone(),
+                params_s: params.clone(),
+                index_s: index as usize,
+            };
+            write_input!(index, 3, &op, serde_json::to_string_pretty(&input).unwrap());
+            let result_check = keygen_stage3(&input);
+            if let Err(err) = result_check {
+                return Err(err);
+            }
+            let result = result_check.unwrap();
+            write_output!(
+                index,
+                3,
+                &op,
+                serde_json::to_string_pretty(&result).unwrap()
+            );
+            shared_keys_vec_l.push(result.shared_keys_s);
+            dlog_proof_vec_l.push(result.dlog_proof_s);
+        }
 
-    let msg = Message::parse_slice(msg.as_slice()).unwrap();
-    let slice = pk.pk_to_key_slice();
-    let mut raw_pk = Vec::new();
-    if slice.len() != 65 {
-        // after curv's pk_to_key_slice return 65 bytes, this can be removed
-        raw_pk.insert(0, 4u8);
-        raw_pk.extend(vec![0u8; 64 - slice.len()]);
-        raw_pk.extend(slice);
-    } else {
-        raw_pk.extend(slice);
+        let pk_vec_l = (0..params.share_count)
+            .map(|i| dlog_proof_vec_l[i as usize].pk)
+            .collect::<Vec<GE>>();
+
+        let y_vec = (0..params.share_count)
+            .map(|i| decom_vec_l[i as usize].y_i)
+            .collect::<Vec<GE>>();
+        let mut y_vec_iter = y_vec.iter();
+        let head = y_vec_iter.next().unwrap();
+        let tail = y_vec_iter;
+        let y_sum_l = tail.fold(head.clone(), |acc, x| acc + x);
+        // In practice whenever this keypair will be used to sign it needs to be ensured that the below
+        // stage ran successfully.
+        // One way to do it would be to add a signature to the shared_keys_vec_l[i].x_i once this is
+        // verified.
+        let input_stage4 = KeyGenStage4Input {
+            params_s: params.clone(),
+            dlog_proof_vec_s: dlog_proof_vec_l.clone(),
+            y_vec_s: y_vec.clone(),
+        };
+
+        for index in 0..params.share_count {
+            write_input!(
+                index,
+                4,
+                &op,
+                serde_json::to_string_pretty(&input_stage4).unwrap()
+            );
+            keygen_stage4(&input_stage4)?;
+        }
+
+        // Important: This is only for test purposes. This code should never be executed in practice.
+        //            x is the private key and all this work is done to never have that at one place in the clear.
+        let xi_vec = (0..=params.threshold)
+            .map(|i| shared_keys_vec_l[i as usize].x_i)
+            .collect::<Vec<FE>>();
+        let vss_scheme_for_test = vss_scheme_vec_l.clone();
+        let x = vss_scheme_for_test[0]
+            .clone()
+            .reconstruct(&index_vec[0..=(params.threshold as usize)], &xi_vec);
+        let sum_u_i = party_keys_vec_l
+            .iter()
+            .fold(FE::zero(), |acc, x| acc + x.u_i);
+        assert_eq!(x, sum_u_i);
+        // test code ends.
+
+        // public vector of paillier public keys
+        let e_vec_l = bc1_vec_l
+            .iter()
+            .map(|bc1| bc1.e.clone())
+            .collect::<Vec<EncryptionKey>>();
+        // At this point key generation is complete.
+        // shared_keys_vec contains the private key shares for all the participants.
+        Ok(KeyPairResult {
+            party_keys_vec: party_keys_vec_l,
+            shared_keys_vec: shared_keys_vec_l,
+            pk_vec: pk_vec_l,
+            y_sum: y_sum_l,
+            vss_scheme: vss_scheme_for_test[0].clone(),
+            e_vec: e_vec_l,
+            h1_h2_N_tilde_vec: h1_h2_N_tilde_vec_l,
+        })
     }
 
-    assert_eq!(raw_pk.len(), 65);
+    pub fn orchestrate_sign(
+        s: &[usize],
+        bytes_to_sign: &[u8],
+        keypair_result: &KeyPairResult,
+    ) -> Result<(), ErrorType> {
+        let op = "sign".to_string();
+        if var_os("WRITE_FILE").is_some() {
+            let mut json_file = File::create(&format!("{}.txt", &op)).unwrap();
+            json_file
+                .write_all(
+                    format!(
+                        "Keypair information\n{}\n",
+                        serde_json::to_string_pretty(keypair_result).unwrap()
+                    )
+                    .as_bytes(),
+                )
+                .unwrap();
+        }
+        // ttag = is the number of signers involved in the protocol.
+        let ttag = s.len();
+        //
+        // Values to be kept private(Each value needs to be encrypted with a key only known to that
+        // party):
+        // 1. private_vec[i].u_i
+        // 2. private_vec[i].x_i
+        // 3. private_vec[i].dk
+        let mut private_vec = vec![];
+        //
+        // Values to be kept private(Each value needs to be encrypted with a key only known to that
+        // party):
+        // 1. sign_keys_vec[i].w_i
+        // 2. sign_keys_vec[i].k_i
+        // 3. sign_keys_vec[i].gamma_i
+        let mut sign_keys_vec = vec![];
+        let mut bc1_vec = vec![];
+        //
+        // Values to be kept private(Each value needs to be encrypted with a key only known to that
+        // party):
+        // 1. decom1_vec[i].blind_factor
+        let mut decom1_vec = vec![];
+        let mut m_a_vec: Vec<(MessageA, BigInt)> = vec![];
+        (0..ttag).map(|i| i).for_each(|i| {
+            let input = SignStage1Input {
+                vss_scheme: keypair_result.vss_scheme.clone(),
+                index: s[i],
+                s_l: s.to_vec(),
+                party_keys: keypair_result.party_keys_vec[s[i]].clone(),
+                shared_keys: keypair_result.shared_keys_vec[s[i]].clone(),
+            };
+            write_input!(
+                i as u16,
+                1,
+                &op,
+                serde_json::to_string_pretty(&input).unwrap()
+            );
+            let res_stage1 = sign_stage1(&input);
+            write_output!(
+                i as u16,
+                1,
+                &op,
+                serde_json::to_string_pretty(&res_stage1).unwrap()
+            );
 
-    let pk = PublicKey::parse_slice(&raw_pk, Some(PublicKeyFormat::Full)).unwrap();
+            private_vec.push(res_stage1.party_private);
+            sign_keys_vec.push(res_stage1.sign_keys);
+            bc1_vec.push(res_stage1.bc1);
+            decom1_vec.push(res_stage1.decom1);
+            m_a_vec.push(res_stage1.m_a);
+        });
+        println!("Stage1 done");
 
-    let mut compact: Vec<u8> = Vec::new();
-    let bytes_r = &r.get_element()[..];
-    compact.extend(vec![0u8; 32 - bytes_r.len()]);
-    compact.extend(bytes_r.iter());
+        let gamma_i_vec = (0..ttag)
+            .map(|i| sign_keys_vec[i].gamma_i)
+            .collect::<Vec<FE>>();
+        let w_i_vec = (0..ttag).map(|i| sign_keys_vec[i].w_i).collect::<Vec<FE>>();
+        let m_a_messagea_vec: Vec<MessageA> = m_a_vec.iter().map(|(a, _)| a.clone()).collect();
+        let mut res_stage2_vec: Vec<SignStage2Result> = vec![];
+        for i in 0..ttag {
+            let input = SignStage2Input {
+                m_a_vec: m_a_messagea_vec.clone(),
+                gamma_i: gamma_i_vec[i].clone(),
+                w_i: w_i_vec[i].clone(),
+                ek_vec: keypair_result.e_vec.clone(),
+                index: i,
+                l_ttag: ttag,
+                l_s: s.to_vec(),
+            };
+            write_input!(
+                i as u16,
+                2,
+                &op,
+                serde_json::to_string_pretty(&input).unwrap()
+            );
+            let res = sign_stage2(&input)?;
+            write_output!(
+                i as u16,
+                2,
+                &op,
+                serde_json::to_string_pretty(&res).unwrap()
+            );
+            res_stage2_vec.push(res);
+        }
+        println!("Stage2 done");
+        // All these values should already be encrypted as they come from the stage2 response above.
+        // All the values m_b_gamma_vec_all[i][..].c need to be private to party i.
+        let mut m_b_gamma_vec_all = vec![vec![]; ttag];
+        // All these values should already be encrypted as they come from the stage2 response above.
+        // All the values m_b_w_vec_all[i][..].c need to be private to party i.
+        let mut m_b_w_vec_all = vec![vec![]; ttag];
+        for i in 0..ttag {
+            for j in 0..ttag - 1 {
+                let ind = if j < i { j } else { j + 1 };
+                m_b_gamma_vec_all[ind].push(res_stage2_vec[i].gamma_i_vec[j].0.clone());
+                m_b_w_vec_all[ind].push(res_stage2_vec[i].w_i_vec[j].0.clone());
+            }
+        }
 
-    let bytes_s = &s.get_element()[..];
-    compact.extend(vec![0u8; 32 - bytes_s.len()]);
-    compact.extend(bytes_s.iter());
+        let mut res_stage3_vec: Vec<SignStage3Result> = vec![];
+        let g_wi_vec: Vec<GE> = (0..ttag).map(|a| sign_keys_vec[a].g_w_i).collect();
+        for i in 0..ttag {
+            let input = SignStage3Input {
+                dk_s: keypair_result.party_keys_vec[s[i]].dk.clone(),
+                k_i_s: sign_keys_vec[i].k_i.clone(),
+                m_b_gamma_s: m_b_gamma_vec_all[i].clone(),
+                m_b_w_s: m_b_w_vec_all[i].clone(),
+                index_s: i,
+                ttag_s: ttag,
+                g_w_i_s: g_wi_vec.clone(),
+            };
+            write_input!(
+                i as u16,
+                3,
+                &op,
+                serde_json::to_string_pretty(&input).unwrap()
+            );
 
-    let secp_sig = Signature::parse_slice(compact.as_slice()).unwrap();
+            let res = sign_stage3(&input);
+            if let Err(err) = res {
+                println!("stage 3 error.{:?}", err);
+                return Err(ErrorType {
+                    error_type: "".to_string(),
+                    bad_actors: vec![],
+                });
+            }
+            write_output!(
+                i as u16,
+                3,
+                &op,
+                serde_json::to_string_pretty(&(res.clone().unwrap())).unwrap()
+            );
 
-    let is_correct = verify(&msg, &secp_sig, &pk);
-    assert!(is_correct);
+            res_stage3_vec.push(res.unwrap());
+        }
+        println!("Stage 3 done.");
+
+        //
+        // Values to be kept private(Each value needs to be encrypted with a key only known to that
+        // party):
+        // 1. beta_vec_all[i][..] - All these values are private to party i.
+        let mut beta_vec_all = vec![vec![]; ttag];
+        //
+        // Values to be kept private(Each value needs to be encrypted with a key only known to that
+        // party):
+        // 1. ni_vec_all[i][..] - All these values are private to party i.
+        let mut ni_vec_all = vec![vec![]; ttag];
+        for i in 0..ttag {
+            for j in 0..ttag - 1 {
+                let ind = if j < i { j } else { j + 1 };
+                beta_vec_all[ind].push(res_stage2_vec[i].gamma_i_vec[j].1.clone());
+                ni_vec_all[ind].push(res_stage2_vec[i].w_i_vec[j].1.clone());
+            }
+        }
+
+        //
+        // Values to be kept private(Each value needs to be encrypted with a key only known to that
+        // party):
+        // miu_vec_all[i][..] <-- all these values are private to party i. They should be encrypted at
+        // the time of their generation in stage3.
+        let miu_vec_all = (0..res_stage3_vec.len())
+            .map(|i| res_stage3_vec[i].alpha_vec_w.clone())
+            .collect::<Vec<Vec<FE>>>();
+        //
+        // Values to be kept private(Each value needs to be encrypted with a key only known to that
+        // party):
+        // alpha_vec_all[i][..] <-- all these values are private to party i. They should be encrypted at
+        // the time of their generation in stage3.
+        let alpha_vec_all = (0..res_stage3_vec.len())
+            .map(|i| res_stage3_vec[i].alpha_vec_gamma.clone())
+            .collect::<Vec<Vec<FE>>>();
+        let mut res_stage4_vec = vec![];
+        for i in 0..ttag {
+            // prepare beta_vec of party_i:
+            //
+            // Values to be kept private(Each value needs to be encrypted with a key only known to that
+            // party):
+            // beta_vec[..] <-- all these values are private to party i. They should be encrypted at
+            // the time of their generation in stage3.
+
+            let beta_vec = (0..ttag - 1)
+                .map(|j| {
+                    let ind1 = if j < i { j } else { j + 1 };
+                    let ind2 = if j < i { i - 1 } else { i };
+                    let beta = beta_vec_all[ind1][ind2].clone();
+
+                    beta
+                })
+                .collect::<Vec<FE>>();
+
+            // prepare ni_vec of party_i:
+            // Values to be kept private(Each value needs to be encrypted with a key only known to that
+            // party):
+            // ni_vec[..] <-- all these values are private to party i. They should be encrypted at
+            // the time of their generation in stage3.
+            let ni_vec = (0..ttag - 1)
+                .map(|j| {
+                    let ind1 = if j < i { j } else { j + 1 };
+                    let ind2 = if j < i { i - 1 } else { i };
+                    ni_vec_all[ind1][ind2].clone()
+                })
+                .collect::<Vec<FE>>();
+            let input = SignStage4Input {
+                alpha_vec_s: alpha_vec_all[i].clone(),
+                beta_vec_s: beta_vec,
+                miu_vec_s: miu_vec_all[i].clone(),
+                ni_vec_s: ni_vec,
+                sign_keys_s: sign_keys_vec[i].clone(),
+            };
+            write_input!(
+                i as u16,
+                4,
+                &op,
+                serde_json::to_string_pretty(&input).unwrap()
+            );
+
+            let res = sign_stage4(&input).unwrap();
+            write_output!(
+                i as u16,
+                4,
+                &op,
+                serde_json::to_string_pretty(&res).unwrap()
+            );
+
+            res_stage4_vec.push(res);
+        }
+
+        println!("Stage 4 done.");
+        let delta_vec: Vec<FE> = res_stage4_vec.iter().map(|val| val.delta_i).collect();
+        // all parties broadcast delta_i and compute delta_i ^(-1)
+        let delta_inv = SignKeys::phase3_reconstruct_delta(&delta_vec);
+
+        let mut result_stage5_vec = vec![];
+        for i in 0..ttag {
+            let input: SignStage5Input = SignStage5Input {
+                m_b_gamma_vec: m_b_gamma_vec_all[i].clone(),
+                delta_inv: delta_inv.clone(),
+                decom_vec1: decom1_vec.clone(),
+                bc1_vec: bc1_vec.clone(),
+                index: i,
+                sign_keys: sign_keys_vec[i].clone(),
+                s_ttag: ttag,
+            };
+            write_input!(
+                i as u16,
+                5,
+                &op,
+                serde_json::to_string_pretty(&input).unwrap()
+            );
+
+            let res = sign_stage5(&input)?;
+            write_output!(
+                i as u16,
+                5,
+                &op,
+                serde_json::to_string_pretty(&res).unwrap()
+            );
+
+            result_stage5_vec.push(res);
+        }
+
+        println!("Stage 5 done.");
+        let R_vec: Vec<GE> = result_stage5_vec.iter().map(|a| a.R).collect();
+        let R_dash_vec: Vec<GE> = result_stage5_vec.iter().map(|a| a.R_dash).collect();
+
+        let mut res_stage6_vec = vec![];
+        for i in 0..ttag {
+            let input = SignStage6Input {
+                R_dash: R_dash_vec[i].clone(),
+                R: R_vec[i].clone(),
+                m_a: m_a_vec[i].0.clone(),
+                e_k: keypair_result.e_vec[s[i]].clone(),
+                k_i: sign_keys_vec[i].k_i.clone(),
+                randomness: m_a_vec[i].1.clone(),
+                party_keys: keypair_result.party_keys_vec[s[i]].clone(),
+                h1_h2_N_tilde_vec: keypair_result.h1_h2_N_tilde_vec.clone(),
+                index: i as usize,
+                s: s.to_vec(),
+            };
+            write_input!(
+                i as u16,
+                6,
+                &op,
+                serde_json::to_string_pretty(&input).unwrap()
+            );
+
+            let res = sign_stage6(&input)?;
+            write_output!(
+                i as u16,
+                6,
+                &op,
+                serde_json::to_string_pretty(&res).unwrap()
+            );
+
+            res_stage6_vec.push(res);
+        }
+        println!("Stage 6 done.");
+        let mut phase5_proofs_vec = vec![];
+        for i in 0..res_stage6_vec.len() {
+            phase5_proofs_vec.push(res_stage6_vec[i].phase5_proof.clone());
+        }
+        //let phase5_proofs_vec = res_stage6_vec.iter().map(|a| *a.phase5_proof).collect();
+        let mut res_stage7_vec = vec![];
+        for i in 0..ttag {
+            let input = SignStage7Input {
+                phase5_proof_vec: phase5_proofs_vec[i].clone(),
+                R_dash: R_dash_vec[i].clone(),
+                R: R_vec[i].clone(),
+                m_a: m_a_vec[i].0.clone(),
+                ek: keypair_result.e_vec[s[i]].clone(),
+                h1_h2_N_tilde_vec: keypair_result.h1_h2_N_tilde_vec.clone(),
+                s: s.to_vec(),
+                index: i,
+            };
+            write_input!(
+                i as u16,
+                7,
+                &op,
+                serde_json::to_string_pretty(&input).unwrap()
+            );
+
+            let res = sign_stage7(&input)?;
+            write_input!(
+                i as u16,
+                7,
+                &op,
+                serde_json::to_string_pretty(&res).unwrap()
+            );
+
+            res_stage7_vec.push(res);
+        }
+        println!("Stage 7 done.");
+        let message_bn_ = HSha256::create_hash(&[&BigInt::from(bytes_to_sign)]);
+        let mut local_sig_vec = Vec::new();
+        let mut s_vec = Vec::new();
+
+        // sigma_vec This is just to facilitate writing the code. It should never be collected like
+        // this IRL.
+        let sigma_vec: Vec<FE> = res_stage4_vec.iter().map(|val| val.sigma_i).collect();
+        for i in 0..ttag {
+            let input = SignStage8Input {
+                R_dash_vec: R_dash_vec.clone(),
+                sign_key: sign_keys_vec[i].clone(),
+                message_bn: message_bn_.clone(),
+                R: R_vec[i],
+                sigma: sigma_vec[i],
+                ysum: keypair_result.y_sum.clone(),
+            };
+            write_input!(
+                i as u16,
+                8,
+                &op,
+                serde_json::to_string_pretty(&input).unwrap()
+            );
+
+            let check_local_sig = sign_stage8(&input);
+            if check_local_sig.is_err() {
+                return Err(ErrorType {
+                    error_type: format!(" Signature error on index {}", i),
+                    bad_actors: vec![],
+                });
+            }
+            let local_sig = check_local_sig.unwrap();
+            write_output!(
+                i as u16,
+                8,
+                &op,
+                serde_json::to_string_pretty(&local_sig).unwrap()
+            );
+
+            s_vec.push(local_sig.s_i.clone());
+            local_sig_vec.push(local_sig);
+        }
+
+        println!("Stage 8 done. s_vec len {}", s_vec.len());
+
+        let res_sig = local_sig_vec[0].output_signature(&s_vec[1..]);
+        if res_sig.is_err() {
+            println!("error in combining sigs {:?}", res_sig.unwrap_err());
+            return Err(ErrorType {
+                error_type: "error in combining signatures".to_string(),
+                bad_actors: vec![],
+            });
+        }
+        let sig = res_sig.unwrap();
+        check_sig(&sig.r, &sig.s, &local_sig_vec[0].m, &keypair_result.y_sum);
+        Ok(())
+    }
 }
