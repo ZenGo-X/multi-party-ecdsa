@@ -758,7 +758,6 @@ mod tests {
         // Values to be kept private(Each value needs to be encrypted with a key only known to that
         // party):
         // 1. party_shares[party_num] - all shares in this vec belong to the party number party_num.
-        // one else.
         let party_shares = (0..params.share_count)
             .map(|i| {
                 (0..params.share_count)
