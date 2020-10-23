@@ -77,7 +77,7 @@ fn main() {
     let message = &message[..];
     let client = Client::new();
     // delay:
-    let delay = time::Duration::from_millis(25);
+    let delay = time::Duration::from_millis(200);
     // read key file
     let data = fs::read_to_string(env::args().nth(2).unwrap())
         .expect("Unable to load keys, did you run keygen first? ");
@@ -188,7 +188,7 @@ fn main() {
     for (i, k) in signers_vec.iter().enumerate() {
         if *k != (party_num_int - 1) as usize {
             enc_key.push(BigInt::to_vec(
-                &(g_w_i_vec[*k as usize] * res_stage1.sign_keys.w_i.clone())
+                &(g_w_i_vec[i as usize] * res_stage1.sign_keys.w_i.clone())
                     .x_coor()
                     .unwrap(),
             ));
@@ -236,6 +236,7 @@ fn main() {
                 uuid.clone()
             )
             .is_ok());
+            j += 1;
         }
     }
 
@@ -302,6 +303,7 @@ fn main() {
                 uuid.clone()
             )
             .is_ok());
+            j += 1;
         }
     }
 
@@ -454,4 +456,43 @@ fn main() {
         ysum: keypair.y_sum_s.clone(),
     };
     let res_stage8 = sign_stage8(&input_stage8).expect("Sign stage 8 failed.");
+    //broadcast local signatures
+    assert!(broadcast(
+        &client,
+        party_num_int,
+        "round6",
+        serde_json::to_string(&res_stage8.clone()).unwrap(),
+        uuid.clone()
+    )
+    .is_ok());
+    let round6_ans_vec = poll_for_broadcasts(
+        &client,
+        party_num_int,
+        THRESHOLD + 1,
+        delay,
+        "round6",
+        uuid.clone(),
+    );
+    let mut local_sig_vec = vec![];
+    let mut s_vec = vec![];
+    let mut j = 0;
+    for i in 1..THRESHOLD + 2 {
+        if i == party_num_int {
+            local_sig_vec.push(res_stage8.clone());
+            s_vec.push(res_stage8.s_i.clone());
+        } else {
+            let local_sig: LocalSignature = serde_json::from_str(&round6_ans_vec[j]).unwrap();
+            local_sig_vec.push(local_sig.clone());
+            s_vec.push(local_sig.s_i.clone());
+            j += 1;
+        }
+    }
+
+    let res_sig = local_sig_vec[0].output_signature(&s_vec[1..]);
+    assert!(
+        res_sig.is_ok(),
+        format!("error in combining sigs {:?}", res_sig.unwrap_err())
+    );
+    let sig = res_sig.unwrap();
+    check_sig(&sig.r, &sig.s, &local_sig_vec[0].m, &keypair.y_sum_s);
 }

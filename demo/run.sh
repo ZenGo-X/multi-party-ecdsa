@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-cargo build --examples --release
+cargo +nightly build --examples --release
 
 file_as_string=`cat params.json`
 

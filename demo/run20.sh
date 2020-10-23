@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-cargo +nightly build --examples --release
+cargo +nightly build --release --examples
 
 file_as_string=`cat params.json`
 
@@ -36,5 +36,7 @@ do
     ./target/release/examples/gg20_sign_client http://127.0.0.1:8001 keys$i.store "KZen Networks" &
     sleep 3
 done
+
+sleep 10
 
 killall sm_manager 2> /dev/null
