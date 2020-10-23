@@ -1,4 +1,4 @@
-#![allow(non_snake_case)]
+/*#![allow(non_snake_case)]
 
 use curv::arithmetic::traits::Converter;
 use curv::cryptographic_primitives::hashing::hash_sha256::HSha256;
@@ -7,6 +7,8 @@ use curv::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS;
 use curv::elliptic::curves::traits::*;
 use curv::{FE, GE};
 use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2020::orchestrate::*;
+use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2020::orchestrate::SignStage1Result;
+;
 use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2020::party_i::{
     Keys, LocalSignature, Parameters, SharedKeys, SignBroadcastPhase1, SignDecommitPhase1, SignKeys,
 };
@@ -126,7 +128,6 @@ fn main() {
         shared_keys: keypair.shared_keys,
     };
     let res_stage1 = sign_stage1(&input_stage1);
-
     // publish message A  and Commitment and then gather responses from other parties.
     assert!(broadcast(
         &client,
@@ -498,3 +499,5 @@ fn main() {
 
     fs::write("signature".to_string(), sign_json).expect("Unable to save !");
 }
+*/
+fn main() {}

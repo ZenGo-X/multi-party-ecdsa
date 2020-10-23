@@ -39,11 +39,13 @@
 //!               input/output pairs for all the stages.
 use crate::protocols::multi_party_ecdsa::gg_2020::party_i::{
     KeyGenBroadcastMessage1, KeyGenDecommitMessage1, Keys, LocalSignature, Parameters,
-    PartyPrivate, SharedKeys, SignBroadcastPhase1, SignDecommitPhase1, SignKeys,
+    PartyPrivate, SharedKeys, SignBroadcastPhase1, SignDecommitPhase1, SignKeys, SignatureRecid,
 };
+use curv::arithmetic::traits::Converter;
+use curv::elliptic::curves::traits::*;
+
 use crate::protocols::multi_party_ecdsa::gg_2020::ErrorType;
 use crate::utilities::mta::{MessageA, MessageB};
-use crate::utilities::zk_pdl_with_slack::PDLwSlackProof;
 use crate::Error;
 use curv::cryptographic_primitives::proofs::sigma_dlog::DLogProof;
 use curv::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS;
@@ -51,16 +53,6 @@ use curv::{FE, GE};
 use paillier::*;
 use serde::{Deserialize, Serialize};
 use zk_paillier::zkproofs::DLogStatement;
-/*
-use curv::arithmetic::traits::Converter;
-use curv::cryptographic_primitives::hashing::hash_sha256::HSha256;
-use curv::cryptographic_primitives::hashing::traits::Hash;
-use curv::elliptic::curves::traits::*;
-use serde_json;
-use std::env::var_os;
-use std::fs::File;
-use std::io::Write;
-*/
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct KeyGenStage1Input {
@@ -187,13 +179,11 @@ pub struct KeyGenStage4Input {
 //
 pub fn keygen_stage4(input: &KeyGenStage4Input) -> Result<(), ErrorType> {
     let result = Keys::verify_dlog_proofs(&input.params_s, &input.dlog_proof_vec_s, &input.y_vec_s);
-    if result.is_err() {
-        let err_obj = result.unwrap_err();
-        println!("KeyGen phase 3 checks failed. {:?}", err_obj.clone());
-        Err(err_obj)
-    } else {
-        Ok(())
+    if let Err(err) = result {
+        println!("KeyGen phase 3 checks failed. {:?}", &err);
+        return Err(err);
     }
+    Ok(())
 }
 
 #[cfg(test)]
@@ -448,10 +438,11 @@ pub fn sign_stage5(input: &SignStage5Input) -> Result<SignStage5Result, ErrorTyp
         &input.bc1_vec,
         input.index,
     );
-    if check_Rvec_i.is_err() {
-        println!("Error->{:?}", check_Rvec_i.clone());
-        return Err(check_Rvec_i.unwrap_err());
+    if let Err(err) = check_Rvec_i {
+        println!("Error->{:?}", &err);
+        return Err(err);
     }
+
     let Rvec_i = check_Rvec_i.unwrap();
     let Rdash_vec_i = Rvec_i * input.sign_keys.k_i;
     Ok(SignStage5Result {
@@ -461,7 +452,7 @@ pub fn sign_stage5(input: &SignStage5Input) -> Result<SignStage5Result, ErrorTyp
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SignStage6Input {
-    pub R_dash: GE,
+    pub R_dash_vec: Vec<GE>,
     pub R: GE,
     pub m_a: MessageA,
     pub randomness: BigInt,
@@ -471,18 +462,22 @@ pub struct SignStage6Input {
     pub h1_h2_N_tilde_vec: Vec<DLogStatement>,
     pub s: Vec<usize>,
     pub index: usize,
+    pub sign_key: SignKeys,
+    pub message_bn: BigInt,
+    pub sigma: FE,
+    pub ysum: GE,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SignStage6Result {
-    pub phase5_proof: Vec<PDLwSlackProof>,
+    pub local_sig: LocalSignature,
 }
 pub fn sign_stage6(input: &SignStage6Input) -> Result<SignStage6Result, ErrorType> {
     let mut proof_vec = vec![];
     for j in 0..input.s.len() - 1 {
         let ind = if j < input.index { j } else { j + 1 };
         let proof = LocalSignature::phase5_proof_pdl(
-            &input.R_dash,
+            &input.R_dash_vec[input.index],
             &input.R,
             &input.m_a.c,
             &input.e_k,
@@ -494,116 +489,113 @@ pub fn sign_stage6(input: &SignStage6Input) -> Result<SignStage6Result, ErrorTyp
 
         proof_vec.push(proof);
     }
+    let phase5_verify_zk = LocalSignature::phase5_verify_pdl(
+        &proof_vec,
+        &input.R_dash_vec[input.index],
+        &input.R,
+        &input.m_a.c,
+        &input.e_k,
+        &input.h1_h2_N_tilde_vec[..],
+        &input.s,
+        input.index,
+    );
+    if phase5_verify_zk.is_err() {
+        return Err(phase5_verify_zk.err().unwrap());
+    }
 
+    let phase5_check = LocalSignature::phase5_check_R_dash_sum(&input.R_dash_vec);
+    if phase5_check.is_err() {
+        return Err(ErrorType {
+            error_type: format!("phase5 R_dash_sum check failed {:?}", phase5_check),
+            bad_actors: vec![],
+        });
+    }
     Ok(SignStage6Result {
-        phase5_proof: proof_vec,
+        local_sig: LocalSignature::phase7_local_sig(
+            &input.sign_key.k_i,
+            &input.message_bn,
+            &input.R,
+            &input.sigma,
+            &input.ysum,
+        ),
     })
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SignStage7Input {
-    pub phase5_proof_vec: Vec<PDLwSlackProof>,
-    pub R_dash: GE,
-    pub R: GE,
-    pub m_a: MessageA,
-    pub ek: EncryptionKey,
-    pub h1_h2_N_tilde_vec: Vec<DLogStatement>,
-    pub s: Vec<usize>,
-    pub index: usize,
-}
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct SignStage7Result {}
-pub fn sign_stage7(input: &SignStage7Input) -> Result<SignStage7Result, ErrorType> {
-    for _ in 0..input.s.len() {
-        let phase5_verify_zk = LocalSignature::phase5_verify_pdl(
-            &input.phase5_proof_vec,
-            &input.R_dash,
-            &input.R,
-            &input.m_a.c,
-            &input.ek,
-            &input.h1_h2_N_tilde_vec[..],
-            &input.s,
-            input.index,
-        );
-        if phase5_verify_zk.is_err() {
-            return Err(phase5_verify_zk.err().unwrap());
-        }
-    }
-    Ok(SignStage7Result {})
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct SignStage8Input {
-    pub R_dash_vec: Vec<GE>,
-    pub sign_key: SignKeys,
-    pub message_bn: BigInt,
-    pub R: GE,
-    pub sigma: FE,
+    pub local_sig_vec: Vec<LocalSignature>,
     pub ysum: GE,
 }
-pub fn sign_stage8(input: &SignStage8Input) -> Result<LocalSignature, Error> {
-    let phase5_check = LocalSignature::phase5_check_R_dash_sum(&input.R_dash_vec);
-    if phase5_check.is_err() {
-        return Err(phase5_check.unwrap_err());
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SignStage7Result {
+    pub local_sig: SignatureRecid,
+}
+pub fn sign_stage7(input: &SignStage7Input) -> Result<SignStage7Result, ErrorType> {
+    let s_vec: Vec<FE> = input.local_sig_vec.iter().map(|a| a.s_i).collect();
+    let res_sig = input.local_sig_vec[0].output_signature(&s_vec[1..]);
+    if res_sig.is_err() {
+        println!("error in combining sigs {:?}", res_sig.unwrap_err());
+        return Err(ErrorType {
+            error_type: "error in combining signatures".to_string(),
+            bad_actors: vec![],
+        });
     }
-    Ok(LocalSignature::phase7_local_sig(
-        &input.sign_key.k_i,
-        &input.message_bn,
-        &input.R,
-        &input.sigma,
-        &input.ysum,
-    ))
+    let sig: SignatureRecid = res_sig.unwrap();
+    input
+        .local_sig_vec
+        .iter()
+        .for_each(|a| check_sig(&sig.r, &sig.s, &a.m, &input.ysum));
+
+    Ok(SignStage7Result { local_sig: sig })
+}
+pub fn check_sig(r: &FE, s: &FE, msg: &BigInt, pk: &GE) {
+    use secp256k1::{verify, Message, PublicKey, PublicKeyFormat, Signature};
+
+    let raw_msg = BigInt::to_vec(&msg);
+    let mut msg: Vec<u8> = Vec::new(); // padding
+    msg.extend(vec![0u8; 32 - raw_msg.len()]);
+    msg.extend(raw_msg.iter());
+
+    let msg = Message::parse_slice(msg.as_slice()).unwrap();
+    let slice = pk.pk_to_key_slice();
+    let mut raw_pk = Vec::new();
+    if slice.len() != 65 {
+        // after curv's pk_to_key_slice return 65 bytes, this can be removed
+        raw_pk.insert(0, 4u8);
+        raw_pk.extend(vec![0u8; 64 - slice.len()]);
+        raw_pk.extend(slice);
+    } else {
+        raw_pk.extend(slice);
+    }
+
+    assert_eq!(raw_pk.len(), 65);
+
+    let pk = PublicKey::parse_slice(&raw_pk, Some(PublicKeyFormat::Full)).unwrap();
+
+    let mut compact: Vec<u8> = Vec::new();
+    let bytes_r = &r.get_element()[..];
+    compact.extend(vec![0u8; 32 - bytes_r.len()]);
+    compact.extend(bytes_r.iter());
+
+    let bytes_s = &s.get_element()[..];
+    compact.extend(vec![0u8; 32 - bytes_s.len()]);
+    compact.extend(bytes_s.iter());
+
+    let secp_sig = Signature::parse_slice(compact.as_slice()).unwrap();
+
+    let is_correct = verify(&msg, &secp_sig, &pk);
+    assert!(is_correct);
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use curv::arithmetic::traits::Converter;
     use curv::cryptographic_primitives::hashing::hash_sha256::HSha256;
     use curv::cryptographic_primitives::hashing::traits::Hash;
-    use curv::elliptic::curves::traits::*;
     use serde_json;
     use std::env::var_os;
     use std::fs::File;
     use std::io::Write;
 
-    pub fn check_sig(r: &FE, s: &FE, msg: &BigInt, pk: &GE) {
-        use secp256k1::{verify, Message, PublicKey, PublicKeyFormat, Signature};
-
-        let raw_msg = BigInt::to_vec(&msg);
-        let mut msg: Vec<u8> = Vec::new(); // padding
-        msg.extend(vec![0u8; 32 - raw_msg.len()]);
-        msg.extend(raw_msg.iter());
-
-        let msg = Message::parse_slice(msg.as_slice()).unwrap();
-        let slice = pk.pk_to_key_slice();
-        let mut raw_pk = Vec::new();
-        if slice.len() != 65 {
-            // after curv's pk_to_key_slice return 65 bytes, this can be removed
-            raw_pk.insert(0, 4u8);
-            raw_pk.extend(vec![0u8; 64 - slice.len()]);
-            raw_pk.extend(slice);
-        } else {
-            raw_pk.extend(slice);
-        }
-
-        assert_eq!(raw_pk.len(), 65);
-
-        let pk = PublicKey::parse_slice(&raw_pk, Some(PublicKeyFormat::Full)).unwrap();
-
-        let mut compact: Vec<u8> = Vec::new();
-        let bytes_r = &r.get_element()[..];
-        compact.extend(vec![0u8; 32 - bytes_r.len()]);
-        compact.extend(bytes_r.iter());
-
-        let bytes_s = &s.get_element()[..];
-        compact.extend(vec![0u8; 32 - bytes_s.len()]);
-        compact.extend(bytes_s.iter());
-
-        let secp_sig = Signature::parse_slice(compact.as_slice()).unwrap();
-
-        let is_correct = verify(&msg, &secp_sig, &pk);
-        assert!(is_correct);
-    }
     // Test the key generation protocol using random values for threshold and share count.
 
     #[test]
@@ -1149,10 +1141,16 @@ mod tests {
         let R_vec: Vec<GE> = result_stage5_vec.iter().map(|a| a.R).collect();
         let R_dash_vec: Vec<GE> = result_stage5_vec.iter().map(|a| a.R_dash).collect();
 
+        let message_bn_l = HSha256::create_hash(&[&BigInt::from(bytes_to_sign)]);
+
+        // sigma_vec This is just to facilitate writing the code. It should never be collected like
+        // this IRL.
+        let sigma_vec: Vec<FE> = res_stage4_vec.iter().map(|val| val.sigma_i).collect();
+
         let mut res_stage6_vec = vec![];
         for i in 0..ttag {
             let input = SignStage6Input {
-                R_dash: R_dash_vec[i].clone(),
+                R_dash_vec: R_dash_vec.clone(),
                 R: R_vec[i].clone(),
                 m_a: m_a_vec[i].0.clone(),
                 e_k: keypair_result.e_vec[s[i]].clone(),
@@ -1162,6 +1160,10 @@ mod tests {
                 h1_h2_N_tilde_vec: keypair_result.h1_h2_N_tilde_vec.clone(),
                 index: i as usize,
                 s: s.to_vec(),
+                ysum: keypair_result.y_sum.clone(),
+                message_bn: message_bn_l.clone(),
+                sigma: sigma_vec[i],
+                sign_key: sign_keys_vec[i].clone(),
             };
             write_input!(
                 i as u16,
@@ -1181,95 +1183,18 @@ mod tests {
             res_stage6_vec.push(res);
         }
         println!("Stage 6 done.");
-        let mut phase5_proofs_vec = vec![];
-        for i in 0..res_stage6_vec.len() {
-            phase5_proofs_vec.push(res_stage6_vec[i].phase5_proof.clone());
+        let local_sig_vec_l: Vec<LocalSignature> =
+            res_stage6_vec.iter().map(|a| a.local_sig.clone()).collect();
+
+        let input = SignStage7Input {
+            local_sig_vec: local_sig_vec_l.clone(),
+            ysum: keypair_result.y_sum.clone(),
+        };
+        //Each party needs to run it
+        let mut sigs_vec = vec![];
+        for _ in 0..ttag {
+            sigs_vec.push(sign_stage7(&input)?);
         }
-        //let phase5_proofs_vec = res_stage6_vec.iter().map(|a| *a.phase5_proof).collect();
-        let mut res_stage7_vec = vec![];
-        for i in 0..ttag {
-            let input = SignStage7Input {
-                phase5_proof_vec: phase5_proofs_vec[i].clone(),
-                R_dash: R_dash_vec[i].clone(),
-                R: R_vec[i].clone(),
-                m_a: m_a_vec[i].0.clone(),
-                ek: keypair_result.e_vec[s[i]].clone(),
-                h1_h2_N_tilde_vec: keypair_result.h1_h2_N_tilde_vec.clone(),
-                s: s.to_vec(),
-                index: i,
-            };
-            write_input!(
-                i as u16,
-                7,
-                &op,
-                serde_json::to_string_pretty(&input).unwrap()
-            );
-
-            let res = sign_stage7(&input)?;
-            write_input!(
-                i as u16,
-                7,
-                &op,
-                serde_json::to_string_pretty(&res).unwrap()
-            );
-
-            res_stage7_vec.push(res);
-        }
-        println!("Stage 7 done.");
-        let message_bn_ = HSha256::create_hash(&[&BigInt::from(bytes_to_sign)]);
-        let mut local_sig_vec = Vec::new();
-        let mut s_vec = Vec::new();
-
-        // sigma_vec This is just to facilitate writing the code. It should never be collected like
-        // this IRL.
-        let sigma_vec: Vec<FE> = res_stage4_vec.iter().map(|val| val.sigma_i).collect();
-        for i in 0..ttag {
-            let input = SignStage8Input {
-                R_dash_vec: R_dash_vec.clone(),
-                sign_key: sign_keys_vec[i].clone(),
-                message_bn: message_bn_.clone(),
-                R: R_vec[i],
-                sigma: sigma_vec[i],
-                ysum: keypair_result.y_sum.clone(),
-            };
-            write_input!(
-                i as u16,
-                8,
-                &op,
-                serde_json::to_string_pretty(&input).unwrap()
-            );
-
-            let check_local_sig = sign_stage8(&input);
-            if check_local_sig.is_err() {
-                return Err(ErrorType {
-                    error_type: format!(" Signature error on index {}", i),
-                    bad_actors: vec![],
-                });
-            }
-            let local_sig = check_local_sig.unwrap();
-            write_output!(
-                i as u16,
-                8,
-                &op,
-                serde_json::to_string_pretty(&local_sig).unwrap()
-            );
-
-            s_vec.push(local_sig.s_i.clone());
-            local_sig_vec.push(local_sig);
-        }
-
-        println!("Stage 8 done. s_vec len {}", s_vec.len());
-
-        let res_sig = local_sig_vec[0].output_signature(&s_vec[1..]);
-        if res_sig.is_err() {
-            println!("error in combining sigs {:?}", res_sig.unwrap_err());
-            return Err(ErrorType {
-                error_type: "error in combining signatures".to_string(),
-                bad_actors: vec![],
-            });
-        }
-        let sig = res_sig.unwrap();
-        check_sig(&sig.r, &sig.s, &local_sig_vec[0].m, &keypair_result.y_sum);
         Ok(())
     }
 }
