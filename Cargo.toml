@@ -26,9 +26,7 @@ categories = ["cryptography"]
 crate-type = ["lib"]
 
 [features]
-default = ["orchestrategg20"]
 cclst = ["class_group"]
-orchestrategg20 = []
 
 [dependencies]
 paillier = { git = "https://github.com/KZen-networks/rust-paillier", tag = "v0.3.4"}

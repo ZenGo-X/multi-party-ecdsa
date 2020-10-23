@@ -15,7 +15,6 @@
     @license GPL-3.0+ <https://github.com/KZen-networks/multi-party-ecdsa/blob/master/LICENSE>
 */
 //!
-//! This module is enabled by enabling the feature orchestrategg20.
 //!
 //! Using a couple of tests this module demonstrates a way that you could use the library
 //! and build an actual application out of the implementation.
