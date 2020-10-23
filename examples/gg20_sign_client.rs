@@ -430,4 +430,55 @@ fn main() {
         s: signers_vec.clone(),
     };
     let res_stage6 = sign_stage6(&input_stage6).expect("stage6 sign failed.");
+    /*    assert!(broadcast(
+        &client,
+        party_num_int,
+        "round6",
+        serde_json::to_string(&(res_stage6.phase5_proof.clone(),)).unwrap(),
+        uuid.clone()
+    )
+    .is_ok());
+    let round6_ans_vec = poll_for_broadcasts(
+        &client,
+        party_num_int,
+        THRESHOLD + 1,
+        delay,
+        "round6",
+        uuid.clone(),
+    );
+    let mut phase5_proof_vec = vec![];
+    let mut j = 0;
+    for i in 1..THRESHOLD + 2 {
+        if i == party_num_int {
+            phase5_proof_vec.push(res_stage6.phase5_proof.clone());
+        } else {
+            let (phase5_proof): (Vec<PDLwSlackProof>) =
+                serde_json::from_str(&round6_ans_vec[j]).unwrap();
+            phase5_proof_vec.push(phase5_proof);
+            j += 1;
+        }
+    }
+    */
+    let input_stage7 = SignStage7Input {
+        phase5_proof_vec: res_stage6.phase5_proof.clone(),
+        R_dash: res_stage5.R_dash.clone(),
+        R: res_stage5.R.clone(),
+        m_a: res_stage1.m_a.0.clone(),
+        ek: keypair.party_keys_s.ek.clone(),
+        h1_h2_N_tilde_vec: h1_h2_N_tilde_vec.clone(),
+        s: signers_vec.clone(),
+        index: (party_num_int - 1) as usize,
+    };
+    let res_stage7 = sign_stage7(&input_stage7).expect("sign stage 7 failed.");
+    println!("Stage 7 done.");
+    let message_bn = HSha256::create_hash(&[&BigInt::from(message)]);
+    let input_stage8 = SignStage8Input {
+        R_dash_vec: R_dash_vec.clone(),
+        sign_key: res_stage1.sign_keys.clone(),
+        message_bn: message_bn.clone(),
+        R: res_stage5.R.clone(),
+        sigma: res_stage4.sigma_i.clone(),
+        ysum: keypair.y_sum_s.clone(),
+    };
+    let res_stage8 = sign_stage8(&input_stage8).expect("Sign stage 8 failed.");
 }
