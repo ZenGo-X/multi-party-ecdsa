@@ -605,8 +605,8 @@ pub struct SignStage5Input {
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SignStage5Result {
-    pub R_vec_i: GE,
-    pub R_dash_vec_i: GE,
+    pub R: GE,
+    pub R_dash: GE,
 }
 pub fn sign_stage5(input: &SignStage5Input) -> Result<SignStage5Result, ErrorType> {
     let b_proof_vec = (0..input.s_ttag - 1)
@@ -626,8 +626,8 @@ pub fn sign_stage5(input: &SignStage5Input) -> Result<SignStage5Result, ErrorTyp
     let Rvec_i = check_Rvec_i.unwrap();
     let Rdash_vec_i = Rvec_i * input.sign_keys.k_i;
     Ok(SignStage5Result {
-        R_vec_i: Rvec_i,
-        R_dash_vec_i: Rdash_vec_i,
+        R: Rvec_i,
+        R_dash: Rdash_vec_i,
     })
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -1005,8 +1005,8 @@ pub fn orchestrate_sign(
     }
 
     println!("Stage 5 done.");
-    let R_vec: Vec<GE> = result_stage5_vec.iter().map(|a| a.R_vec_i).collect();
-    let R_dash_vec: Vec<GE> = result_stage5_vec.iter().map(|a| a.R_dash_vec_i).collect();
+    let R_vec: Vec<GE> = result_stage5_vec.iter().map(|a| a.R).collect();
+    let R_dash_vec: Vec<GE> = result_stage5_vec.iter().map(|a| a.R_dash).collect();
 
     let mut res_stage6_vec = vec![];
     for i in 0..ttag {

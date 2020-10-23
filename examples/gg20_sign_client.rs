@@ -378,4 +378,60 @@ fn main() {
         s_ttag: signers_vec.len(),
     };
     let res_stage5 = sign_stage5(&input_stage5).expect("Sign Stage 5 failed.");
+    assert!(broadcast(
+        &client,
+        party_num_int,
+        "round5",
+        serde_json::to_string(&(
+            res_stage5.R_dash.clone(),
+            res_stage5.R.clone(),
+            res_stage1.m_a.1.clone(),
+            keypair.h1_h2_N_tilde_l_s.clone(),
+        ))
+        .unwrap(),
+        uuid.clone()
+    )
+    .is_ok());
+    let round5_ans_vec = poll_for_broadcasts(
+        &client,
+        party_num_int,
+        THRESHOLD + 1,
+        delay,
+        "round5",
+        uuid.clone(),
+    );
+    let mut R_vec = vec![];
+    let mut R_dash_vec = vec![];
+    let mut randomness_vec = vec![];
+    let mut h1_h2_N_tilde_vec = vec![];
+    let mut j = 0;
+    for i in 1..THRESHOLD + 2 {
+        if i == party_num_int {
+            R_vec.push(res_stage5.R.clone());
+            R_dash_vec.push(res_stage5.R_dash.clone());
+            h1_h2_N_tilde_vec.push(keypair.h1_h2_N_tilde_l_s.clone());
+        } else {
+            let (R_dash, R, randomness, h1_h2_N_tilde): (GE, GE, BigInt, DLogStatement) =
+                serde_json::from_str(&round5_ans_vec[j]).unwrap();
+            R_vec.push(R);
+            R_dash_vec.push(R_dash);
+            randomness_vec.push(randomness);
+            h1_h2_N_tilde_vec.push(h1_h2_N_tilde);
+            j += 1;
+        }
+    }
+    let input_stage6 = SignStage6Input {
+        R_dash: res_stage5.R_dash.clone(),
+        R: res_stage5.R.clone(),
+        m_a: m_a_vec[i].0.clone(),
+        e_k: keypair.paillier_key_vec_s[signers_vec[(party_num_int - 1) as usize] as usize].clone(),
+        k_i: res_stage1.sign_keys.k_i.clone(),
+        randomness: randomness_vec_vec[i].1.clone(),
+        party_keys: keypair.party_keys_vec_s[signers_vec[(party_num_int - 1) as usize] as usize]
+            .clone(),
+        h1_h2_N_tilde_vec: h1_h2_N_tilde_vec.clone(),
+        index: (party_num_int - 1) as usize,
+        s: signers_vec.clone(),
+    };
+    let res_stage6 = sign_stage6(&input_stage6).expect("stage6 sign failed.");
 }
