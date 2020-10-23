@@ -564,8 +564,8 @@ pub fn sign_stage3(
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SignStage4Result {
-    delta_i: FE,
-    sigma_i: FE,
+    pub delta_i: FE,
+    pub sigma_i: FE,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

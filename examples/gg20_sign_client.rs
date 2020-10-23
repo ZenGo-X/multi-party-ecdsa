@@ -333,4 +333,48 @@ fn main() {
         sign_keys_s: res_stage1.sign_keys.clone(),
     };
     let res_stage4 = sign_stage4(&input_stage4).expect("Sign Stage4 failed.");
+    //broadcast decommitment from stage1 and delta_i
+    assert!(broadcast(
+        &client,
+        party_num_int,
+        "round4",
+        serde_json::to_string(&(res_stage1.decom1.clone(), res_stage4.delta_i,)).unwrap(),
+        uuid.clone()
+    )
+    .is_ok());
+    let round4_ans_vec = poll_for_broadcasts(
+        &client,
+        party_num_int,
+        THRESHOLD + 1,
+        delay,
+        "round4",
+        uuid.clone(),
+    );
+    let mut delta_i_vec = vec![];
+    let mut decom1_vec = vec![];
+    let mut j = 0;
+    for i in 1..THRESHOLD + 2 {
+        if i == party_num_int {
+            delta_i_vec.push(res_stage4.delta_i.clone());
+            decom1_vec.push(res_stage1.decom1.clone());
+        } else {
+            let (decom_l, delta_l): (SignDecommitPhase1, FE) =
+                serde_json::from_str(&round4_ans_vec[j]).unwrap();
+            delta_i_vec.push(delta_l);
+            decom1_vec.push(decom_l);
+            j += 1;
+        }
+    }
+
+    let delta_inv_l = SignKeys::phase3_reconstruct_delta(&delta_i_vec);
+    let input_stage5 = SignStage5Input {
+        m_b_gamma_vec: m_b_gamma_rec_vec.clone(),
+        delta_inv: delta_inv_l.clone(),
+        decom_vec1: decom1_vec.clone(),
+        bc1_vec: bc1_vec.clone(),
+        index: (party_num_int - 1) as usize,
+        sign_keys: res_stage1.sign_keys.clone(),
+        s_ttag: signers_vec.len(),
+    };
+    let res_stage5 = sign_stage5(&input_stage5).expect("Sign Stage 5 failed.");
 }
