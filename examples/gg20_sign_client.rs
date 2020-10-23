@@ -172,6 +172,7 @@ fn main() {
         if i == party_num_int {
             bc1_vec.push(res_stage1.bc1.clone());
             g_w_i_vec.push(res_stage1.sign_keys.g_w_i.clone());
+            m_a_vec.push(res_stage1.m_a.0.clone());
         } else {
             let (bc1_j, m_a_party_j, g_w_i): (SignBroadcastPhase1, MessageA, GE) =
                 serde_json::from_str(&round1_ans_vec[j]).unwrap();
@@ -228,7 +229,7 @@ fn main() {
                 serde_json::to_string(&(
                     res_stage2.gamma_i_vec[j].0.clone(),
                     beta_enc,
-                    res_stage2.w_i_vec[j].clone(),
+                    res_stage2.w_i_vec[j].0.clone(),
                     ni_enc,
                 ))
                 .unwrap(),
@@ -409,7 +410,7 @@ fn main() {
             R_dash_vec.push(res_stage5.R_dash.clone());
             h1_h2_N_tilde_vec.push(keypair.h1_h2_N_tilde_l_s.clone());
         } else {
-            let (R_dash, R, randomness, h1_h2_N_tilde): (GE, GE, BigInt, DLogStatement) =
+            let (R_dash, R, h1_h2_N_tilde): (GE, GE, DLogStatement) =
                 serde_json::from_str(&round5_ans_vec[j]).unwrap();
             R_vec.push(R);
             R_dash_vec.push(R_dash);
@@ -430,35 +431,7 @@ fn main() {
         s: signers_vec.clone(),
     };
     let res_stage6 = sign_stage6(&input_stage6).expect("stage6 sign failed.");
-    /*    assert!(broadcast(
-        &client,
-        party_num_int,
-        "round6",
-        serde_json::to_string(&(res_stage6.phase5_proof.clone(),)).unwrap(),
-        uuid.clone()
-    )
-    .is_ok());
-    let round6_ans_vec = poll_for_broadcasts(
-        &client,
-        party_num_int,
-        THRESHOLD + 1,
-        delay,
-        "round6",
-        uuid.clone(),
-    );
-    let mut phase5_proof_vec = vec![];
-    let mut j = 0;
-    for i in 1..THRESHOLD + 2 {
-        if i == party_num_int {
-            phase5_proof_vec.push(res_stage6.phase5_proof.clone());
-        } else {
-            let (phase5_proof): (Vec<PDLwSlackProof>) =
-                serde_json::from_str(&round6_ans_vec[j]).unwrap();
-            phase5_proof_vec.push(phase5_proof);
-            j += 1;
-        }
-    }
-    */
+
     let input_stage7 = SignStage7Input {
         phase5_proof_vec: res_stage6.phase5_proof.clone(),
         R_dash: res_stage5.R_dash.clone(),
