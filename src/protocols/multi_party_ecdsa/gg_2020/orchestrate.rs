@@ -677,7 +677,7 @@ pub struct SignStage7Input {
     pub R: GE,
     pub m_a: MessageA,
     pub ek: EncryptionKey,
-    pub keypair_result: KeyPairResult,
+    pub h1_h2_N_tilde_vec: Vec<DLogStatement>,
     pub s: Vec<usize>,
     pub index: usize,
 }
@@ -691,7 +691,7 @@ pub fn sign_stage7(input: &SignStage7Input) -> Result<SignStage7Result, ErrorTyp
             &input.R,
             &input.m_a.c,
             &input.ek,
-            &input.keypair_result.h1_h2_N_tilde_vec[..],
+            &input.h1_h2_N_tilde_vec[..],
             &input.s,
             input.index,
         );
@@ -1053,7 +1053,7 @@ pub fn orchestrate_sign(
             R: R_vec[i].clone(),
             m_a: m_a_vec[i].0.clone(),
             ek: keypair_result.e_vec[s[i]].clone(),
-            keypair_result: keypair_result.clone(),
+            h1_h2_N_tilde_vec: keypair_result.h1_h2_N_tilde_vec.clone(),
             s: s.to_vec(),
             index: i,
         };
