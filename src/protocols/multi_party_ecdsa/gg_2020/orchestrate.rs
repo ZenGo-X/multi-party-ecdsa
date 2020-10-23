@@ -323,13 +323,18 @@ pub fn sign_stage2(input: &SignStage2Input) -> Result<SignStage2Result, ErrorTyp
             &input.ek_vec[input.l_s[ind]],
             input.m_a_vec[ind].clone(),
         );
-        //res_gamma_i.push((m_b_gamma, beta_gamma, beta_randomness, beta_tag));
+        // beta_gamma is  secret value and needs to be encrypted with a key only know to party ind.
+        // See gg20_sign_client.rs for a demo of how this value is encrypted using a key shared
+        // between party input.index and party ind.
         res_gamma_i.push((m_b_gamma, beta_gamma));
         let (m_b_w, beta_wi, _beta_randomness, _beta_tag) = MessageB::b(
             &input.w_i,
             &input.ek_vec[input.l_s[ind]],
             input.m_a_vec[ind].clone(),
         );
+        // beta_wi is  secret value and needs to be encrypted with a key only know to party ind.
+        // See gg20_sign_client.rs for a demo of how this value is encrypted using a key shared
+        // between party input.index and party ind.
         res_w_i.push((m_b_w, beta_wi));
     }
     Ok(SignStage2Result {
@@ -352,16 +357,7 @@ pub struct SignStage3Input {
     pub index_s: usize,
     pub ttag_s: usize,
 }
-pub fn sign_stage3(
-    input: &SignStage3Input,
-    /*    dk: &DecryptionKey,
-    k_i: &FE,
-    m_b_gamma: &[MessageB],
-    m_b_w: &[MessageB],
-    g_w_i: &[GE],
-    index: usize,
-    s_ttag: usize,*/
-) -> Result<SignStage3Result, Error> {
+pub fn sign_stage3(input: &SignStage3Input) -> Result<SignStage3Result, Error> {
     let mut res_alpha_vec_gamma = vec![];
     let mut res_alpha_vec_w = vec![];
     for i in 0..input.ttag_s - 1 {
@@ -395,14 +391,7 @@ pub struct SignStage4Input {
     pub ni_vec_s: Vec<FE>,
     pub sign_keys_s: SignKeys,
 }
-pub fn sign_stage4(
-    input: &SignStage4Input, /*    alpha_vec: &[FE],
-                             beta_vec: &[FE],
-                             miu_vec: &[FE],
-                             ni_vec: &[FE],
-                             sign_keys: &SignKeys,
-                             */
-) -> Result<SignStage4Result, ErrorType> {
+pub fn sign_stage4(input: &SignStage4Input) -> Result<SignStage4Result, ErrorType> {
     Ok(SignStage4Result {
         delta_i: input
             .sign_keys_s
@@ -896,7 +885,7 @@ mod tests {
         //
         // Values to be kept private(Each value needs to be encrypted with a key only known to that
         // party):
-        // 1. decom1_vec[i].blind_factor
+        // 1. decom1_vec[i] - This only needs to be revealed at stage 5 input.
         let mut decom1_vec = vec![];
         let mut m_a_vec: Vec<(MessageA, BigInt)> = vec![];
         (0..ttag).map(|i| i).for_each(|i| {
@@ -961,11 +950,7 @@ mod tests {
             res_stage2_vec.push(res);
         }
         println!("Stage2 done");
-        // All these values should already be encrypted as they come from the stage2 response above.
-        // All the values m_b_gamma_vec_all[i][..].c need to be private to party i.
         let mut m_b_gamma_vec_all = vec![vec![]; ttag];
-        // All these values should already be encrypted as they come from the stage2 response above.
-        // All the values m_b_w_vec_all[i][..].c need to be private to party i.
         let mut m_b_w_vec_all = vec![vec![]; ttag];
         for i in 0..ttag {
             for j in 0..ttag - 1 {
