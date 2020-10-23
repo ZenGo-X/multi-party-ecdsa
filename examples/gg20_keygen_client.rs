@@ -1,127 +1,35 @@
 #![allow(non_snake_case)]
 
 use curv::arithmetic::traits::Converter;
-use curv::cryptographic_primitives::hashing::hash_sha256::HSha256;
-use curv::cryptographic_primitives::hashing::traits::Hash;
 use curv::cryptographic_primitives::proofs::sigma_dlog::DLogProof;
 use curv::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS;
 use curv::elliptic::curves::traits::*;
 use curv::{FE, GE};
 use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2020::orchestrate::*;
 use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2020::party_i::{
-    KeyGenBroadcastMessage1, KeyGenDecommitMessage1, Keys, LocalSignature, Parameters,
-    PartyPrivate, SharedKeys, SignBroadcastPhase1, SignDecommitPhase1, SignKeys,
+    KeyGenBroadcastMessage1, KeyGenDecommitMessage1, Keys, Parameters, SharedKeys,
 };
-use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2020::ErrorType;
-use multi_party_ecdsa::utilities::mta::{MessageA, MessageB};
-use multi_party_ecdsa::utilities::zk_pdl_with_slack::PDLwSlackProof;
-use multi_party_ecdsa::Error;
 use paillier::*;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use std::env::var_os;
-use std::fs::File;
-use std::io::Write;
 use std::{env, fs, time};
 use zk_paillier::zkproofs::DLogStatement;
 
 mod common;
 use common::{
-    aes_decrypt, aes_encrypt, broadcast, check_sig, poll_for_broadcasts, poll_for_p2p, postb,
-    sendp2p, Params, PartySignup, AEAD,
+    aes_decrypt, aes_encrypt, broadcast, poll_for_broadcasts, poll_for_p2p, postb, sendp2p, Params,
+    PartySignup, AEAD,
 };
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-struct ParamsFile {
-    pub parties: String,
-    pub threshold: String,
-}
-
-impl From<ParamsFile> for Parameters {
-    fn from(item: ParamsFile) -> Self {
+impl From<Params> for Parameters {
+    fn from(item: Params) -> Self {
         Parameters {
             share_count: item.parties.parse::<u16>().unwrap(),
             threshold: item.threshold.parse::<u16>().unwrap(),
         }
     }
 }
-/*
- * thread_local! {
 
-static SECRET_KEY: RefCell<Vec<u8>> = RefCell::new((0..32).map(|_| { rand::random::<u8>() }).collect());
-}
-impl From<Keys> for KeysE {
-    fn from(item: Keys) {
-        let json_str = serde_json::to_string(&item).unwrap();
-        let val: Value = serde_json::from_str(&json_str).unwrap();
-        let u_i_ser = val["u_i"].as_bytes();
-        let dk_ser = val["dk"].as_bytes();
-        KeysE {
-            y_i: item.y_i,
-            dk: aes_encrypt(&SECRET_KEY.with(|m| m.borrow.clone()), dk_ser),
-            ek: item.ek,
-            u_i: aes_encrypt(&SECRET_KEY.with(|m| m.borrow.clone()), u_i_ser),
-            party_index: usize,
-            N_tilde: BigInt,
-            h1: BigInt,
-            h2: BigInt,
-            xhi: BigInt,
-        }
-    }
-}
-impl From<KeysE> for Keys {
-    fn from(item: KeysE) {
-        Keys {
-            y_i: item.y_i,
-            dk: serde_json::from_str(
-                &aes_decrypt(&SECRET_KEY.with(|m| m.borrow.clone()), &item.dk).to_string(),
-            )
-            .unwrap(),
-            ek: item.ek,
-            u_i: serde_json::from_str(
-                &aes_encrypt(&SECRET_KEY.with(|m| m.borrow.clone()), &item.u_i).to_string(),
-            )
-            .unwrap(),
-            party_index: item.party_index,
-            N_tilde: item.N_tilde,
-            h1: item.h1,
-            h2: item.h2,
-            xhi: item.xhi,
-        }
-    }
-}
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct KeysE {
-    pub u_i: AEAD,
-    pub y_i: GE,
-    pub dk: AEAD,
-    pub ek: EncryptionKey,
-    pub party_index: usize,
-    N_tilde: BigInt,
-    h1: BigInt,
-    h2: BigInt,
-    xhi: BigInt,
-}
-*/
-/*#[derive(StructOpt)]
-struct Cli {
-    #[structopt(default_value = "http://127.0.0.1:8001", long = "server", short = "s")]
-    server: String,
-    #[structopt(
-        parse(from_os_str),
-        default_value = "params.json",
-        long = "params",
-        short = "p"
-    )]
-    params_file: std::path::PathBuf,
-    #[structopt(
-        parse(from_os_str),
-        default_value = "keys.json",
-        long = "keys",
-        short = "k"
-    )]
-    keys_file: std::path::PathBuf,
-}*/
 fn main() {
     if env::args().nth(3).is_some() {
         panic!("too many arguments")
@@ -130,8 +38,7 @@ fn main() {
         panic!("too few arguments")
     }
 
-    //let args = Cli::from_args();
-    let params: Parameters = serde_json::from_str::<ParamsFile>(
+    let params: Parameters = serde_json::from_str::<Params>(
         &std::fs::read_to_string("params.json").expect("Could not read input params file"),
     )
     .unwrap()
@@ -142,12 +49,11 @@ fn main() {
         PartySignup { number, uuid } => (number, uuid),
     };
 
-    let delay = time::Duration::from_millis(200);
+    let delay = time::Duration::from_millis(25);
     let input_stage1 = KeyGenStage1Input {
         index: (party_num_int - 1) as usize,
     };
     let res_stage1: KeyGenStage1Result = keygen_stage1(&input_stage1);
-    //let party_keys_e: KeysA = res_stage1.party_keys.clone().into();
 
     assert!(broadcast(
         &client,
@@ -336,7 +242,7 @@ fn main() {
         dlog_proof_vec_s: dlog_proof_vec.clone(),
         y_vec_s: point_vec.clone(),
     };
-    let res_stage4 = keygen_stage4(&input_stage4).expect("keygen stage4 failed.");
+    let _ = keygen_stage4(&input_stage4).expect("keygen stage4 failed.");
     //save key to file:
     let paillier_key_vec = (0..params.share_count)
         .map(|i| bc1_vec[i as usize].e.clone())
@@ -373,6 +279,3 @@ pub fn signup(client: &Client) -> Result<PartySignup, ()> {
     let res_body = postb(&client, "signupkeygen", key).unwrap();
     serde_json::from_str(&res_body).unwrap()
 }
-/*
-fn main() {}
-*/

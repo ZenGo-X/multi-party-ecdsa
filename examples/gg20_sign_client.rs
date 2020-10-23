@@ -3,25 +3,17 @@
 use curv::arithmetic::traits::Converter;
 use curv::cryptographic_primitives::hashing::hash_sha256::HSha256;
 use curv::cryptographic_primitives::hashing::traits::Hash;
-use curv::cryptographic_primitives::proofs::sigma_dlog::DLogProof;
 use curv::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS;
 use curv::elliptic::curves::traits::*;
 use curv::{FE, GE};
 use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2020::orchestrate::*;
 use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2020::party_i::{
-    KeyGenBroadcastMessage1, KeyGenDecommitMessage1, Keys, LocalSignature, Parameters,
-    PartyPrivate, SharedKeys, SignBroadcastPhase1, SignDecommitPhase1, SignKeys,
+    Keys, LocalSignature, Parameters, SharedKeys, SignBroadcastPhase1, SignDecommitPhase1, SignKeys,
 };
-use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2020::ErrorType;
 use multi_party_ecdsa::utilities::mta::{MessageA, MessageB};
-use multi_party_ecdsa::utilities::zk_pdl_with_slack::PDLwSlackProof;
-use multi_party_ecdsa::Error;
 use paillier::*;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use std::env::var_os;
-use std::fs::File;
-use std::io::Write;
 use std::{env, fs, time};
 use zk_paillier::zkproofs::DLogStatement;
 
@@ -77,7 +69,7 @@ fn main() {
     let message = &message[..];
     let client = Client::new();
     // delay:
-    let delay = time::Duration::from_millis(200);
+    let delay = time::Duration::from_millis(25);
     // read key file
     let data = fs::read_to_string(env::args().nth(2).unwrap())
         .expect("Unable to load keys, did you run keygen first? ");
@@ -88,11 +80,6 @@ fn main() {
         .expect("Unable to read params, make sure config file is present in the same folder ");
     let params: Params = serde_json::from_str(&data).unwrap();
     let THRESHOLD = params.threshold.parse::<u16>().unwrap();
-    let params_l: Parameters = serde_json::from_str::<ParamsFile>(
-        &std::fs::read_to_string("params.json").expect("Could not read input params file"),
-    )
-    .unwrap()
-    .into();
 
     //signup:
     let (party_num_int, uuid) = match signup(&client).unwrap() {
@@ -184,7 +171,6 @@ fn main() {
         }
     }
     let mut enc_key: Vec<Vec<u8>> = vec![];
-    let mut j = 0;
     for (i, k) in signers_vec.iter().enumerate() {
         if *k != (party_num_int - 1) as usize {
             enc_key.push(BigInt::to_vec(
@@ -444,8 +430,7 @@ fn main() {
         s: signers_vec.clone(),
         index: (party_num_int - 1) as usize,
     };
-    let res_stage7 = sign_stage7(&input_stage7).expect("sign stage 7 failed.");
-    println!("Stage 7 done.");
+    let _res_stage7 = sign_stage7(&input_stage7).expect("sign stage 7 failed.");
     let message_bn = HSha256::create_hash(&[&BigInt::from(message)]);
     let input_stage8 = SignStage8Input {
         R_dash_vec: R_dash_vec.clone(),
@@ -460,7 +445,7 @@ fn main() {
     assert!(broadcast(
         &client,
         party_num_int,
-        "round6",
+        "broadcast_local_sig",
         serde_json::to_string(&res_stage8.clone()).unwrap(),
         uuid.clone()
     )
@@ -470,7 +455,7 @@ fn main() {
         party_num_int,
         THRESHOLD + 1,
         delay,
-        "round6",
+        "broadcast_local_sig",
         uuid.clone(),
     );
     let mut local_sig_vec = vec![];
@@ -495,4 +480,21 @@ fn main() {
     );
     let sig = res_sig.unwrap();
     check_sig(&sig.r, &sig.s, &local_sig_vec[0].m, &keypair.y_sum_s);
+    println!(
+        "party {:?} Output Signature: \nR: {:?}\ns: {:?} \nrecid: {:?} \n",
+        party_num_int,
+        sig.r.get_element(),
+        sig.s.get_element(),
+        sig.recid.clone()
+    );
+
+    let sign_json = serde_json::to_string(&(
+        "r",
+        (BigInt::from(&(sig.r.get_element())[..])).to_str_radix(16),
+        "s",
+        (BigInt::from(&(sig.s.get_element())[..])).to_str_radix(16),
+    ))
+    .unwrap();
+
+    fs::write("signature".to_string(), sign_json).expect("Unable to save !");
 }

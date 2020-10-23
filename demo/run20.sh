@@ -38,5 +38,4 @@ do
 done
 
 sleep 10
-
 killall sm_manager 2> /dev/null
