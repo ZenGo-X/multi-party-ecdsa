@@ -1,4 +1,4 @@
-/*#![allow(non_snake_case)]
+#![allow(non_snake_case)]
 
 use curv::arithmetic::traits::Converter;
 use curv::cryptographic_primitives::hashing::hash_sha256::HSha256;
@@ -7,8 +7,6 @@ use curv::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS;
 use curv::elliptic::curves::traits::*;
 use curv::{FE, GE};
 use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2020::orchestrate::*;
-use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2020::orchestrate::SignStage1Result;
-;
 use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2020::party_i::{
     Keys, LocalSignature, Parameters, SharedKeys, SignBroadcastPhase1, SignDecommitPhase1, SignKeys,
 };
@@ -21,8 +19,8 @@ use zk_paillier::zkproofs::DLogStatement;
 
 mod common;
 use common::{
-    aes_decrypt, aes_encrypt, broadcast, check_sig, poll_for_broadcasts, poll_for_p2p, postb,
-    sendp2p, Params, PartySignup, AEAD,
+    aes_decrypt, aes_encrypt, broadcast, poll_for_broadcasts, poll_for_p2p, postb, sendp2p, Params,
+    PartySignup, AEAD,
 };
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -407,8 +405,10 @@ fn main() {
             j += 1;
         }
     }
+
+    let message_bn = HSha256::create_hash(&[&BigInt::from(message)]);
     let input_stage6 = SignStage6Input {
-        R_dash: res_stage5.R_dash.clone(),
+        R_dash_vec: R_dash_vec.clone(),
         R: res_stage5.R.clone(),
         m_a: res_stage1.m_a.0.clone(),
         e_k: keypair.paillier_key_vec_s[signers_vec[(party_num_int - 1) as usize] as usize].clone(),
@@ -418,36 +418,17 @@ fn main() {
         h1_h2_N_tilde_vec: h1_h2_N_tilde_vec.clone(),
         index: (party_num_int - 1) as usize,
         s: signers_vec.clone(),
-    };
-    let res_stage6 = sign_stage6(&input_stage6).expect("stage6 sign failed.");
-
-    let input_stage7 = SignStage7Input {
-        phase5_proof_vec: res_stage6.phase5_proof.clone(),
-        R_dash: res_stage5.R_dash.clone(),
-        R: res_stage5.R.clone(),
-        m_a: res_stage1.m_a.0.clone(),
-        ek: keypair.party_keys_s.ek.clone(),
-        h1_h2_N_tilde_vec: h1_h2_N_tilde_vec.clone(),
-        s: signers_vec.clone(),
-        index: (party_num_int - 1) as usize,
-    };
-    let _res_stage7 = sign_stage7(&input_stage7).expect("sign stage 7 failed.");
-    let message_bn = HSha256::create_hash(&[&BigInt::from(message)]);
-    let input_stage8 = SignStage8Input {
-        R_dash_vec: R_dash_vec.clone(),
-        sign_key: res_stage1.sign_keys.clone(),
-        message_bn: message_bn.clone(),
-        R: res_stage5.R.clone(),
         sigma: res_stage4.sigma_i.clone(),
         ysum: keypair.y_sum_s.clone(),
+        sign_key: res_stage1.sign_keys.clone(),
+        message_bn: message_bn.clone(),
     };
-    let res_stage8 = sign_stage8(&input_stage8).expect("Sign stage 8 failed.");
-    //broadcast local signatures
+    let res_stage6 = sign_stage6(&input_stage6).expect("stage6 sign failed.");
     assert!(broadcast(
         &client,
         party_num_int,
-        "broadcast_local_sig",
-        serde_json::to_string(&res_stage8.clone()).unwrap(),
+        "round6",
+        serde_json::to_string(&res_stage6.local_sig.clone()).unwrap(),
         uuid.clone()
     )
     .is_ok());
@@ -456,31 +437,26 @@ fn main() {
         party_num_int,
         THRESHOLD + 1,
         delay,
-        "broadcast_local_sig",
+        "round6",
         uuid.clone(),
     );
     let mut local_sig_vec = vec![];
-    let mut s_vec = vec![];
     let mut j = 0;
     for i in 1..THRESHOLD + 2 {
         if i == party_num_int {
-            local_sig_vec.push(res_stage8.clone());
-            s_vec.push(res_stage8.s_i.clone());
+            local_sig_vec.push(res_stage6.local_sig.clone());
         } else {
             let local_sig: LocalSignature = serde_json::from_str(&round6_ans_vec[j]).unwrap();
             local_sig_vec.push(local_sig.clone());
-            s_vec.push(local_sig.s_i.clone());
             j += 1;
         }
     }
-
-    let res_sig = local_sig_vec[0].output_signature(&s_vec[1..]);
-    assert!(
-        res_sig.is_ok(),
-        format!("error in combining sigs {:?}", res_sig.unwrap_err())
-    );
-    let sig = res_sig.unwrap();
-    check_sig(&sig.r, &sig.s, &local_sig_vec[0].m, &keypair.y_sum_s);
+    let input_stage7 = SignStage7Input {
+        local_sig_vec: local_sig_vec.clone(),
+        ysum: keypair.y_sum_s.clone(),
+    };
+    let res_stage7 = sign_stage7(&input_stage7).expect("sign stage 7 failed");
+    let sig = res_stage7.local_sig;
     println!(
         "party {:?} Output Signature: \nR: {:?}\ns: {:?} \nrecid: {:?} \n",
         party_num_int,
@@ -499,5 +475,3 @@ fn main() {
 
     fs::write("signature".to_string(), sign_json).expect("Unable to save !");
 }
-*/
-fn main() {}
