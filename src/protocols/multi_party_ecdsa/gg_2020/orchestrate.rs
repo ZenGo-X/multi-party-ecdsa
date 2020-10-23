@@ -639,8 +639,9 @@ pub struct SignStage6Input {
     pub e_k: EncryptionKey,
     pub k_i: FE,
     pub party_keys: Keys,
-    pub h1_h2_N_tilde: DLogStatement,
+    pub h1_h2_N_tilde_vec: Vec<DLogStatement>,
     pub s: Vec<usize>,
+    pub index: usize,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -649,7 +650,8 @@ pub struct SignStage6Result {
 }
 pub fn sign_stage6(input: &SignStage6Input) -> Result<SignStage6Result, ErrorType> {
     let mut proof_vec = vec![];
-    for _ in 0..input.s.len() - 1 {
+    for j in 0..input.s.len() - 1 {
+        let ind = if j < input.index { j } else { j + 1 };
         let proof = LocalSignature::phase5_proof_pdl(
             &input.R_dash,
             &input.R,
@@ -658,7 +660,7 @@ pub fn sign_stage6(input: &SignStage6Input) -> Result<SignStage6Result, ErrorTyp
             &input.k_i,
             &input.randomness,
             &input.party_keys,
-            &input.h1_h2_N_tilde,
+            &input.h1_h2_N_tilde_vec[input.s[ind]],
         );
 
         proof_vec.push(proof);
@@ -1016,7 +1018,8 @@ pub fn orchestrate_sign(
             k_i: sign_keys_vec[i].k_i.clone(),
             randomness: m_a_vec[i].1.clone(),
             party_keys: keypair_result.party_keys_vec[s[i]].clone(),
-            h1_h2_N_tilde: keypair_result.h1_h2_N_tilde_vec[s[i]].clone(),
+            h1_h2_N_tilde_vec: keypair_result.h1_h2_N_tilde_vec.clone(),
+            index: i as usize,
             s: s.to_vec(),
         };
         write_input!(
