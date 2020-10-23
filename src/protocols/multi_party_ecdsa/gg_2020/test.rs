@@ -28,7 +28,6 @@ use curv::arithmetic::traits::Converter;
 
 use crate::protocols::multi_party_ecdsa::gg_2020::ErrorType;
 use crate::utilities::zk_pdl_with_slack::PDLwSlackProof;
-//use curv::arithmetic::traits::Converter;
 use curv::cryptographic_primitives::hashing::hash_sha256::HSha256;
 use curv::cryptographic_primitives::hashing::traits::Hash;
 use curv::cryptographic_primitives::proofs::sigma_dlog::DLogProof;
@@ -301,7 +300,7 @@ fn sign(
 
     // each party computes [Ci,Di] = com(g^gamma_i) and broadcast the commitments
     let (bc1_vec, decommit_vec1): (Vec<_>, Vec<_>) =
-        sign_keys_vec.iter().map(|k| k.phase1_broadcast()).unzip(); //number of participants //number of participants
+        sign_keys_vec.iter().map(|k| k.phase1_broadcast()).unzip();
 
     // each party i BROADCASTS encryption of k_i under her Paillier key
     // m_a_vec = [ma_0;ma_1;,...]
