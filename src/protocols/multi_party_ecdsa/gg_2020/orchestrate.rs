@@ -430,7 +430,6 @@ pub struct SignStage1Input {
     pub s_l: Vec<usize>,
     pub party_keys: Keys,
     pub shared_keys: SharedKeys,
-    pub ek: EncryptionKey,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SignStage1Result {
@@ -467,7 +466,8 @@ pub fn sign_stage1(input: &SignStage1Input) -> SignStage1Result {
     // Commitment for g^gamma_i
     let (l_bc1, l_decom1) = l_sign_keys.phase1_broadcast();
     // encryption of k_i
-    let l_m_a = MessageA::a(&l_sign_keys.k_i, &input.ek);
+    let ek = input.party_keys.ek.clone();
+    let l_m_a = MessageA::a(&l_sign_keys.k_i, &ek);
     SignStage1Result {
         sign_keys: l_sign_keys,
         party_private: l_party_private,
@@ -479,7 +479,7 @@ pub fn sign_stage1(input: &SignStage1Input) -> SignStage1Result {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SignStage2Input {
-    pub m_a_vec: Vec<(MessageA, BigInt)>,
+    pub m_a_vec: Vec<MessageA>,
     pub gamma_i: FE,
     pub w_i: FE,
     pub ek_vec: Vec<EncryptionKey>,
@@ -489,8 +489,8 @@ pub struct SignStage2Input {
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SignStage2Result {
-    pub gamma_i_vec: Vec<(MessageB, FE, BigInt, BigInt)>,
-    pub w_i_vec: Vec<(MessageB, FE, BigInt, BigInt)>,
+    pub gamma_i_vec: Vec<(MessageB, FE)>,
+    pub w_i_vec: Vec<(MessageB, FE)>,
 }
 // This API will carry our the MtA for gamma_i MtAwc(Check happens later in stage3) for w_i
 // This is basically a P2P between a participant and all it's peers.
@@ -499,18 +499,19 @@ pub fn sign_stage2(input: &SignStage2Input) -> Result<SignStage2Result, ErrorTyp
     let mut res_w_i = vec![];
     for j in 0..input.l_ttag - 1 {
         let ind = if j < input.index { j } else { j + 1 };
-        let (m_b_gamma, beta_gamma, beta_randomness, beta_tag) = MessageB::b(
+        let (m_b_gamma, beta_gamma, _beta_randomness, _beta_tag) = MessageB::b(
             &input.gamma_i,
             &input.ek_vec[input.l_s[ind]],
-            input.m_a_vec[ind].0.clone(),
+            input.m_a_vec[ind].clone(),
         );
-        res_gamma_i.push((m_b_gamma, beta_gamma, beta_randomness, beta_tag));
-        let (m_b_w, beta_wi, beta_randomness, beta_tag) = MessageB::b(
+        //res_gamma_i.push((m_b_gamma, beta_gamma, beta_randomness, beta_tag));
+        res_gamma_i.push((m_b_gamma, beta_gamma));
+        let (m_b_w, beta_wi, _beta_randomness, _beta_tag) = MessageB::b(
             &input.w_i,
             &input.ek_vec[input.l_s[ind]],
-            input.m_a_vec[ind].0.clone(),
+            input.m_a_vec[ind].clone(),
         );
-        res_w_i.push((m_b_w, beta_wi, beta_randomness, beta_tag));
+        res_w_i.push((m_b_w, beta_wi));
     }
     Ok(SignStage2Result {
         gamma_i_vec: res_gamma_i,
@@ -519,8 +520,8 @@ pub fn sign_stage2(input: &SignStage2Input) -> Result<SignStage2Result, ErrorTyp
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SignStage3Result {
-    pub alpha_vec_gamma: Vec<(FE, BigInt)>,
-    pub alpha_vec_w: Vec<(FE, BigInt)>,
+    pub alpha_vec_gamma: Vec<FE>,
+    pub alpha_vec_w: Vec<FE>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SignStage3Input {
@@ -547,13 +548,13 @@ pub fn sign_stage3(
     for i in 0..input.ttag_s - 1 {
         let ind = if i < input.index_s { i } else { i + 1 };
         let res = input.m_b_gamma_s[i].verify_proofs_get_alpha(&input.dk_s, &input.k_i_s)?;
-        res_alpha_vec_gamma.push(res);
+        res_alpha_vec_gamma.push(res.0);
         let res = input.m_b_w_s[i].verify_proofs_get_alpha(&input.dk_s, &input.k_i_s)?;
         if input.g_w_i_s[ind] != input.m_b_w_s[i].b_proof.pk {
             println!("MtAwc did not work i = {} ind ={}", i, ind);
             return Err(Error::InvalidCom);
         }
-        res_alpha_vec_w.push(res);
+        res_alpha_vec_w.push(res.0);
     }
     Ok(SignStage3Result {
         alpha_vec_gamma: res_alpha_vec_gamma,
@@ -594,7 +595,6 @@ pub fn sign_stage4(
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SignStage5Input {
-    pub sigma_vec: Vec<FE>,
     pub m_b_gamma_vec: Vec<MessageB>,
     pub delta_inv: FE,
     pub decom_vec1: Vec<SignDecommitPhase1>,
@@ -774,7 +774,6 @@ pub fn orchestrate_sign(
             s_l: s.to_vec(),
             party_keys: keypair_result.party_keys_vec[s[i]].clone(),
             shared_keys: keypair_result.shared_keys_vec[s[i]].clone(),
-            ek: keypair_result.party_keys_vec[s[i]].ek.clone(),
         };
         write_input!(
             i as u16,
@@ -802,11 +801,11 @@ pub fn orchestrate_sign(
         .map(|i| sign_keys_vec[i].gamma_i)
         .collect::<Vec<FE>>();
     let w_i_vec = (0..ttag).map(|i| sign_keys_vec[i].w_i).collect::<Vec<FE>>();
-
+    let m_a_messagea_vec: Vec<MessageA> = m_a_vec.iter().map(|(a, _)| a.clone()).collect();
     let mut res_stage2_vec: Vec<SignStage2Result> = vec![];
     for i in 0..ttag {
         let input = SignStage2Input {
-            m_a_vec: m_a_vec.clone(),
+            m_a_vec: m_a_messagea_vec.clone(),
             gamma_i: gamma_i_vec[i].clone(),
             w_i: w_i_vec[i].clone(),
             ek_vec: keypair_result.e_vec.clone(),
@@ -906,13 +905,7 @@ pub fn orchestrate_sign(
     // miu_vec_all[i][..] <-- all these values are private to party i. They should be encrypted at
     // the time of their generation in stage3.
     let miu_vec_all = (0..res_stage3_vec.len())
-        .map(|i| {
-            res_stage3_vec[i]
-                .alpha_vec_w
-                .iter()
-                .map(|(miu, _miu_bigint)| *miu)
-                .collect()
-        })
+        .map(|i| res_stage3_vec[i].alpha_vec_w.clone())
         .collect::<Vec<Vec<FE>>>();
     //
     // Values to be kept private(Each value needs to be encrypted with a key only known to that
@@ -920,13 +913,7 @@ pub fn orchestrate_sign(
     // alpha_vec_all[i][..] <-- all these values are private to party i. They should be encrypted at
     // the time of their generation in stage3.
     let alpha_vec_all = (0..res_stage3_vec.len())
-        .map(|i| {
-            res_stage3_vec[i]
-                .alpha_vec_gamma
-                .iter()
-                .map(|(alpha, _alpha_bigint)| *alpha)
-                .collect()
-        })
+        .map(|i| res_stage3_vec[i].alpha_vec_gamma.clone())
         .collect::<Vec<Vec<FE>>>();
     let mut res_stage4_vec = vec![];
     for i in 0..ttag {
@@ -989,12 +976,9 @@ pub fn orchestrate_sign(
     // all parties broadcast delta_i and compute delta_i ^(-1)
     let delta_inv = SignKeys::phase3_reconstruct_delta(&delta_vec);
 
-    // sigma_vec should come out encrypted for each party in the stage 4 response itself.
-    let sigma_vec: Vec<FE> = res_stage4_vec.iter().map(|val| val.sigma_i).collect();
     let mut result_stage5_vec = vec![];
     for i in 0..ttag {
         let input: SignStage5Input = SignStage5Input {
-            sigma_vec: sigma_vec.clone(),
             m_b_gamma_vec: m_b_gamma_vec_all[i].clone(),
             delta_inv: delta_inv.clone(),
             decom_vec1: decom1_vec.clone(),
@@ -1096,6 +1080,9 @@ pub fn orchestrate_sign(
     let mut local_sig_vec = Vec::new();
     let mut s_vec = Vec::new();
 
+    // sigma_vec This is just to facilitate writing the code. It should never be collected like
+    // this IRL.
+    let sigma_vec: Vec<FE> = res_stage4_vec.iter().map(|val| val.sigma_i).collect();
     for i in 0..ttag {
         let input = SignStage8Input {
             R_dash_vec: R_dash_vec.clone(),
