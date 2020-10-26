@@ -14,7 +14,7 @@ ECDSA is used extensively for crypto-currencies such as Bitcoin, Ethereum (secp2
 This library can be used to create MultiSig and ThresholdSig crypto wallet. For a full background on threshold signatures please read our Binance academy article [Threshold Signatures Explained](https://www.binance.vision/security/threshold-signatures-explained).
 
 ## Library Introduction
-The library was built with four core design principles in mind: 
+The library was built with four core design principles in mind:
 1. Multi-protocol support
 2. Built for cryptography engineers
 3. Foolproof
@@ -25,14 +25,14 @@ To learn about the core principles as well as on the [audit](https://github.com/
 ## Use It
 
 
-The library implements four different protocols for threshold ECDSA. The protocols presents differnt tradeoffs in terms of parameters, security assumptions and efficiency. 
+The library implements four different protocols for threshold ECDSA. The protocols presents differnt tradeoffs in terms of parameters, security assumptions and efficiency.
 
 |  Protocol                                               | High Level code                                                             |
 | -------------------------------------------- | -------------------------------------------- |
-|  Lindell 17 [1]  |  [Gotham-city](https://github.com/KZen-networks/gotham-city) (accepted to [CIW19](https://ifca.ai/fc19/ciw/program.html)) is a two party bitcoin wallet, including benchmarks. [KMS](https://github.com/KZen-networks/kms-secp256k1) is a Rust wrapper library that implements a general purpose two party key management system. [thresh-sig-js](https://github.com/KZen-networks/thresh-sig-js) is a Javascript SDK | 
-| Gennaro, Goldfeder 19 [2] ([video](https://www.youtube.com/watch?v=PdfDZIwuZm0)) | [tss-ecdsa-cli](https://github.com/cryptochill/tss-ecdsa-cli) is a wrapper CLI for full threshold access structure, including network and threshold HD keys ([BIP32](https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki)). See [Demo](https://github.com/KZen-networks/multi-party-ecdsa#run-demo) in this library to get better low level understanding| 
+|  Lindell 17 [1]  |  [Gotham-city](https://github.com/KZen-networks/gotham-city) (accepted to [CIW19](https://ifca.ai/fc19/ciw/program.html)) is a two party bitcoin wallet, including benchmarks. [KMS](https://github.com/KZen-networks/kms-secp256k1) is a Rust wrapper library that implements a general purpose two party key management system. [thresh-sig-js](https://github.com/KZen-networks/thresh-sig-js) is a Javascript SDK |
+| Gennaro, Goldfeder 19 [2] ([video](https://www.youtube.com/watch?v=PdfDZIwuZm0)) | [tss-ecdsa-cli](https://github.com/cryptochill/tss-ecdsa-cli) is a wrapper CLI for full threshold access structure, including network and threshold HD keys ([BIP32](https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki)). See [Demo](https://github.com/KZen-networks/multi-party-ecdsa#run-demo) in this library to get better low level understanding|
 |Castagnos et. al. 19 [3]| Currently enabled as a feature in this library. To Enable, build with `--features=cclst`. to Test, use `cargo test --features=cclst -- --test-threads=1` |
-| Gennaro, Goldfeder 20 [4] | A full threshold protocol that supports identifying malicious parties. If signing fails - a list of malicious parties is returned. The protocol requires only a broadcast channel (all messages are broadcasted)| 
+| Gennaro, Goldfeder 20 [4] | A full threshold protocol that supports identifying malicious parties. If signing fails - a list of malicious parties is returned. The protocol requires only a broadcast channel (all messages are broadcasted)|
 
 ## Run Demo
 
@@ -54,15 +54,18 @@ run `gg18_keygen_client` as follows: `./gg18_keygen_client http://127.0.0.1:8001
 
 Run `./gg18_sign_client`. The application should be in the same folder as the `keys.store` file (or custom filename generated in keygen). the application takes three arguments: `IP:port` as in keygen, `filename` and message to be signed: `./gg18_sign_client http://127.0.0.1:8001 keys.store "KZen Networks"`. The same message should be used by all signers. Once `t+1` parties join the protocol will run and will output to screen signatue (R,s).
 
-### Full demo
+### GG18 demo
 
 Run `./run.sh` (located in `/demo` folder) in the main folder. Move `params` file to the same folder as the excutables (usually `/target/release/examples`). The script will spawn a shared state machine, clients in the number of parties and signing requests for the `threshold + 1` first parties.
 
 `sm_manager` rocket server runs in _production_ mode by default. You may modify the `./run.sh` to config it to run in different environments. For example, to run rocket server in _development_:
-
 ```
 ROCKET_ENV=development ./target/release/examples/sm_manager
 ```
+
+### GG20 demo
+Run `./demo/run20.sh`. You would need nightly rust toolchain and libgmp to be installed and available. The `params.json` file should be changed in case you want to change the defalt split of 2-of-3. The script starts sm_manager which exposes a shared state over http for message passing between parties. Multiple instances of the gg20_keygen_client and gg20_sign_client communicate via the sm_manager. This demo does not implement the identifiable abort portion of the protocol yet.
+
 
 |          !["Multiparty ECDSA Demo"][demo]          |
 | :------------------------------------------------: |

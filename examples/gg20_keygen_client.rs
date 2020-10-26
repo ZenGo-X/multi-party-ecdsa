@@ -131,6 +131,9 @@ fn main() {
             let key_i = BigInt::to_vec(&enc_keys[j]);
             let plaintext = BigInt::to_vec(&res_stage2.secret_shares_s[k].to_big_int());
             let aead_pack_i = aes_encrypt(&key_i, &plaintext);
+            // This client does not implement the identifiable abort protocol.
+            // If it were these secret shares would need to be broadcasted to indetify the
+            // malicious party.
             assert!(sendp2p(
                 &client,
                 party_num_int,
@@ -247,7 +250,10 @@ fn main() {
     let paillier_key_vec = (0..params.share_count)
         .map(|i| bc1_vec[i as usize].e.clone())
         .collect::<Vec<EncryptionKey>>();
-
+    let h1_h2_N_tilde_vec = bc1_vec
+        .iter()
+        .map(|bc1| bc1.dlog_statement.clone())
+        .collect::<Vec<DLogStatement>>();
     let party_key_pair = PartyKeyPair {
         party_keys_s: res_stage1.party_keys_l.clone(),
         shared_keys: res_stage3.shared_keys_s.clone(),
@@ -255,7 +261,7 @@ fn main() {
         vss_scheme_vec_s: vss_scheme_vec.clone(),
         paillier_key_vec_s: paillier_key_vec,
         y_sum_s: y_sum,
-        h1_h2_N_tilde_l_s: res_stage1.h1_h2_N_tilde_l.clone(),
+        h1_h2_N_tilde_vec_s: h1_h2_N_tilde_vec,
     };
     fs::write(
         &env::args().nth(2).unwrap(),
@@ -271,7 +277,7 @@ pub struct PartyKeyPair {
     pub vss_scheme_vec_s: Vec<VerifiableSS>,
     pub paillier_key_vec_s: Vec<EncryptionKey>,
     pub y_sum_s: GE,
-    pub h1_h2_N_tilde_l_s: DLogStatement,
+    pub h1_h2_N_tilde_vec_s: Vec<DLogStatement>,
 }
 pub fn signup(client: &Client) -> Result<PartySignup, ()> {
     let key = "signup-keygen".to_string();

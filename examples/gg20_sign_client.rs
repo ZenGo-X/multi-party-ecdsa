@@ -45,7 +45,7 @@ pub struct PartyKeyPair {
     pub vss_scheme_vec_s: Vec<VerifiableSS>,
     pub paillier_key_vec_s: Vec<EncryptionKey>,
     pub y_sum_s: GE,
-    pub h1_h2_N_tilde_l_s: DLogStatement,
+    pub h1_h2_N_tilde_vec_s: Vec<DLogStatement>,
 }
 pub fn signup(client: &Client) -> Result<PartySignup, ()> {
     let key = "signup-sign".to_string();
@@ -370,12 +370,7 @@ fn main() {
         &client,
         party_num_int,
         "round5",
-        serde_json::to_string(&(
-            res_stage5.R_dash.clone(),
-            res_stage5.R.clone(),
-            keypair.h1_h2_N_tilde_l_s.clone(),
-        ))
-        .unwrap(),
+        serde_json::to_string(&(res_stage5.R_dash.clone(), res_stage5.R.clone(),)).unwrap(),
         uuid.clone()
     )
     .is_ok());
@@ -389,19 +384,15 @@ fn main() {
     );
     let mut R_vec = vec![];
     let mut R_dash_vec = vec![];
-    let mut h1_h2_N_tilde_vec = vec![];
     let mut j = 0;
     for i in 1..THRESHOLD + 2 {
         if i == party_num_int {
             R_vec.push(res_stage5.R.clone());
             R_dash_vec.push(res_stage5.R_dash.clone());
-            h1_h2_N_tilde_vec.push(keypair.h1_h2_N_tilde_l_s.clone());
         } else {
-            let (R_dash, R, h1_h2_N_tilde): (GE, GE, DLogStatement) =
-                serde_json::from_str(&round5_ans_vec[j]).unwrap();
+            let (R_dash, R): (GE, GE) = serde_json::from_str(&round5_ans_vec[j]).unwrap();
             R_vec.push(R);
             R_dash_vec.push(R_dash);
-            h1_h2_N_tilde_vec.push(h1_h2_N_tilde);
             j += 1;
         }
     }
@@ -415,7 +406,7 @@ fn main() {
         k_i: res_stage1.sign_keys.k_i.clone(),
         randomness: res_stage1.m_a.1.clone(),
         party_keys: keypair.party_keys_s.clone(),
-        h1_h2_N_tilde_vec: h1_h2_N_tilde_vec.clone(),
+        h1_h2_N_tilde_vec: keypair.h1_h2_N_tilde_vec_s.clone(),
         index: (party_num_int - 1) as usize,
         s: signers_vec.clone(),
         sigma: res_stage4.sigma_i.clone(),
