@@ -15,6 +15,7 @@
 */
 
 pub mod blame;
+pub mod orchestrate;
 pub mod party_i;
 #[cfg(test)]
 mod test;

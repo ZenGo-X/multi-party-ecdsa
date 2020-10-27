@@ -15,22 +15,19 @@
 
     @license GPL-3.0+ <https://github.com/KZen-networks/multi-party-ecdsa/blob/master/LICENSE>
 */
-
-use crate::protocols::multi_party_ecdsa::gg_2020::blame::GlobalStatePhase5;
+use crate::protocols::multi_party_ecdsa::gg_2020::blame::{
+    GlobalStatePhase5, GlobalStatePhase6, GlobalStatePhase7, LocalStatePhase5, LocalStatePhase6,
+};
+use crate::protocols::multi_party_ecdsa::gg_2020::party_i::SignatureRecid;
 use crate::protocols::multi_party_ecdsa::gg_2020::party_i::{
     KeyGenBroadcastMessage1, KeyGenDecommitMessage1, Keys, LocalSignature, Parameters,
     PartyPrivate, SharedKeys, SignKeys,
 };
 use crate::utilities::mta::{MessageA, MessageB};
+use curv::arithmetic::traits::Converter;
 
-use crate::protocols::multi_party_ecdsa::gg_2020::blame::GlobalStatePhase6;
-use crate::protocols::multi_party_ecdsa::gg_2020::blame::GlobalStatePhase7;
-use crate::protocols::multi_party_ecdsa::gg_2020::blame::LocalStatePhase5;
-use crate::protocols::multi_party_ecdsa::gg_2020::blame::LocalStatePhase6;
-use crate::protocols::multi_party_ecdsa::gg_2020::party_i::SignatureRecid;
 use crate::protocols::multi_party_ecdsa::gg_2020::ErrorType;
 use crate::utilities::zk_pdl_with_slack::PDLwSlackProof;
-use curv::arithmetic::traits::Converter;
 use curv::cryptographic_primitives::hashing::hash_sha256::HSha256;
 use curv::cryptographic_primitives::hashing::traits::Hash;
 use curv::cryptographic_primitives::proofs::sigma_dlog::DLogProof;
@@ -67,50 +64,6 @@ fn test_sign_n5_t2_ttag4() {
 #[test]
 fn test_sign_n8_t4_ttag6() {
     let _ = sign(4, 8, 6, vec![0, 1, 2, 4, 6, 7], 0, &[0]);
-}
-
-// Test the key generation protocol using random values for threshold and share count.
-#[test]
-fn test_keygen_orchestration() {
-    use rand::Rng;
-    let mut rng = rand::thread_rng();
-    let mut share_count_test: u16;
-    let mut threshold_test: u16;
-    for _count in 0..5 {
-        loop {
-            // 16 is just a randomly chosen value. Taking a guess as to how many shares would
-            //    someone want for a key.
-            share_count_test = rng.gen::<u16>() % 16;
-            if share_count_test < 2 {
-                continue;
-            } else {
-                break;
-            }
-        }
-        loop {
-            threshold_test = rng.gen::<u16>() % share_count_test;
-            if threshold_test < 1 {
-                continue;
-            } else {
-                break;
-            }
-        }
-        println!(
-            " Input params. Threshold {} Share Count {}",
-            threshold_test, share_count_test
-        );
-        assert!(
-            keygen_orchestrator(Parameters {
-                share_count: share_count_test,
-                threshold: threshold_test,
-            })
-            .is_ok(),
-            format!(
-                " Test failed for Threshold {} Share Count {}",
-                threshold_test, share_count_test
-            )
-        );
-    }
 }
 
 // party 1 is corrupting step 5
@@ -194,229 +147,6 @@ fn test_sign_n5_t2_ttag4_corrupt_step7_party24() {
     assert!(&res.err().unwrap().bad_actors[..] == &[1, 3])
 }
 
-//
-// As per page13 https://eprint.iacr.org/2020/540.pdf:
-// This step will:
-// 1. This participant will create a Commitment, Decommitment pair on a scalar
-//    ui and then publish the Commitment part.
-// 2. It will create a Paillier Keypair and publish the public key for that.
-//
-#[cfg(test)]
-fn keygen_stage1(
-    participant: usize,
-) -> (
-    Keys,
-    KeyGenBroadcastMessage1,
-    KeyGenDecommitMessage1,
-    DLogStatement,
-) {
-    // Paillier keys and various other values
-    // party_keys.ek is a secret value and it should be encrypted
-    // using a key that is owned by the participant who creates it. Right now it's plaintext but
-    // this is test.
-    //
-    let party_keys = Keys::create(participant - 1);
-    let (bc1, decom) =
-        party_keys.phase1_broadcast_phase3_proof_of_correct_key_proof_of_correct_h1h2();
-    let h1_h2_N_tilde = bc1.dlog_statement.clone();
-    (party_keys, bc1, decom, h1_h2_N_tilde)
-}
-
-//
-// As per page 13 on https://eprint.iacr.org/2020/540.pdf:
-// 1. Decommit the value obtained in stage1.
-// 2. Perform a VSS on that value.
-// Important to note that all the stages are sequential. Unless all the messages from the previous
-// stage are not delivered, you cannot jump on the next stage.
-#[cfg(test)]
-fn keygen_stage2(
-    participant: usize,
-    params: &Parameters,
-    party_keys: &[Keys],
-    bc1_vec: &[KeyGenBroadcastMessage1],
-    decom_vec: &[KeyGenDecommitMessage1],
-) -> Result<(VerifiableSS, Vec<FE>, usize), ErrorType> {
-    let vss_result = party_keys[participant - 1]
-        .phase1_verify_com_phase3_verify_correct_key_verify_dlog_phase2_distribute(
-            params, decom_vec, bc1_vec,
-        )?;
-    let (vss_scheme, secret_shares, index) = vss_result;
-    Ok((vss_scheme, secret_shares, index))
-}
-
-//
-// As per page 13 on https://eprint.iacr.org/2020/540.pdf:
-// 1. Participant adds there private shares to obtain their final share of the keypair.
-// 2. Calculate the corresponding public key for that share.
-// 3. Generate the dlog proof which the orchestrator would check later.
-//
-// Important to note that all the stages are sequential. Unless all the messages from the previous
-// stage are not delivered, you cannot jump on the next stage.
-#[cfg(test)]
-fn keygen_stage3(
-    party_keys: &Keys,
-    vss_scheme_vec: &[VerifiableSS],
-    secret_shares_vec: &Vec<Vec<FE>>,
-    decom_vec: &[KeyGenDecommitMessage1],
-    params: &Parameters,
-    participant: usize,
-    index_vec: &[usize],
-) -> Result<(SharedKeys, DLogProof), ErrorType> {
-    let y_vec = (0..params.share_count)
-        .map(|i| decom_vec[i as usize].y_i)
-        .collect::<Vec<GE>>();
-    let res = party_keys.phase2_verify_vss_construct_keypair_phase3_pok_dlog(
-        &params,
-        &y_vec,
-        &secret_shares_vec[participant - 1],
-        vss_scheme_vec,
-        &index_vec[participant - 1] + 1,
-    )?;
-    let (shared_keys, dlog_proof) = res;
-    Ok((shared_keys, dlog_proof))
-}
-//
-// Final stage of key generation. All parties must execute this.
-// Unless this is successful the protocol is not complete.
-//
-#[cfg(test)]
-fn keygen_stage4(
-    params: &Parameters,
-    dlog_proof_vec: &[DLogProof],
-    y_vec: &[GE],
-) -> Result<(), ErrorType> {
-    Ok(Keys::verify_dlog_proofs(params, dlog_proof_vec, y_vec)?)
-}
-// The Distributed key generation protocol can work with a broadcast channel.
-// All the messages are exchanged p2p.
-// On the contrary, the key generation process can be orchestrated as below.
-// All the participants do some work on each stage and return some data.
-// This data needs to be filtered/collated and sent back as an input to the next stage.
-// This test helper is just a demonstration of the same.
-//
-#[cfg(test)]
-fn keygen_orchestrator(
-    params: Parameters,
-) -> Result<
-    (
-        Vec<Keys>,
-        Vec<SharedKeys>,
-        Vec<GE>,
-        GE,
-        VerifiableSS,
-        Vec<EncryptionKey>,
-        Vec<DLogStatement>,
-    ),
-    ErrorType,
-> {
-    let participants = (0..(params.share_count as usize))
-        .map(|k| k + 1)
-        .collect::<Vec<usize>>();
-    let mut party_keys_vec = vec![];
-    let mut bc1_vec = vec![];
-    let mut decom_vec = vec![];
-    let mut h1_h2_N_tilde_vec = vec![];
-    for participant in participants.iter() {
-        let (party_keys, bc1, decom, h1_h2_N_tilde) = keygen_stage1(*participant);
-        party_keys_vec.push(party_keys);
-        bc1_vec.push(bc1);
-        decom_vec.push(decom);
-        h1_h2_N_tilde_vec.push(h1_h2_N_tilde);
-    }
-    let mut vss_scheme_vec = vec![];
-    let mut secret_shares_vec = vec![];
-    let mut index_vec = vec![];
-    for participant in participants.iter() {
-        let result_check =
-            keygen_stage2(*participant, &params, &party_keys_vec, &bc1_vec, &decom_vec);
-        if let Err(err) = result_check {
-            return Err(err);
-        }
-        let (vss_scheme, secret_shares, index) = result_check.unwrap();
-        vss_scheme_vec.push(vss_scheme);
-        secret_shares_vec.push(secret_shares);
-        index_vec.push(index);
-    }
-    // The party shares are secret values.
-    // Each value in secret_shares_vec[j][i] should be encrypted by a key owned by
-    // participant i. So that those shares are only available to that participant and no
-    // one else.
-    let party_shares = (0..params.share_count)
-        .map(|i| {
-            (0..params.share_count)
-                .map(|j| {
-                    let vec_j = &secret_shares_vec[j as usize];
-                    vec_j[i as usize]
-                })
-                .collect::<Vec<FE>>()
-        })
-        .collect::<Vec<Vec<FE>>>();
-    let mut shared_keys_vec = vec![];
-    let mut dlog_proof_vec = vec![];
-    for participant in participants.iter() {
-        let result_check = keygen_stage3(
-            &party_keys_vec[participant - 1],
-            &vss_scheme_vec,
-            &party_shares,
-            &decom_vec,
-            &params,
-            *participant,
-            &index_vec,
-        );
-        if let Err(err) = result_check {
-            return Err(err);
-        }
-        let (shared_keys, dlog_proof) = result_check.unwrap();
-        shared_keys_vec.push(shared_keys);
-        dlog_proof_vec.push(dlog_proof);
-    }
-    // At this point the shared_keys contain the secret values.
-    // These values should be encrypted using a key owned by that participant.
-
-    let pk_vec = (0..params.share_count)
-        .map(|i| dlog_proof_vec[i as usize].pk)
-        .collect::<Vec<GE>>();
-
-    let y_vec = (0..params.share_count)
-        .map(|i| decom_vec[i as usize].y_i)
-        .collect::<Vec<GE>>();
-    let mut y_vec_iter = y_vec.iter();
-    let head = y_vec_iter.next().unwrap();
-    let tail = y_vec_iter;
-    let y_sum = tail.fold(head.clone(), |acc, x| acc + x);
-    for _ in participants.iter() {
-        keygen_stage4(&params, &dlog_proof_vec, &y_vec)?;
-    }
-    // Important: This is only for test purposes. This code should never be executed in practice.
-    //            x is the private key and all this work is done to never have that at one place in the clear.
-    let xi_vec = (0..=params.threshold)
-        .map(|i| shared_keys_vec[i as usize].x_i)
-        .collect::<Vec<FE>>();
-    let vss_scheme_for_test = vss_scheme_vec.clone();
-    let x = vss_scheme_for_test[0]
-        .clone()
-        .reconstruct(&index_vec[0..=(params.threshold as usize)], &xi_vec);
-    let sum_u_i = party_keys_vec.iter().fold(FE::zero(), |acc, x| acc + x.u_i);
-    assert_eq!(x, sum_u_i);
-    // test code ends.
-
-    // public vector of paillier public keys
-    let e_vec = bc1_vec
-        .iter()
-        .map(|bc1| bc1.e.clone())
-        .collect::<Vec<EncryptionKey>>();
-    // At this point key generation is complete.
-    // shared_keys_vec contains the private key shares for all the participants.
-    Ok((
-        party_keys_vec,
-        shared_keys_vec,
-        pk_vec,
-        y_sum,
-        vss_scheme_for_test[0].clone(),
-        e_vec,
-        h1_h2_N_tilde_vec,
-    ))
-}
 fn keygen_t_n_parties(
     t: u16,
     n: u16,
@@ -444,7 +174,6 @@ fn keygen_t_n_parties(
         .map(|k| k.phase1_broadcast_phase3_proof_of_correct_key_proof_of_correct_h1h2())
         .unzip();
 
-    // public vector of paillier public keys
     let e_vec = bc1_vec
         .iter()
         .map(|bc1| bc1.e.clone())
@@ -527,12 +256,12 @@ fn keygen_t_n_parties(
     assert_eq!(x, sum_u_i);
 
     Ok((
-        party_keys_vec,
-        shared_keys_vec, // Private shares for this MPC keypair
-        pk_vec,
-        y_sum, // public key for this MPC keypair.
-        vss_scheme_for_test[0].clone(),
-        e_vec,
+        party_keys_vec,                 // Paillier keys, keypair, N, h1, h2
+        shared_keys_vec,                // Private shares for this MPC keypair
+        pk_vec,                         // dlog proof for x_i
+        y_sum,                          // public key for this MPC keypair.
+        vss_scheme_for_test[0].clone(), // This contains the commitments for each initial share and the shares itself
+        e_vec,                          // paillier encryption keys. Why separate ?
         h1_h2_N_tilde_vec,
     ))
 }
@@ -540,8 +269,8 @@ fn keygen_t_n_parties(
 fn sign(
     t: u16,
     n: u16,
-    ttag: u16,
-    s: Vec<usize>,
+    ttag: u16,     //number of participants
+    s: Vec<usize>, //participant list indexed from zero
     corrupt_step: usize,
     corrupted_parties: &[usize],
 ) -> Result<SignatureRecid, ErrorType> {
@@ -549,6 +278,7 @@ fn sign(
     let (party_keys_vec, shared_keys_vec, pk_vec, y, vss_scheme, ek_vec, dlog_statement_vec) =
         keygen_t_n_parties(t, n).unwrap();
 
+    // transform the t,n share to t,t+1 share. Get the public keys for the same.
     let g_w_vec = SignKeys::g_w_vec(&pk_vec, &s[..], &vss_scheme);
 
     let private_vec = (0..shared_keys_vec.len())
@@ -582,8 +312,8 @@ fn sign(
         .map(|(i, k)| MessageA::a(&k.k_i, &party_keys_vec[s[i]].ek))
         .collect();
 
-    // each party i sends responses to m_a_vec she received (one response with input gamma_i and one with w_i)
-    // m_b_gamma_vec_all is a matrix where column i is a vector of message_b's that were sent to party i
+    // #each party i sends responses to m_a_vec she received (one response with input gamma_i and one with w_i)
+    // #m_b_gamma_vec_all is a matrix where column i is a vector of message_b's that were sent to party i
 
     // aggregation of the n messages of all parties
     let mut m_b_gamma_vec_all = Vec::new();
@@ -949,7 +679,7 @@ fn sign(
     return Ok(sig);
 }
 
-fn check_sig(r: &FE, s: &FE, msg: &BigInt, pk: &GE) {
+pub fn check_sig(r: &FE, s: &FE, msg: &BigInt, pk: &GE) {
     use secp256k1::{verify, Message, PublicKey, PublicKeyFormat, Signature};
 
     let raw_msg = BigInt::to_vec(&msg);
@@ -987,7 +717,6 @@ fn check_sig(r: &FE, s: &FE, msg: &BigInt, pk: &GE) {
     let is_correct = verify(&msg, &secp_sig, &pk);
     assert!(is_correct);
 }
-
 #[test]
 fn test_serialize_deserialize() {
     use serde_json;

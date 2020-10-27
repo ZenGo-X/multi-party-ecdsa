@@ -40,7 +40,7 @@ use crate::utilities::zk_pdl_with_slack::{PDLwSlackProof, PDLwSlackStatement, PD
 
 const SECURITY: usize = 256;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Parameters {
     pub threshold: u16,   //t
     pub share_count: u16, //n
@@ -53,10 +53,10 @@ pub struct Keys {
     pub dk: DecryptionKey,
     pub ek: EncryptionKey,
     pub party_index: usize,
-    N_tilde: BigInt,
-    h1: BigInt,
-    h2: BigInt,
-    xhi: BigInt,
+    pub N_tilde: BigInt,
+    pub h1: BigInt,
+    pub h2: BigInt,
+    pub xhi: BigInt,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
