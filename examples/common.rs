@@ -15,6 +15,9 @@ use serde::{Deserialize, Serialize};
 
 pub type Key = String;
 
+#[allow(dead_code)]
+pub const AES_KEY_BYTES_LEN: usize = 32;
+
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct AEAD {
     pub ciphertext: Vec<u8>,

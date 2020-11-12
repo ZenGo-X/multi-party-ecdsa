@@ -20,7 +20,7 @@ use std::{env, fs, time};
 mod common;
 use common::{
     aes_decrypt, aes_encrypt, broadcast, poll_for_broadcasts, poll_for_p2p, postb, sendp2p, Params,
-    PartySignup, AEAD,
+    PartySignup, AEAD, AES_KEY_BYTES_LEN,
 };
 
 fn main() {
@@ -101,7 +101,7 @@ fn main() {
     let mut j = 0;
     let mut point_vec: Vec<GE> = Vec::new();
     let mut decom_vec: Vec<KeyGenDecommitMessage1> = Vec::new();
-    let mut enc_keys: Vec<BigInt> = Vec::new();
+    let mut enc_keys: Vec<Vec<u8>> = Vec::new();
     for i in 1..=PARTIES {
         if i == party_num_int {
             point_vec.push(decom_i.y_i);
@@ -110,7 +110,11 @@ fn main() {
             let decom_j: KeyGenDecommitMessage1 = serde_json::from_str(&round2_ans_vec[j]).unwrap();
             point_vec.push(decom_j.y_i);
             decom_vec.push(decom_j.clone());
-            enc_keys.push((decom_j.y_i.clone() * party_keys.u_i).x_coor().unwrap());
+            let key_bn: BigInt = (decom_j.y_i.clone() * party_keys.u_i).x_coor().unwrap();
+            let key_bytes = BigInt::to_vec(&key_bn);
+            let mut template: Vec<u8> = vec![0u8; AES_KEY_BYTES_LEN - key_bytes.len()];
+            template.extend_from_slice(&key_bytes[..]);
+            enc_keys.push(template);
             j = j + 1;
         }
     }
@@ -130,9 +134,9 @@ fn main() {
     for (k, i) in (1..=PARTIES).enumerate() {
         if i != party_num_int {
             // prepare encrypted ss for party i:
-            let key_i = BigInt::to_vec(&enc_keys[j]);
+            let key_i = &enc_keys[j];
             let plaintext = BigInt::to_vec(&secret_shares[k].to_big_int());
-            let aead_pack_i = aes_encrypt(&key_i, &plaintext);
+            let aead_pack_i = aes_encrypt(key_i, &plaintext);
             assert!(sendp2p(
                 &client,
                 party_num_int,
@@ -162,8 +166,8 @@ fn main() {
             party_shares.push(secret_shares[(i - 1) as usize]);
         } else {
             let aead_pack: AEAD = serde_json::from_str(&round3_ans_vec[j]).unwrap();
-            let key_i = BigInt::to_vec(&enc_keys[j]);
-            let out = aes_decrypt(&key_i, aead_pack);
+            let key_i = &enc_keys[j];
+            let out = aes_decrypt(key_i, aead_pack);
             let out_bn = BigInt::from(&out[..]);
             let out_fe = ECScalar::from(&out_bn);
             party_shares.push(out_fe);

@@ -54,32 +54,20 @@ mod bench {
                     correct_key_proof,
                     &party_two_paillier.ek,
                 )
-                    .expect("bad paillier key");
+                .expect("bad paillier key");
 
                 //zk_pdl
 
-                let (party_two_pdl_first_message,mut party_two_pdl_state, party_two_pdl_statement) =
-                    party_two_paillier.pdl_first_message(&party_one_second_message.comm_witness.public_share);
-
-                let (party_one_pdl_first_message, party_one_pdl_state, _party_one_pdl_statment, party_one_pdl_witness) =
-                    party_one::PaillierKeyPair::pdl_first_message(&party_one_private, &party_two_pdl_first_message, &paillier_key_pair );
-
-                let party_two_pdl_second_message =
-                    party_two::PaillierPublic::pdl_second_message(&party_one_pdl_first_message, &party_two_pdl_statement , &mut party_two_pdl_state).expect("range proof error");
-
-                let party_one_pdl_second_message =
-                    party_one::PaillierKeyPair::pdl_second_message(&party_two_pdl_first_message,
-                                                                   &party_two_pdl_second_message,
-                                                                   &party_one_pdl_witness,
-                                                                   &party_one_pdl_state).expect("pdl error from party2 pdl");
-
-
-                party_two::PaillierPublic::pdl_finalize(
-                    &party_one_pdl_first_message,
-                    &party_one_pdl_second_message,
-                    &party_two_pdl_state)
-                    .expect("pdl_error");
-
+                let (pdl_statement, pdl_proof, composite_dlog_proof) =
+                    party_one::PaillierKeyPair::pdl_proof(&party_one_private, &paillier_key_pair);
+                party_two::PaillierPublic::pdl_verify(
+                    &composite_dlog_proof,
+                    &pdl_statement,
+                    &pdl_proof,
+                    &party_two_paillier,
+                    &party_one_second_message.comm_witness.public_share,
+                )
+                .expect("PDL error");
             })
         });
     }

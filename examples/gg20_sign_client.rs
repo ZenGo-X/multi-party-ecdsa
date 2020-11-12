@@ -18,6 +18,7 @@ use std::{env, fs, time};
 use zk_paillier::zkproofs::DLogStatement;
 
 mod common;
+use crate::common::AES_KEY_BYTES_LEN;
 use common::{
     aes_decrypt, aes_encrypt, broadcast, poll_for_broadcasts, poll_for_p2p, postb, sendp2p, Params,
     PartySignup, AEAD,
@@ -171,14 +172,17 @@ fn main() {
     }
     let mut enc_key: Vec<Vec<u8>> = vec![];
     for (i, k) in signers_vec.iter().enumerate() {
-        if *k != (party_num_int - 1) as usize {
-            enc_key.push(BigInt::to_vec(
-                &(g_w_i_vec[i as usize] * res_stage1.sign_keys.w_i.clone())
-                    .x_coor()
-                    .unwrap(),
-            ));
+        if *k != signers_vec[party_num_int as usize - 1] as usize {
+            let key_bn: BigInt = (g_w_i_vec[i as usize] * res_stage1.sign_keys.w_i.clone())
+                .x_coor()
+                .unwrap();
+            let key_bytes = BigInt::to_vec(&key_bn);
+            let mut template: Vec<u8> = vec![0u8; AES_KEY_BYTES_LEN - key_bytes.len()];
+            template.extend_from_slice(&key_bytes[..]);
+            enc_key.push(template);
         }
     }
+
     assert_eq!(signers_vec.len() - 1, enc_key.len());
     assert_eq!(signers_vec.len(), bc1_vec.len());
 
