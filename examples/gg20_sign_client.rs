@@ -62,28 +62,28 @@ fn main() {
     if env::args().nth(3).is_none() {
         panic!("too few arguments")
     }
-    let message_str = env::args().nth(3).unwrap_or_else(|| "".to_string());//3'd argument (I think the message to be signed)) => str
-    let message = match hex::decode(message_str.clone()) {//decodes the message to bytes (to readable string). Err if it's not a hex
+    let message_str = env::args().nth(3).unwrap_or_else(|| "".to_string());
+    let message = match hex::decode(message_str.clone()) {
         Ok(x) => x, //a valid message
         Err(_e) => message_str.as_bytes().to_vec(),
     };
-    let message = &message[..];//make it a slice
+    let message = &message[..];
     let client = Client::new();
     // delay:
     let delay = time::Duration::from_millis(25);
     // read key file
-    let data = fs::read_to_string(env::args().nth(2).unwrap())//A string representation of a set of keys (for a specific share) written from a file
+    let data = fs::read_to_string(env::args().nth(2).unwrap())
         .expect("Unable to load keys, did you run keygen first? ");
     let keypair: PartyKeyPair = serde_json::from_str(&data).unwrap();
 
     //read parameters:
     let data = fs::read_to_string("params.json")
         .expect("Unable to read params, make sure config file is present in the same folder ");
-    let params: Params = serde_json::from_str(&data).unwrap();//A string representation of number of parties and threshold
+    let params: Params = serde_json::from_str(&data).unwrap();
     let THRESHOLD = params.threshold.parse::<u16>().unwrap();
 
     //signup:
-    let (party_num_int, uuid) = match signup(&client).unwrap() {//assigning serial number and uuid to a party
+    let (party_num_int, uuid) = match signup(&client).unwrap() {
         PartySignup { number, uuid } => (number, uuid),
     };
     println!("number: {:?}, uuid: {:?}", party_num_int, uuid);
@@ -93,7 +93,7 @@ fn main() {
         &client,
         party_num_int,
         "round0",
-        serde_json::to_string(&keypair.party_num_int_s).unwrap(),//I guess it some public key
+        serde_json::to_string(&keypair.party_num_int_s).unwrap(),
         uuid.clone()
     )
     .is_ok());
@@ -107,20 +107,19 @@ fn main() {
     );
 
     let mut j = 0;
-    //0 indexed vec containing ids of the signing parties.
     let mut signers_vec: Vec<usize> = Vec::new();
     for i in 1..=THRESHOLD + 1 {
         if i == party_num_int {
-            signers_vec.push((keypair.party_num_int_s - 1) as usize);//insert the owned party id
+            signers_vec.push((keypair.party_num_int_s - 1) as usize);
         } else {
-            let signer_j: u16 = serde_json::from_str(&round0_ans_vec[j]).unwrap();//insert the other id
+            let signer_j: u16 = serde_json::from_str(&round0_ans_vec[j]).unwrap();
             signers_vec.push((signer_j - 1) as usize);
-            j += 1;//j is the index of a signer (which skip anyone who doesn't sign)
+            j += 1;
         }
     }
 
     let input_stage1 = SignStage1Input {
-        vss_scheme: keypair.vss_scheme_vec_s[signers_vec[(party_num_int - 1) as usize]].clone(),// I think: insert the lagrange coeff share to keypair
+        vss_scheme: keypair.vss_scheme_vec_s[signers_vec[(party_num_int - 1) as usize]].clone(),
         index: signers_vec[(party_num_int - 1) as usize],
         s_l: signers_vec.clone(),
         party_keys: keypair.party_keys_s.clone(),
@@ -129,7 +128,7 @@ fn main() {
 
     let res_stage1 = sign_stage1(&input_stage1);//signing the input stage which creates
     // publish message A  and Commitment and then gather responses from other parties.
-    assert!(broadcast(//broadcast using HTTP set
+    assert!(broadcast(
         &client,
         party_num_int,
         "round1",
@@ -142,7 +141,7 @@ fn main() {
         uuid.clone()
     )
     .is_ok());
-    let round1_ans_vec = poll_for_broadcasts(//collect the messages from others using HTTP: get
+    let round1_ans_vec = poll_for_broadcasts(
         &client,
         party_num_int,
         THRESHOLD + 1,
