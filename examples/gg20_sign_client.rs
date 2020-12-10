@@ -107,6 +107,7 @@ fn main() {
     );
 
     let mut j = 0;
+    //0 indexed vec containing ids of the signing parties.
     let mut signers_vec: Vec<usize> = Vec::new();
     for i in 1..=THRESHOLD + 1 {
         if i == party_num_int {
@@ -125,9 +126,7 @@ fn main() {
         party_keys: keypair.party_keys_s.clone(),
         shared_keys: keypair.shared_keys,
     };
-
-    let res_stage1 = sign_stage1(&input_stage1);//signing the input stage which creates
-    // publish message A  and Commitment and then gather responses from other parties.
+    let res_stage1 = sign_stage1(&input_stage1);
     assert!(broadcast(
         &client,
         party_num_int,
