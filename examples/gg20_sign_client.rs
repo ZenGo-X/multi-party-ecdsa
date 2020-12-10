@@ -107,6 +107,7 @@ fn main() {
     );
 
     let mut j = 0;
+    //0 indexed vec containing ids of the signing parties.
     let mut signers_vec: Vec<usize> = Vec::new();
     for i in 1..=THRESHOLD + 1 {
         if i == party_num_int {
