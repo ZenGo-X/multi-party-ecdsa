@@ -64,7 +64,7 @@ fn main() {
     }
     let message_str = env::args().nth(3).unwrap_or_else(|| "".to_string());
     let message = match hex::decode(message_str.clone()) {
-        Ok(x) => x, //a valid message
+        Ok(x) => x,
         Err(_e) => message_str.as_bytes().to_vec(),
     };
     let message = &message[..];
@@ -156,14 +156,14 @@ fn main() {
     let mut g_w_i_vec: Vec<GE> = vec![];
 
     for i in 1..THRESHOLD + 2 {
-        if i == party_num_int {//push to vec from owned
+        if i == party_num_int {
             bc1_vec.push(res_stage1.bc1.clone());
             g_w_i_vec.push(res_stage1.sign_keys.g_w_i.clone());
             m_a_vec.push(res_stage1.m_a.0.clone());
         } else {
             let (bc1_j, m_a_party_j, g_w_i): (SignBroadcastPhase1, MessageA, GE) =
                 serde_json::from_str(&round1_ans_vec[j]).unwrap();
-            bc1_vec.push(bc1_j);//push to vec from others
+            bc1_vec.push(bc1_j);
             g_w_i_vec.push(g_w_i);
             m_a_vec.push(m_a_party_j);
 
@@ -176,7 +176,7 @@ fn main() {
         panic!("The assumption is that number of shares = threshold + 1");
     }
     let mut enc_key: Vec<Vec<u8>> = vec![];
-    for (i, k) in signers_vec.iter().enumerate() {//the indexed of the signers with the valid signature
+    for (i, k) in signers_vec.iter().enumerate() {
         if *k != signers_vec[party_num_int as usize - 1] as usize {
             let key_bn: BigInt = (g_w_i_vec[i as usize] * res_stage1.sign_keys.w_i.clone())
                 .x_coor()
