@@ -67,7 +67,10 @@ pub fn aes_decrypt(key: &[u8], aead_pack: AEAD) -> Vec<u8> {
     let nonce: Vec<u8> = repeat(3).take(12).collect();
     let aad: [u8; 0] = [];
     let mut gcm = AesGcm::new(KeySize256, key, &nonce[..], &aad);
-    gcm.decrypt(&aead_pack.ciphertext[..], &mut out, &aead_pack.tag[..]);
+    let successful_decrypt = gcm.decrypt(&aead_pack.ciphertext[..], &mut out, &aead_pack.tag[..]);
+        if !successful_decrypt {
+            panic!("Error: Could not decrypt AES ciphertext");
+        }
     out
 }
 
