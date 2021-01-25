@@ -35,7 +35,8 @@ subtle = { version = "2" }
 serde = { version = "1.0", features = ["derive"] }
 zeroize = "0.10.1"
 libsecp256k1 = "0.3.2"
-
+round-based = { version = "0.1.0", features = [] }
+thiserror = "1.0.23"
 
 [dependencies.curv]
 git = "https://github.com/KZen-networks/curv"
@@ -61,6 +62,9 @@ reqwest = { version = "0.9", default-features = false }
 uuid = { version = "0.8", features = ["v4"] }
 serde_json = "1.0"
 rand = "0.7"
+
+thiserror = "1.0.23"
+round-based = { version = "0.1.0", features = ["dev"] }
 
 [patch.crates-io]
 rust-gmp = { version = "0.5.0", features = ["serde_support"], git = "https://github.com/KZen-networks/rust-gmp" }
