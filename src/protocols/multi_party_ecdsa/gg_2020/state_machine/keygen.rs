@@ -18,18 +18,10 @@ use thiserror::Error;
 use crate::protocols::multi_party_ecdsa::gg_2020;
 
 mod rounds;
-//pub use rounds::{LocalKey, ProceedError};
-//use rounds::{Round0, Round1, Round2, Round3, Round4};
 
-//use private::InternalError;
-use crate::protocols::multi_party_ecdsa::gg_2020::state_machine::keygen::private::InternalError;
-use crate::protocols::multi_party_ecdsa::gg_2020::state_machine::keygen::rounds::LocalKey;
-use crate::protocols::multi_party_ecdsa::gg_2020::state_machine::keygen::rounds::ProceedError;
-use crate::protocols::multi_party_ecdsa::gg_2020::state_machine::keygen::rounds::Round0;
-use crate::protocols::multi_party_ecdsa::gg_2020::state_machine::keygen::rounds::Round1;
-use crate::protocols::multi_party_ecdsa::gg_2020::state_machine::keygen::rounds::Round2;
-use crate::protocols::multi_party_ecdsa::gg_2020::state_machine::keygen::rounds::Round3;
-use crate::protocols::multi_party_ecdsa::gg_2020::state_machine::keygen::rounds::Round4;
+use private::InternalError;
+pub use rounds::{LocalKey, ProceedError};
+use rounds::{Round0, Round1, Round2, Round3, Round4};
 
 /// Keygen protocol state machine
 ///
