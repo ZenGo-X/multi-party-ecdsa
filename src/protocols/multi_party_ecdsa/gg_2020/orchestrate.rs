@@ -49,7 +49,7 @@ use crate::utilities::mta::{MessageA, MessageB};
 use crate::Error;
 use curv::cryptographic_primitives::proofs::sigma_dlog::DLogProof;
 use curv::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS;
-use curv::{FE, GE};
+use curv::elliptic::curves::secp256_k1::{FE, GE};
 use paillier::*;
 use serde::{Deserialize, Serialize};
 use zk_paillier::zkproofs::DLogStatement;
@@ -100,7 +100,7 @@ pub struct KeyGenStage2Input {
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct KeyGenStage2Result {
-    pub vss_scheme_s: VerifiableSS,
+    pub vss_scheme_s: VerifiableSS<GE>,
     pub secret_shares_s: Vec<FE>,
     pub index_s: usize,
 }
@@ -128,7 +128,7 @@ pub fn keygen_stage2(input: &KeyGenStage2Input) -> Result<KeyGenStage2Result, Er
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct KeyGenStage3Input {
     pub party_keys_s: Keys,
-    pub vss_scheme_vec_s: Vec<VerifiableSS>,
+    pub vss_scheme_vec_s: Vec<VerifiableSS<GE>>,
     pub secret_shares_vec_s: Vec<FE>,
     pub y_vec_s: Vec<GE>,
     pub params_s: Parameters,
@@ -138,7 +138,7 @@ pub struct KeyGenStage3Input {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct KeyGenStage3Result {
     pub shared_keys_s: SharedKeys,
-    pub dlog_proof_s: DLogProof,
+    pub dlog_proof_s: DLogProof<GE>,
 }
 //
 // As per page 13 on https://eprint.iacr.org/2020/540.pdf:
@@ -169,7 +169,7 @@ pub fn keygen_stage3(input: &KeyGenStage3Input) -> Result<KeyGenStage3Result, Er
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct KeyGenStage4Input {
     pub params_s: Parameters,
-    pub dlog_proof_vec_s: Vec<DLogProof>,
+    pub dlog_proof_vec_s: Vec<DLogProof<GE>>,
     pub y_vec_s: Vec<GE>,
 }
 
@@ -237,14 +237,14 @@ pub struct KeyPairResult {
     pub shared_keys_vec: Vec<SharedKeys>,
     pub pk_vec: Vec<GE>,
     pub y_sum: GE,
-    pub vss_scheme: VerifiableSS,
+    pub vss_scheme: VerifiableSS<GE>,
     pub e_vec: Vec<EncryptionKey>,
     pub h1_h2_N_tilde_vec: Vec<DLogStatement>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SignStage1Input {
-    pub vss_scheme: VerifiableSS,
+    pub vss_scheme: VerifiableSS<GE>,
     pub index: usize,
     pub s_l: Vec<usize>,
     pub party_keys: Keys,
@@ -419,7 +419,7 @@ pub struct SignStage5Result {
 pub fn sign_stage5(input: &SignStage5Input) -> Result<SignStage5Result, ErrorType> {
     let b_proof_vec = (0..input.s_ttag - 1)
         .map(|j| &input.m_b_gamma_vec[j].b_proof)
-        .collect::<Vec<&DLogProof>>();
+        .collect::<Vec<&DLogProof<GE>>>();
     let check_Rvec_i = SignKeys::phase4(
         &input.delta_inv,
         &b_proof_vec,

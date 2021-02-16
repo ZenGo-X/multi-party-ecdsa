@@ -25,9 +25,10 @@ use curv::arithmetic::traits::Modulo;
 use curv::arithmetic::traits::Samplable;
 use curv::cryptographic_primitives::hashing::hash_sha256::HSha256;
 use curv::cryptographic_primitives::hashing::traits::Hash;
+use curv::elliptic::curves::secp256_k1::{FE, GE};
 use curv::elliptic::curves::traits::ECPoint;
 use curv::elliptic::curves::traits::ECScalar;
-use curv::{BigInt, FE, GE};
+use curv::BigInt;
 use paillier::{DecryptionKey, EncryptionKey};
 use serde::{Deserialize, Serialize};
 

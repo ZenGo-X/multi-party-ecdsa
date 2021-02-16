@@ -7,8 +7,9 @@ use curv::{
     cryptographic_primitives::{
         proofs::sigma_dlog::DLogProof, secret_sharing::feldman_vss::VerifiableSS,
     },
+    elliptic::curves::secp256_k1::{FE, GE},
     elliptic::curves::traits::{ECPoint, ECScalar},
-    BigInt, FE, GE,
+    BigInt,
 };
 use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2018::party_i::{
     KeyGenBroadcastMessage1, KeyGenDecommitMessage1, Keys, Parameters,
@@ -195,12 +196,12 @@ fn main() {
     );
 
     let mut j = 0;
-    let mut vss_scheme_vec: Vec<VerifiableSS> = Vec::new();
+    let mut vss_scheme_vec: Vec<VerifiableSS<GE>> = Vec::new();
     for i in 1..=PARTIES {
         if i == party_num_int {
             vss_scheme_vec.push(vss_scheme.clone());
         } else {
-            let vss_scheme_j: VerifiableSS = serde_json::from_str(&round4_ans_vec[j]).unwrap();
+            let vss_scheme_j: VerifiableSS<GE> = serde_json::from_str(&round4_ans_vec[j]).unwrap();
             vss_scheme_vec.push(vss_scheme_j);
             j += 1;
         }
@@ -235,12 +236,12 @@ fn main() {
     );
 
     let mut j = 0;
-    let mut dlog_proof_vec: Vec<DLogProof> = Vec::new();
+    let mut dlog_proof_vec: Vec<DLogProof<GE>> = Vec::new();
     for i in 1..=PARTIES {
         if i == party_num_int {
             dlog_proof_vec.push(dlog_proof.clone());
         } else {
-            let dlog_proof_j: DLogProof = serde_json::from_str(&round5_ans_vec[j]).unwrap();
+            let dlog_proof_j: DLogProof<GE> = serde_json::from_str(&round5_ans_vec[j]).unwrap();
             dlog_proof_vec.push(dlog_proof_j);
             j += 1;
         }

@@ -16,11 +16,10 @@
 
 /// MtA is descrbied in https://eprint.iacr.org/2019/114.pdf section 3
 use curv::arithmetic::traits::Samplable;
-use curv::cryptographic_primitives::proofs::sigma_dlog::{DLogProof, ProveDLog};
+use curv::cryptographic_primitives::proofs::sigma_dlog::DLogProof;
+use curv::elliptic::curves::secp256_k1::{FE, GE};
 use curv::elliptic::curves::traits::*;
 use curv::BigInt;
-use curv::FE;
-use curv::GE;
 use paillier::traits::EncryptWithChosenRandomness;
 use paillier::{Add, Decrypt, Mul};
 use paillier::{DecryptionKey, EncryptionKey, Paillier, Randomness, RawCiphertext, RawPlaintext};
@@ -37,8 +36,8 @@ pub struct MessageA {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct MessageB {
     pub c: BigInt, // paillier encryption
-    pub b_proof: DLogProof,
-    pub beta_tag_proof: DLogProof,
+    pub b_proof: DLogProof<GE>,
+    pub beta_tag_proof: DLogProof<GE>,
 }
 
 impl MessageA {

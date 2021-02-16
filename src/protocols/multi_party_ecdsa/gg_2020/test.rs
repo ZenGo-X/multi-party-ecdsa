@@ -32,8 +32,8 @@ use curv::cryptographic_primitives::hashing::hash_sha256::HSha256;
 use curv::cryptographic_primitives::hashing::traits::Hash;
 use curv::cryptographic_primitives::proofs::sigma_dlog::DLogProof;
 use curv::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS;
+use curv::elliptic::curves::secp256_k1::{FE, GE};
 use curv::elliptic::curves::traits::*;
-use curv::{FE, GE};
 use paillier::*;
 use zk_paillier::zkproofs::DLogStatement;
 
@@ -156,7 +156,7 @@ fn keygen_t_n_parties(
         Vec<SharedKeys>,
         Vec<GE>,
         GE,
-        VerifiableSS,
+        VerifiableSS<GE>,
         Vec<EncryptionKey>,
         Vec<DLogStatement>,
     ),
@@ -465,7 +465,7 @@ fn sign(
             let m_b_gamma_vec = &m_b_gamma_vec_all[i];
             let b_proof_vec = (0..ttag - 1)
                 .map(|j| &m_b_gamma_vec[j].b_proof)
-                .collect::<Vec<&DLogProof>>();
+                .collect::<Vec<&DLogProof<GE>>>();
             SignKeys::phase4(&delta_inv, &b_proof_vec, decommit_vec1.clone(), &bc1_vec, i)
                 .expect("") //TODO: propagate the error
         })

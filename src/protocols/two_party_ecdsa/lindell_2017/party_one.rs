@@ -25,10 +25,9 @@ use curv::cryptographic_primitives::hashing::traits::Hash;
 use curv::cryptographic_primitives::proofs::sigma_dlog::*;
 use curv::cryptographic_primitives::proofs::sigma_ec_ddh::*;
 use curv::cryptographic_primitives::proofs::ProofError;
+use curv::elliptic::curves::secp256_k1::{FE, GE};
 use curv::elliptic::curves::traits::*;
 use curv::BigInt;
-use curv::FE;
-use curv::GE;
 use paillier::Paillier;
 use paillier::{Decrypt, EncryptWithChosenRandomness, KeyGeneration};
 use paillier::{DecryptionKey, EncryptionKey, Randomness, RawCiphertext, RawPlaintext};
@@ -61,7 +60,7 @@ pub struct CommWitness {
     pub pk_commitment_blind_factor: BigInt,
     pub zk_pok_blind_factor: BigInt,
     pub public_share: GE,
-    pub d_log_proof: DLogProof,
+    pub d_log_proof: DLogProof<GE>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -127,7 +126,7 @@ pub struct EphEcKeyPair {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct EphKeyGenFirstMsg {
-    pub d_log_proof: ECDDHProof,
+    pub d_log_proof: ECDDHProof<GE>,
     pub public_share: GE,
     pub c: GE, //c = secret_share * base_point2
 }
@@ -145,7 +144,7 @@ impl KeyGenFirstMsg {
 
         let public_share = base.scalar_mul(&secret_share.get_element());
 
-        let d_log_proof = DLogProof::prove(&secret_share);
+        let d_log_proof = DLogProof::<GE>::prove(&secret_share);
         // we use hash based commitment
         let pk_commitment_blind_factor = BigInt::sample(SECURITY_BITS);
         let pk_commitment = HashCommitment::create_commitment_with_user_defined_randomness(
@@ -186,7 +185,7 @@ impl KeyGenFirstMsg {
         let base: GE = ECPoint::generator();
         let public_share = base.scalar_mul(&secret_share.get_element());
 
-        let d_log_proof = DLogProof::prove(&secret_share);
+        let d_log_proof = DLogProof::<GE>::prove(&secret_share);
 
         let pk_commitment_blind_factor = BigInt::sample(SECURITY_BITS);
         let pk_commitment = HashCommitment::create_commitment_with_user_defined_randomness(
@@ -226,7 +225,7 @@ impl KeyGenFirstMsg {
 impl KeyGenSecondMsg {
     pub fn verify_and_decommit(
         comm_witness: CommWitness,
-        proof: &DLogProof,
+        proof: &DLogProof<GE>,
     ) -> Result<KeyGenSecondMsg, ProofError> {
         DLogProof::verify(proof)?;
         Ok(KeyGenSecondMsg { comm_witness })
@@ -268,7 +267,7 @@ impl Party1Private {
         )
         .0
         .into_owned();
-        let correct_key_proof_new = NICorrectKeyProof::proof(&dk_new);
+        let correct_key_proof_new = NICorrectKeyProof::proof(&dk_new, None);
 
         let paillier_key_pair = PaillierKeyPair {
             ek: ek_new.clone(),
@@ -359,7 +358,7 @@ impl PaillierKeyPair {
     }
 
     pub fn generate_ni_proof_correct_key(paillier_context: &PaillierKeyPair) -> NICorrectKeyProof {
-        NICorrectKeyProof::proof(&paillier_context.dk)
+        NICorrectKeyProof::proof(&paillier_context.dk, None)
     }
 
     pub fn pdl_proof(

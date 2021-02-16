@@ -4,8 +4,8 @@ use curv::arithmetic::traits::Converter;
 use curv::cryptographic_primitives::hashing::hash_sha256::HSha256;
 use curv::cryptographic_primitives::hashing::traits::Hash;
 use curv::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS;
+use curv::elliptic::curves::secp256_k1::{FE, GE};
 use curv::elliptic::curves::traits::*;
-use curv::{FE, GE};
 use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2020::orchestrate::*;
 use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2020::party_i::{
     Keys, LocalSignature, Parameters, SharedKeys, SignBroadcastPhase1, SignDecommitPhase1, SignKeys,
@@ -43,7 +43,7 @@ pub struct PartyKeyPair {
     pub party_keys_s: Keys,
     pub shared_keys: SharedKeys,
     pub party_num_int_s: u16,
-    pub vss_scheme_vec_s: Vec<VerifiableSS>,
+    pub vss_scheme_vec_s: Vec<VerifiableSS<GE>>,
     pub paillier_key_vec_s: Vec<EncryptionKey>,
     pub y_sum_s: GE,
     pub h1_h2_N_tilde_vec_s: Vec<DLogStatement>,

@@ -7,8 +7,9 @@ use crypto::{
 };
 use curv::{
     arithmetic::traits::Converter,
+    elliptic::curves::secp256_k1::{FE, GE},
     elliptic::curves::traits::{ECPoint, ECScalar},
-    BigInt, FE, GE,
+    BigInt,
 };
 use reqwest::Client;
 use serde::{Deserialize, Serialize};

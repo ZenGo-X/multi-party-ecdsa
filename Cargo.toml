@@ -29,8 +29,8 @@ crate-type = ["lib"]
 cclst = ["class_group"]
 
 [dependencies]
-paillier = { git = "https://github.com/KZen-networks/rust-paillier", tag = "v0.3.4"}
-zk-paillier = { git = "https://github.com/KZen-networks/zk-paillier", tag = "v0.2.9"}
+paillier = { git = "https://github.com/KZen-networks/rust-paillier", tag = "v0.3.7" }
+zk-paillier = { git = "https://github.com/KZen-networks/zk-paillier", tag = "v0.3.9" }
 subtle = { version = "2" }
 serde = { version = "1.0", features = ["derive"] }
 zeroize = "0.10.1"
@@ -39,12 +39,11 @@ libsecp256k1 = "0.3.2"
 
 [dependencies.curv]
 git = "https://github.com/KZen-networks/curv"
-tag = "v0.2.6"
-features = ["ec_secp256k1"]
+tag = "v0.5.9"
 
 [dependencies.centipede]
 git = "https://github.com/KZen-networks/centipede"
-tag = "v0.2.6"
+tag = "v0.2.9"
 
 [dependencies.class_group]
 git = "https://github.com/KZen-networks/class"

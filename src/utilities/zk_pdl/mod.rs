@@ -22,9 +22,10 @@
 use curv::arithmetic::traits::Samplable;
 use curv::cryptographic_primitives::commitments::hash_commitment::HashCommitment;
 use curv::cryptographic_primitives::commitments::traits::Commitment;
+use curv::elliptic::curves::secp256_k1::{FE, GE};
 use curv::elliptic::curves::traits::ECPoint;
 use curv::elliptic::curves::traits::ECScalar;
-use curv::{BigInt, FE, GE};
+use curv::BigInt;
 use paillier::Paillier;
 use paillier::{Add, Decrypt, Encrypt, Mul};
 use paillier::{DecryptionKey, EncryptionKey, RawCiphertext, RawPlaintext};
