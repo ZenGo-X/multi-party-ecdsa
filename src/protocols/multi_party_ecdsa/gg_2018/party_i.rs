@@ -693,7 +693,7 @@ impl LocalSignature {
          1. id = R.y & 1
          2. if (s > curve.q / 2) id = id ^ 1
         */
-        let is_ry_odd = ry.tstbit(0);
+        let is_ry_odd = ry.test_bit(0);
         let mut recid = if is_ry_odd { 1 } else { 0 };
         let s_tag_bn = FE::q() - &s_bn;
         if s_bn > s_tag_bn {

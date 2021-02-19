@@ -117,7 +117,7 @@ fn main() {
                 * res_stage1.party_keys_l.u_i)
                 .x_coor()
                 .unwrap();
-            let key_bytes = BigInt::to_vec(&key_bn);
+            let key_bytes = BigInt::to_bytes(&key_bn);
             let mut template: Vec<u8> = vec![0u8; AES_KEY_BYTES_LEN - key_bytes.len()];
             template.extend_from_slice(&key_bytes[..]);
             enc_keys.push(template);
@@ -132,7 +132,7 @@ fn main() {
         if i != party_num_int {
             // prepare encrypted ss for party i:
             let key_i = &enc_keys[j];
-            let plaintext = BigInt::to_vec(&res_stage2.secret_shares_s[k].to_big_int());
+            let plaintext = BigInt::to_bytes(&res_stage2.secret_shares_s[k].to_big_int());
             let aead_pack_i = aes_encrypt(key_i, &plaintext);
             // This client does not implement the identifiable abort protocol.
             // If it were these secret shares would need to be broadcasted to indetify the
@@ -168,7 +168,7 @@ fn main() {
             let aead_pack: AEAD = serde_json::from_str(&round3_ans_vec[j]).unwrap();
             let key_i = &enc_keys[j];
             let out = aes_decrypt(key_i, aead_pack);
-            let out_bn = BigInt::from(&out[..]);
+            let out_bn = BigInt::from_bytes(&out[..]);
             let out_fe = ECScalar::from(&out_bn);
             party_shares.push(out_fe);
 

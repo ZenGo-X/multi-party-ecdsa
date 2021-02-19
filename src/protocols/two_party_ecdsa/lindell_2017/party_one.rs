@@ -547,7 +547,7 @@ impl Signature {
          1. id = R.y & 1
          2. if (s > curve.q / 2) id = id ^ 1
         */
-        let is_ry_odd = ry.tstbit(0);
+        let is_ry_odd = ry.test_bit(0);
         let mut recid = if is_ry_odd { 1 } else { 0 };
         if s_tag_tag_bn.clone() > FE::q() - s_tag_tag_bn.clone() {
             recid = recid ^ 1;
@@ -567,8 +567,8 @@ pub fn verify(signature: &Signature, pubkey: &GE, message: &BigInt) -> Result<()
     let u2 = *pubkey * rx_fe * s_inv_fe;
 
     // second condition is against malleability
-    let rx_bytes = &BigInt::to_vec(&signature.r)[..];
-    let u1_plus_u2_bytes = &BigInt::to_vec(&(u1 + u2).x_coor().unwrap())[..];
+    let rx_bytes = &BigInt::to_bytes(&signature.r)[..];
+    let u1_plus_u2_bytes = &BigInt::to_bytes(&(u1 + u2).x_coor().unwrap())[..];
 
     if rx_bytes.ct_eq(&u1_plus_u2_bytes).unwrap_u8() == 1
         && signature.s < FE::q() - signature.s.clone()
@@ -588,7 +588,8 @@ pub fn generate_h1_h2_n_tilde() -> (BigInt, BigInt, BigInt, BigInt) {
     let h1 = BigInt::sample_below(&phi);
     let s = BigInt::from(2).pow(256 as u32);
     let xhi = BigInt::sample_below(&s);
-    let h2 = BigInt::mod_pow(&h1, &(-&xhi), &ek_tilde.n);
+    let h1_inv = BigInt::mod_inv(&h1, &ek_tilde.n).unwrap();
+    let h2 = BigInt::mod_pow(&h1_inv, &xhi, &ek_tilde.n);
 
     (ek_tilde.n, h1, h2, xhi)
 }

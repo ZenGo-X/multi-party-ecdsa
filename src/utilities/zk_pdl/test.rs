@@ -1,5 +1,6 @@
 #![allow(non_snake_case)]
-use crate::utilities::zk_pdl::{PDLStatement, PDLWitness, Prover, Verifier};
+
+use curv::arithmetic::traits::*;
 use curv::elliptic::curves::secp256_k1::{FE, GE};
 use curv::elliptic::curves::traits::*;
 use curv::BigInt;
@@ -7,6 +8,8 @@ use paillier::core::Randomness;
 use paillier::traits::{EncryptWithChosenRandomness, KeyGeneration};
 use paillier::Paillier;
 use paillier::RawPlaintext;
+
+use crate::utilities::zk_pdl::{PDLStatement, PDLWitness, Prover, Verifier};
 
 #[test]
 fn test_zk_pdl() {

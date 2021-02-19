@@ -393,8 +393,8 @@ pub fn verify(signature: &Signature, pubkey: &GE, message: &BigInt) -> Result<()
     let u2 = *pubkey * rx_fe * s_inv_fe;
 
     // second condition is against malleability
-    let rx_bytes = &BigInt::to_vec(&signature.r)[..];
-    let u1_plus_u2_bytes = &BigInt::to_vec(&(u1 + u2).x_coor().unwrap())[..];
+    let rx_bytes = &BigInt::to_bytes(&signature.r)[..];
+    let u1_plus_u2_bytes = &BigInt::to_bytes(&(u1 + u2).x_coor().unwrap())[..];
 
     if rx_bytes.ct_eq(&u1_plus_u2_bytes).unwrap_u8() == 1
         && signature.s < FE::q() - signature.s.clone()

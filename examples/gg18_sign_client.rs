@@ -1,6 +1,7 @@
 #![allow(non_snake_case)]
 
 use curv::{
+    arithmetic::traits::*,
     cryptographic_primitives::{
         proofs::sigma_correct_homomorphic_elgamal_enc::HomoELGamalProof,
         proofs::sigma_dlog::DLogProof, secret_sharing::feldman_vss::VerifiableSS,
@@ -304,7 +305,7 @@ fn main() {
     let R = R + decomm_i.g_gamma_i * delta_inv;
 
     // we assume the message is already hashed (by the signer).
-    let message_bn = BigInt::from(message);
+    let message_bn = BigInt::from_bytes(message);
     let local_sig =
         LocalSignature::phase5_local_sig(&sign_keys.k_i, &message_bn, &R, &sigma, &y_sum);
 
@@ -498,9 +499,9 @@ fn main() {
 
     let sign_json = serde_json::to_string(&(
         "r",
-        (BigInt::from(&(sig.r.get_element())[..])).to_str_radix(16),
+        (BigInt::from_bytes(&(sig.r.get_element())[..])).to_str_radix(16),
         "s",
-        (BigInt::from(&(sig.s.get_element())[..])).to_str_radix(16),
+        (BigInt::from_bytes(&(sig.s.get_element())[..])).to_str_radix(16),
     ))
     .unwrap();
 

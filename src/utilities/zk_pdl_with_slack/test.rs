@@ -19,7 +19,8 @@ fn test_zk_pdl_with_slack() {
     let h1 = BigInt::sample_below(&phi);
     let S = BigInt::from(2).pow(256 as u32);
     let xhi = BigInt::sample_below(&S);
-    let h2 = BigInt::mod_pow(&h1, &(-&xhi), &ek_tilde.n);
+    let h1_inv = BigInt::mod_inv(&h1, &ek_tilde.n).unwrap();
+    let h2 = BigInt::mod_pow(&h1_inv, &xhi, &ek_tilde.n);
     let statement = DLogStatement {
         N: ek_tilde.n.clone(),
         g: h1.clone(),
@@ -82,7 +83,8 @@ fn test_zk_pdl_with_slack_soundness() {
     let h1 = BigInt::sample_below(&phi);
     let S = BigInt::from(2).pow(256 as u32);
     let xhi = BigInt::sample_below(&S);
-    let h2 = BigInt::mod_pow(&h1, &(-&xhi), &ek_tilde.n);
+    let h1_inv = BigInt::mod_inv(&h1, &ek_tilde.n).unwrap();
+    let h2 = BigInt::mod_pow(&h1_inv, &xhi, &ek_tilde.n);
     let statement = DLogStatement {
         N: ek_tilde.n.clone(),
         g: h1.clone(),

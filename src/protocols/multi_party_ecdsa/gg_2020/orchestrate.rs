@@ -539,7 +539,7 @@ pub fn sign_stage7(input: &SignStage7Input) -> Result<SignStage7Result, ErrorTyp
 pub fn check_sig(r: &FE, s: &FE, msg: &BigInt, pk: &GE) {
     use secp256k1::{verify, Message, PublicKey, PublicKeyFormat, Signature};
 
-    let raw_msg = BigInt::to_vec(&msg);
+    let raw_msg = BigInt::to_bytes(&msg);
     let mut msg: Vec<u8> = Vec::new(); // padding
     msg.extend(vec![0u8; 32 - raw_msg.len()]);
     msg.extend(raw_msg.iter());
@@ -1126,7 +1126,7 @@ mod tests {
         let R_vec: Vec<GE> = result_stage5_vec.iter().map(|a| a.R).collect();
         let R_dash_vec: Vec<GE> = result_stage5_vec.iter().map(|a| a.R_dash).collect();
 
-        let message_bn_l = HSha256::create_hash(&[&BigInt::from(bytes_to_sign)]);
+        let message_bn_l = HSha256::create_hash(&[&BigInt::from_bytes(bytes_to_sign)]);
 
         // sigma_vec This is just to facilitate writing the code. It should never be collected like
         // this IRL.

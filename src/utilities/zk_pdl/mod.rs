@@ -15,11 +15,14 @@
     @license GPL-3.0+ <https://github.com/KZen-networks/multi-party-ecdsa/blob/master/LICENSE>
 */
 
-/// We use the proof as given in protocol 6.1 in https://eprint.iacr.org/2017/552.pdf
-/// Statement: (c, pk, Q, G)
-/// witness (x, r, sk) such that Q = xG, c = Enc(pk, x, r) and Dec(sk, c) = x.
-/// note that because of the range proof, the proof is sound only for x < q/3
-use curv::arithmetic::traits::Samplable;
+//! We use the proof as given in protocol 6.1 in https://eprint.iacr.org/2017/552.pdf
+//! Statement: (c, pk, Q, G)
+//! witness (x, r, sk) such that Q = xG, c = Enc(pk, x, r) and Dec(sk, c) = x.
+//! note that because of the range proof, the proof is sound only for x < q/3
+
+use std::ops::Shl;
+
+use curv::arithmetic::traits::*;
 use curv::cryptographic_primitives::commitments::hash_commitment::HashCommitment;
 use curv::cryptographic_primitives::commitments::traits::Commitment;
 use curv::elliptic::curves::secp256_k1::{FE, GE};
@@ -30,7 +33,6 @@ use paillier::Paillier;
 use paillier::{Add, Decrypt, Encrypt, Mul};
 use paillier::{DecryptionKey, EncryptionKey, RawCiphertext, RawPlaintext};
 use serde::{Deserialize, Serialize};
-use std::ops::Shl;
 use zk_paillier::zkproofs::RangeProofError;
 use zk_paillier::zkproofs::RangeProofNi;
 

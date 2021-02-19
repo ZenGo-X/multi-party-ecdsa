@@ -133,7 +133,8 @@ pub fn generate_h1_h2_N_tilde() -> (BigInt, BigInt, BigInt, BigInt) {
     let h1 = BigInt::sample_below(&phi);
     let S = BigInt::from(2).pow(256 as u32);
     let xhi = BigInt::sample_below(&S);
-    let h2 = BigInt::mod_pow(&h1, &(-&xhi), &ek_tilde.n);
+    let h1_inv = BigInt::mod_inv(&h1, &ek_tilde.n).unwrap();
+    let h2 = BigInt::mod_pow(&h1_inv, &xhi, &ek_tilde.n);
 
     (ek_tilde.n, h1, h2, xhi)
 }
@@ -775,7 +776,7 @@ impl LocalSignature {
          1. id = R.y & 1
          2. if (s > curve.q / 2) id = id ^ 1
         */
-        let is_ry_odd = ry.tstbit(0);
+        let is_ry_odd = ry.test_bit(0);
         let mut recid = if is_ry_odd { 1 } else { 0 };
         let s_tag_bn = FE::q() - &s_bn;
         if s_bn > s_tag_bn {

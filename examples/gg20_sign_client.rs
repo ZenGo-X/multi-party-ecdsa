@@ -176,7 +176,7 @@ fn main() {
             let key_bn: BigInt = (g_w_i_vec[i as usize] * res_stage1.sign_keys.w_i.clone())
                 .x_coor()
                 .unwrap();
-            let key_bytes = BigInt::to_vec(&key_bn);
+            let key_bytes = BigInt::to_bytes(&key_bn);
             let mut template: Vec<u8> = vec![0u8; AES_KEY_BYTES_LEN - key_bytes.len()];
             template.extend_from_slice(&key_bytes[..]);
             enc_key.push(template);
@@ -203,11 +203,11 @@ fn main() {
         if i != party_num_int {
             let beta_enc: AEAD = aes_encrypt(
                 &enc_key[j],
-                &BigInt::to_vec(&res_stage2.gamma_i_vec[j].1.to_big_int()),
+                &BigInt::to_bytes(&res_stage2.gamma_i_vec[j].1.to_big_int()),
             );
             let ni_enc: AEAD = aes_encrypt(
                 &enc_key[j],
-                &BigInt::to_vec(&res_stage2.w_i_vec[j].1.to_big_int()),
+                &BigInt::to_bytes(&res_stage2.w_i_vec[j].1.to_big_int()),
             );
 
             assert!(sendp2p(
@@ -251,11 +251,11 @@ fn main() {
         m_b_gamma_rec_vec.push(l_mb_gamma);
         m_b_w_rec_vec.push(l_mb_w);
         let out = aes_decrypt(&enc_key[i as usize], l_enc_beta);
-        let bn = BigInt::from(&out[..]);
+        let bn = BigInt::from_bytes(&out[..]);
         beta_vec.push(ECScalar::from(&bn));
 
         let out = aes_decrypt(&enc_key[i as usize], l_enc_ni);
-        let bn = BigInt::from(&out[..]);
+        let bn = BigInt::from_bytes(&out[..]);
         ni_vec.push(ECScalar::from(&bn));
     }
 
@@ -276,11 +276,11 @@ fn main() {
         if i != party_num_int {
             let alpha_enc: AEAD = aes_encrypt(
                 &enc_key[j],
-                &BigInt::to_vec(&res_stage3.alpha_vec_gamma[j].to_big_int()),
+                &BigInt::to_bytes(&res_stage3.alpha_vec_gamma[j].to_big_int()),
             );
             let miu_enc: AEAD = aes_encrypt(
                 &enc_key[j],
-                &BigInt::to_vec(&res_stage3.alpha_vec_w[j].to_big_int()),
+                &BigInt::to_bytes(&res_stage3.alpha_vec_w[j].to_big_int()),
             );
 
             assert!(sendp2p(
@@ -310,11 +310,11 @@ fn main() {
         let (l_alpha_enc, l_miu_enc): (AEAD, AEAD) =
             serde_json::from_str(&round3_ans_vec[i as usize]).unwrap();
         let out = aes_decrypt(&enc_key[i as usize], l_alpha_enc);
-        let bn = BigInt::from(&out[..]);
+        let bn = BigInt::from_bytes(&out[..]);
         alpha_vec.push(ECScalar::from(&bn));
 
         let out = aes_decrypt(&enc_key[i as usize], l_miu_enc);
-        let bn = BigInt::from(&out[..]);
+        let bn = BigInt::from_bytes(&out[..]);
         miu_vec.push(ECScalar::from(&bn));
     }
 
@@ -401,7 +401,7 @@ fn main() {
         }
     }
 
-    let message_bn = HSha256::create_hash(&[&BigInt::from(message)]);
+    let message_bn = HSha256::create_hash(&[&BigInt::from_bytes(message)]);
     let input_stage6 = SignStage6Input {
         R_dash_vec: R_dash_vec.clone(),
         R: res_stage5.R.clone(),
@@ -462,9 +462,9 @@ fn main() {
 
     let sign_json = serde_json::to_string(&(
         "r",
-        (BigInt::from(&(sig.r.get_element())[..])).to_str_radix(16),
+        (BigInt::from_bytes(&(sig.r.get_element())[..])).to_str_radix(16),
         "s",
-        (BigInt::from(&(sig.s.get_element())[..])).to_str_radix(16),
+        (BigInt::from_bytes(&(sig.s.get_element())[..])).to_str_radix(16),
     ))
     .unwrap();
 

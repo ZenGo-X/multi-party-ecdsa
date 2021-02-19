@@ -384,11 +384,8 @@ impl PartialSig {
 
         let rx = r.x_coor().unwrap().mod_floor(&q);
         let rho = BigInt::sample_below(&q.pow(2));
-        let mut k2_inv = ephemeral_local_share
-            .secret_share
-            .to_big_int()
-            .invert(&q)
-            .unwrap();
+        let mut k2_inv =
+            BigInt::mod_inv(&ephemeral_local_share.secret_share.to_big_int(), &q).unwrap();
         let partial_sig = rho * &q + BigInt::mod_mul(&k2_inv, message, &q);
 
         let c1 = Paillier::encrypt(ek, RawPlaintext::from(partial_sig));
@@ -397,7 +394,7 @@ impl PartialSig {
             &BigInt::mod_mul(&rx, &local_share.x2.to_big_int(), &q),
             &q,
         );
-        k2_inv.zeroize_bn();
+        k2_inv.zeroize();
         let c2 = Paillier::mul(
             ek,
             RawCiphertext::from(encrypted_secret_share.clone()),

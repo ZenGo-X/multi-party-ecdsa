@@ -15,14 +15,14 @@
     @license GPL-3.0+ <https://github.com/KZen-networks/multi-party-ecdsa/blob/master/LICENSE>
 */
 
-use curv::arithmetic::traits::Modulo;
-/// We use the proof as given in proof PIi in https://eprint.iacr.org/2016/013.pdf.
-/// This proof ws taken from the proof 6.3 (left side ) in https://www.cs.unc.edu/~reiter/papers/2004/IJIS.pdf
+//! We use the proof as given in proof PIi in https://eprint.iacr.org/2016/013.pdf.
+//! This proof ws taken from the proof 6.3 (left side ) in https://www.cs.unc.edu/~reiter/papers/2004/IJIS.pdf
+//!
+//! Statement: (c, pk, Q, G)
+//! witness (x, r, sk) such that Q = xG, c = Enc(pk, x, r) and Dec(sk, c) = x.
+//! note that because of the range proof, the proof has a slack in the range: x in [-q^3, q^3]
 
-/// Statement: (c, pk, Q, G)
-/// witness (x, r, sk) such that Q = xG, c = Enc(pk, x, r) and Dec(sk, c) = x.
-/// note that because of the range proof, the proof has a slack in the range: x in [-q^3, q^3]
-use curv::arithmetic::traits::Samplable;
+use curv::arithmetic::traits::*;
 use curv::cryptographic_primitives::hashing::hash_sha256::HSha256;
 use curv::cryptographic_primitives::hashing::traits::Hash;
 use curv::elliptic::curves::secp256_k1::{FE, GE};
@@ -181,7 +181,14 @@ pub fn commitment_unknown_order(
     r: &BigInt,
 ) -> BigInt {
     let h1_x = BigInt::mod_pow(h1, &x, &N_tilde);
-    let h2_r = BigInt::mod_pow(h2, &r, &N_tilde);
+    let h2_r = {
+        if r < &BigInt::zero() {
+            let h2_inv = BigInt::mod_inv(h2, &N_tilde).unwrap();
+            BigInt::mod_pow(&h2_inv, &(-r), &N_tilde)
+        } else {
+            BigInt::mod_pow(h2, &r, &N_tilde)
+        }
+    };
     let com = BigInt::mod_mul(&h1_x, &h2_r, &N_tilde);
     com
 }

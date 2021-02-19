@@ -631,7 +631,7 @@ fn sign(
     }
 
     let message: [u8; 4] = [79, 77, 69, 82];
-    let message_bn = HSha256::create_hash(&[&BigInt::from(&message[..])]);
+    let message_bn = HSha256::create_hash(&[&BigInt::from_bytes(&message[..])]);
     let mut local_sig_vec = Vec::new();
     let mut s_vec = Vec::new();
     // each party computes s_i
@@ -682,7 +682,7 @@ fn sign(
 pub fn check_sig(r: &FE, s: &FE, msg: &BigInt, pk: &GE) {
     use secp256k1::{verify, Message, PublicKey, PublicKeyFormat, Signature};
 
-    let raw_msg = BigInt::to_vec(&msg);
+    let raw_msg = BigInt::to_bytes(&msg);
     let mut msg: Vec<u8> = Vec::new(); // padding
     msg.extend(vec![0u8; 32 - raw_msg.len()]);
     msg.extend(raw_msg.iter());
