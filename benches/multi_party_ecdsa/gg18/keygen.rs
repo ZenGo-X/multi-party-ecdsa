@@ -3,8 +3,8 @@ use criterion::criterion_main;
 mod bench {
     use criterion::{criterion_group, Criterion};
     use curv::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS;
+    use curv::elliptic::curves::secp256_k1::{FE, GE};
     use curv::elliptic::curves::traits::*;
-    use curv::{FE, GE};
     use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2018::party_i::*;
     pub fn bench_full_keygen_party_one_two(c: &mut Criterion) {
         c.bench_function("keygen t=1 n=2", move |b| {
@@ -23,7 +23,7 @@ mod bench {
     pub fn keygen_t_n_parties(
         t: u16,
         n: u16,
-    ) -> (Vec<Keys>, Vec<SharedKeys>, Vec<GE>, GE, VerifiableSS) {
+    ) -> (Vec<Keys>, Vec<SharedKeys>, Vec<GE>, GE, VerifiableSS<GE>) {
         let parames = Parameters {
             threshold: t,
             share_count: n,

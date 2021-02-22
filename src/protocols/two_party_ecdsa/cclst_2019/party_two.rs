@@ -26,10 +26,9 @@ use curv::cryptographic_primitives::hashing::traits::Hash;
 use curv::cryptographic_primitives::proofs::sigma_dlog::*;
 use curv::cryptographic_primitives::proofs::sigma_ec_ddh::*;
 use curv::cryptographic_primitives::proofs::ProofError;
+use curv::elliptic::curves::secp256_k1::{FE, GE};
 use curv::elliptic::curves::traits::*;
 use curv::BigInt;
-use curv::FE;
-use curv::GE;
 use serde::{Deserialize, Serialize};
 
 use super::party_one::EphKeyGenFirstMsg as Party1EphKeyGenFirstMsg;
@@ -47,7 +46,7 @@ pub struct EcKeyPair {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct KeyGenFirstMsg {
-    pub d_log_proof: DLogProof,
+    pub d_log_proof: DLogProof<GE>,
     pub public_share: GE,
 }
 
@@ -108,7 +107,7 @@ pub struct EphCommWitness {
     pub pk_commitment_blind_factor: BigInt,
     pub zk_pok_blind_factor: BigInt,
     pub public_share: GE,
-    pub d_log_proof: ECDDHProof,
+    pub d_log_proof: ECDDHProof<GE>,
     pub c: GE, //c = secret_share * base_point2
 }
 

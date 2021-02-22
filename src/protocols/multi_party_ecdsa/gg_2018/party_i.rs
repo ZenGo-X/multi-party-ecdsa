@@ -23,10 +23,11 @@ use curv::cryptographic_primitives::commitments::traits::Commitment;
 use curv::cryptographic_primitives::hashing::hash_sha256::HSha256;
 use curv::cryptographic_primitives::hashing::traits::Hash;
 use curv::cryptographic_primitives::proofs::sigma_correct_homomorphic_elgamal_enc::*;
-use curv::cryptographic_primitives::proofs::sigma_dlog::{DLogProof, ProveDLog};
+use curv::cryptographic_primitives::proofs::sigma_dlog::DLogProof;
 use curv::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS;
+use curv::elliptic::curves::secp256_k1::{FE, GE};
 use curv::elliptic::curves::traits::*;
-use curv::{BigInt, FE, GE};
+use curv::BigInt;
 
 use paillier::{
     Decrypt, DecryptionKey, EncryptionKey, KeyGeneration, Paillier, RawCiphertext, RawPlaintext,
@@ -188,7 +189,7 @@ impl Keys {
         &self,
     ) -> (KeyGenBroadcastMessage1, KeyGenDecommitMessage1) {
         let blind_factor = BigInt::sample(SECURITY);
-        let correct_key_proof = NICorrectKeyProof::proof(&self.dk);
+        let correct_key_proof = NICorrectKeyProof::proof(&self.dk, None);
         let com = HashCommitment::create_commitment_with_user_defined_randomness(
             &self.y_i.bytes_compressed_to_big_int(),
             &blind_factor,
@@ -210,7 +211,7 @@ impl Keys {
         params: &Parameters,
         decom_vec: &[KeyGenDecommitMessage1],
         bc1_vec: &[KeyGenBroadcastMessage1],
-    ) -> Result<(VerifiableSS, Vec<FE>, usize), Error> {
+    ) -> Result<(VerifiableSS<GE>, Vec<FE>, usize), Error> {
         // test length:
         assert_eq!(decom_vec.len() as u16, params.share_count);
         assert_eq!(bc1_vec.len() as u16, params.share_count);
@@ -221,7 +222,10 @@ impl Keys {
                     &decom_vec[i].y_i.bytes_compressed_to_big_int(),
                     &decom_vec[i].blind_factor,
                 ) == bc1_vec[i].com
-                    && bc1_vec[i].correct_key_proof.verify(&bc1_vec[i].e).is_ok()
+                    && bc1_vec[i]
+                        .correct_key_proof
+                        .verify(&bc1_vec[i].e, zk_paillier::zkproofs::SALT_STRING)
+                        .is_ok()
             })
             .all(|x| x);
 
@@ -242,9 +246,9 @@ impl Keys {
         params: &Parameters,
         y_vec: &[GE],
         secret_shares_vec: &[FE],
-        vss_scheme_vec: &[VerifiableSS],
+        vss_scheme_vec: &[VerifiableSS<GE>],
         index: usize,
-    ) -> Result<(SharedKeys, DLogProof), Error> {
+    ) -> Result<(SharedKeys, DLogProof<GE>), Error> {
         assert_eq!(y_vec.len() as u16, params.share_count);
         assert_eq!(secret_shares_vec.len() as u16, params.share_count);
         assert_eq!(vss_scheme_vec.len() as u16, params.share_count);
@@ -270,7 +274,7 @@ impl Keys {
         }
     }
 
-    pub fn get_commitments_to_xi(vss_scheme_vec: &[VerifiableSS]) -> Vec<GE> {
+    pub fn get_commitments_to_xi(vss_scheme_vec: &[VerifiableSS<GE>]) -> Vec<GE> {
         let len = vss_scheme_vec.len();
         (1..=len)
             .map(|i| {
@@ -289,17 +293,17 @@ impl Keys {
 
     pub fn update_commitments_to_xi(
         comm: &GE,
-        vss_scheme: &VerifiableSS,
+        vss_scheme: &VerifiableSS<GE>,
         index: usize,
         s: &[usize],
     ) -> GE {
-        let li = vss_scheme.map_share_to_new_params(index, s);
+        let li = VerifiableSS::<GE>::map_share_to_new_params(&vss_scheme.parameters, index, s);
         comm * &li
     }
 
     pub fn verify_dlog_proofs(
         params: &Parameters,
-        dlog_proofs_vec: &[DLogProof],
+        dlog_proofs_vec: &[DLogProof<GE>],
         y_vec: &[GE],
     ) -> Result<(), Error> {
         assert_eq!(y_vec.len() as u16, params.share_count);
@@ -386,11 +390,11 @@ impl PartyPrivate {
 impl SignKeys {
     pub fn create(
         private: &PartyPrivate,
-        vss_scheme: &VerifiableSS,
+        vss_scheme: &VerifiableSS<GE>,
         index: usize,
         s: &[usize],
     ) -> Self {
-        let li = vss_scheme.map_share_to_new_params(index, s);
+        let li = VerifiableSS::<GE>::map_share_to_new_params(&vss_scheme.parameters, index, s);
         let w_i = li * private.x_i;
         let g: GE = ECPoint::generator();
         let g_w_i = g * w_i;
@@ -451,7 +455,7 @@ impl SignKeys {
 
     pub fn phase4(
         delta_inv: &FE,
-        b_proof_vec: &[&DLogProof],
+        b_proof_vec: &[&DLogProof<GE>],
         phase1_decommit_vec: Vec<SignDecommitPhase1>,
         bc1_vec: &[SignBroadcastPhase1],
     ) -> Result<GE, Error> {
@@ -504,7 +508,12 @@ impl LocalSignature {
 
     pub fn phase5a_broadcast_5b_zkproof(
         &self,
-    ) -> (Phase5Com1, Phase5ADecom1, HomoELGamalProof, DLogProof) {
+    ) -> (
+        Phase5Com1,
+        Phase5ADecom1,
+        HomoELGamalProof<GE>,
+        DLogProof<GE>,
+    ) {
         let blind_factor = BigInt::sample(SECURITY);
         let g: GE = ECPoint::generator();
         let A_i = g * self.rho_i;
@@ -547,8 +556,8 @@ impl LocalSignature {
         &self,
         decom_vec: &[Phase5ADecom1],
         com_vec: &[Phase5Com1],
-        elgamal_proofs: &[HomoELGamalProof],
-        dlog_proofs_rho: &[DLogProof],
+        elgamal_proofs: &[HomoELGamalProof<GE>],
+        dlog_proofs_rho: &[DLogProof<GE>],
         v_i: &GE,
         R: &GE,
     ) -> Result<(Phase5Com2, Phase5DDecom2), Error> {
@@ -684,7 +693,7 @@ impl LocalSignature {
          1. id = R.y & 1
          2. if (s > curve.q / 2) id = id ^ 1
         */
-        let is_ry_odd = ry.tstbit(0);
+        let is_ry_odd = ry.test_bit(0);
         let mut recid = if is_ry_odd { 1 } else { 0 };
         let s_tag_bn = FE::q() - &s_bn;
         if s_bn > s_tag_bn {

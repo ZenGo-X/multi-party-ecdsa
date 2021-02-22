@@ -27,10 +27,9 @@ use curv::cryptographic_primitives::hashing::traits::Hash;
 use curv::cryptographic_primitives::proofs::sigma_dlog::*;
 use curv::cryptographic_primitives::proofs::sigma_ec_ddh::*;
 use curv::cryptographic_primitives::proofs::ProofError;
+use curv::elliptic::curves::secp256_k1::{FE, GE};
 use curv::elliptic::curves::traits::*;
 use curv::BigInt;
-use curv::FE;
-use curv::GE;
 use serde::{Deserialize, Serialize};
 use subtle::ConstantTimeEq;
 
@@ -51,7 +50,7 @@ pub struct CommWitness {
     pub pk_commitment_blind_factor: BigInt,
     pub zk_pok_blind_factor: BigInt,
     pub public_share: GE,
-    pub d_log_proof: DLogProof,
+    pub d_log_proof: DLogProof<GE>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -125,7 +124,7 @@ pub struct EphEcKeyPair {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct EphKeyGenFirstMsg {
-    pub d_log_proof: ECDDHProof,
+    pub d_log_proof: ECDDHProof<GE>,
     pub public_share: GE,
     pub c: GE, //c = secret_share * base_point2
 }
@@ -225,7 +224,7 @@ impl KeyGenFirstMsg {
 impl KeyGenSecondMsg {
     pub fn verify_and_decommit(
         comm_witness: CommWitness,
-        proof: &DLogProof,
+        proof: &DLogProof<GE>,
     ) -> Result<KeyGenSecondMsg, ProofError> {
         DLogProof::verify(proof)?;
         Ok(KeyGenSecondMsg { comm_witness })
@@ -394,8 +393,8 @@ pub fn verify(signature: &Signature, pubkey: &GE, message: &BigInt) -> Result<()
     let u2 = *pubkey * rx_fe * s_inv_fe;
 
     // second condition is against malleability
-    let rx_bytes = &BigInt::to_vec(&signature.r)[..];
-    let u1_plus_u2_bytes = &BigInt::to_vec(&(u1 + u2).x_coor().unwrap())[..];
+    let rx_bytes = &BigInt::to_bytes(&signature.r)[..];
+    let u1_plus_u2_bytes = &BigInt::to_bytes(&(u1 + u2).x_coor().unwrap())[..];
 
     if rx_bytes.ct_eq(&u1_plus_u2_bytes).unwrap_u8() == 1
         && signature.s < FE::q() - signature.s.clone()

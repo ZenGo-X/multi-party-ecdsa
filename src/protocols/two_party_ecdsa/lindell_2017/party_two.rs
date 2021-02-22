@@ -24,10 +24,9 @@ use curv::cryptographic_primitives::hashing::traits::Hash;
 use curv::cryptographic_primitives::proofs::sigma_dlog::*;
 use curv::cryptographic_primitives::proofs::sigma_ec_ddh::*;
 use curv::cryptographic_primitives::proofs::ProofError;
+use curv::elliptic::curves::secp256_k1::{FE, GE};
 use curv::elliptic::curves::traits::*;
 use curv::BigInt;
-use curv::FE;
-use curv::GE;
 use paillier::Paillier;
 use paillier::{Add, Encrypt, Mul};
 use paillier::{EncryptionKey, RawCiphertext, RawPlaintext};
@@ -56,7 +55,7 @@ pub struct EcKeyPair {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct KeyGenFirstMsg {
-    pub d_log_proof: DLogProof,
+    pub d_log_proof: DLogProof<GE>,
     pub public_share: GE,
 }
 
@@ -116,7 +115,7 @@ pub struct EphCommWitness {
     pub pk_commitment_blind_factor: BigInt,
     pub zk_pok_blind_factor: BigInt,
     pub public_share: GE,
-    pub d_log_proof: ECDDHProof,
+    pub d_log_proof: ECDDHProof<GE>,
     pub c: GE, //c = secret_share * base_point2
 }
 
@@ -292,7 +291,7 @@ impl PaillierPublic {
         if ek.n.bit_length() < PAILLIER_KEY_SIZE - 1 {
             return Err(CorrectKeyProofError);
         };
-        proof.verify(&ek)
+        proof.verify(&ek, zk_paillier::zkproofs::SALT_STRING)
     }
 }
 
@@ -385,11 +384,8 @@ impl PartialSig {
 
         let rx = r.x_coor().unwrap().mod_floor(&q);
         let rho = BigInt::sample_below(&q.pow(2));
-        let mut k2_inv = ephemeral_local_share
-            .secret_share
-            .to_big_int()
-            .invert(&q)
-            .unwrap();
+        let mut k2_inv =
+            BigInt::mod_inv(&ephemeral_local_share.secret_share.to_big_int(), &q).unwrap();
         let partial_sig = rho * &q + BigInt::mod_mul(&k2_inv, message, &q);
 
         let c1 = Paillier::encrypt(ek, RawPlaintext::from(partial_sig));
@@ -398,7 +394,7 @@ impl PartialSig {
             &BigInt::mod_mul(&rx, &local_share.x2.to_big_int(), &q),
             &q,
         );
-        k2_inv.zeroize_bn();
+        k2_inv.zeroize();
         let c2 = Paillier::mul(
             ek,
             RawCiphertext::from(encrypted_secret_share.clone()),

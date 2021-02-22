@@ -7,8 +7,9 @@ use curv::{
     cryptographic_primitives::{
         proofs::sigma_dlog::DLogProof, secret_sharing::feldman_vss::VerifiableSS,
     },
+    elliptic::curves::secp256_k1::{FE, GE},
     elliptic::curves::traits::{ECPoint, ECScalar},
-    BigInt, FE, GE,
+    BigInt,
 };
 use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2018::party_i::{
     KeyGenBroadcastMessage1, KeyGenDecommitMessage1, Keys, Parameters,
@@ -111,7 +112,7 @@ fn main() {
             point_vec.push(decom_j.y_i);
             decom_vec.push(decom_j.clone());
             let key_bn: BigInt = (decom_j.y_i.clone() * party_keys.u_i).x_coor().unwrap();
-            let key_bytes = BigInt::to_vec(&key_bn);
+            let key_bytes = BigInt::to_bytes(&key_bn);
             let mut template: Vec<u8> = vec![0u8; AES_KEY_BYTES_LEN - key_bytes.len()];
             template.extend_from_slice(&key_bytes[..]);
             enc_keys.push(template);
@@ -135,7 +136,7 @@ fn main() {
         if i != party_num_int {
             // prepare encrypted ss for party i:
             let key_i = &enc_keys[j];
-            let plaintext = BigInt::to_vec(&secret_shares[k].to_big_int());
+            let plaintext = BigInt::to_bytes(&secret_shares[k].to_big_int());
             let aead_pack_i = aes_encrypt(key_i, &plaintext);
             assert!(sendp2p(
                 &client,
@@ -168,7 +169,7 @@ fn main() {
             let aead_pack: AEAD = serde_json::from_str(&round3_ans_vec[j]).unwrap();
             let key_i = &enc_keys[j];
             let out = aes_decrypt(key_i, aead_pack);
-            let out_bn = BigInt::from(&out[..]);
+            let out_bn = BigInt::from_bytes(&out[..]);
             let out_fe = ECScalar::from(&out_bn);
             party_shares.push(out_fe);
 
@@ -195,12 +196,12 @@ fn main() {
     );
 
     let mut j = 0;
-    let mut vss_scheme_vec: Vec<VerifiableSS> = Vec::new();
+    let mut vss_scheme_vec: Vec<VerifiableSS<GE>> = Vec::new();
     for i in 1..=PARTIES {
         if i == party_num_int {
             vss_scheme_vec.push(vss_scheme.clone());
         } else {
-            let vss_scheme_j: VerifiableSS = serde_json::from_str(&round4_ans_vec[j]).unwrap();
+            let vss_scheme_j: VerifiableSS<GE> = serde_json::from_str(&round4_ans_vec[j]).unwrap();
             vss_scheme_vec.push(vss_scheme_j);
             j += 1;
         }
@@ -235,12 +236,12 @@ fn main() {
     );
 
     let mut j = 0;
-    let mut dlog_proof_vec: Vec<DLogProof> = Vec::new();
+    let mut dlog_proof_vec: Vec<DLogProof<GE>> = Vec::new();
     for i in 1..=PARTIES {
         if i == party_num_int {
             dlog_proof_vec.push(dlog_proof.clone());
         } else {
-            let dlog_proof_j: DLogProof = serde_json::from_str(&round5_ans_vec[j]).unwrap();
+            let dlog_proof_j: DLogProof<GE> = serde_json::from_str(&round5_ans_vec[j]).unwrap();
             dlog_proof_vec.push(dlog_proof_j);
             j += 1;
         }

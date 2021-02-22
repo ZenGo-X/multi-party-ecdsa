@@ -1,12 +1,14 @@
 #![allow(non_snake_case)]
 
 use curv::{
+    arithmetic::traits::*,
     cryptographic_primitives::{
         proofs::sigma_correct_homomorphic_elgamal_enc::HomoELGamalProof,
         proofs::sigma_dlog::DLogProof, secret_sharing::feldman_vss::VerifiableSS,
     },
+    elliptic::curves::secp256_k1::{FE, GE},
     elliptic::curves::traits::ECScalar,
-    BigInt, FE, GE,
+    BigInt,
 };
 use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2018::party_i::{
     Keys, LocalSignature, PartyPrivate, Phase5ADecom1, Phase5Com1, Phase5Com2, Phase5DDecom2,
@@ -47,7 +49,7 @@ fn main() {
         Keys,
         SharedKeys,
         u16,
-        Vec<VerifiableSS>,
+        Vec<VerifiableSS<GE>>,
         Vec<EncryptionKey>,
         GE,
     ) = serde_json::from_str(&data).unwrap();
@@ -295,7 +297,7 @@ fn main() {
     bc1_vec.remove((party_num_int - 1) as usize);
     let b_proof_vec = (0..m_b_gamma_rec_vec.len())
         .map(|i| &m_b_gamma_rec_vec[i].b_proof)
-        .collect::<Vec<&DLogProof>>();
+        .collect::<Vec<&DLogProof<GE>>>();
     let R = SignKeys::phase4(&delta_inv, &b_proof_vec, decommit_vec, &bc1_vec)
         .expect("bad gamma_i decommit");
 
@@ -303,7 +305,7 @@ fn main() {
     let R = R + decomm_i.g_gamma_i * delta_inv;
 
     // we assume the message is already hashed (by the signer).
-    let message_bn = BigInt::from(message);
+    let message_bn = BigInt::from_bytes(message);
     let local_sig =
         LocalSignature::phase5_local_sig(&sign_keys.k_i, &message_bn, &R, &sigma, &y_sum);
 
@@ -359,8 +361,11 @@ fn main() {
         uuid.clone(),
     );
 
-    let mut decommit5a_and_elgamal_and_dlog_vec: Vec<(Phase5ADecom1, HomoELGamalProof, DLogProof)> =
-        Vec::new();
+    let mut decommit5a_and_elgamal_and_dlog_vec: Vec<(
+        Phase5ADecom1,
+        HomoELGamalProof<GE>,
+        DLogProof<GE>,
+    )> = Vec::new();
     format_vec_from_reads(
         &round6_ans_vec,
         party_num_int as usize,
@@ -380,10 +385,10 @@ fn main() {
         .collect::<Vec<Phase5ADecom1>>();
     let phase_5a_elgamal_vec = (0..THRESHOLD)
         .map(|i| decommit5a_and_elgamal_and_dlog_vec[i as usize].1.clone())
-        .collect::<Vec<HomoELGamalProof>>();
+        .collect::<Vec<HomoELGamalProof<GE>>>();
     let phase_5a_dlog_vec = (0..THRESHOLD)
         .map(|i| decommit5a_and_elgamal_and_dlog_vec[i as usize].2.clone())
-        .collect::<Vec<DLogProof>>();
+        .collect::<Vec<DLogProof<GE>>>();
     let (phase5_com2, phase_5d_decom2) = local_sig
         .phase5c(
             &phase_5a_decomm_vec,
@@ -494,9 +499,9 @@ fn main() {
 
     let sign_json = serde_json::to_string(&(
         "r",
-        (BigInt::from(&(sig.r.get_element())[..])).to_str_radix(16),
+        (BigInt::from_bytes(&(sig.r.get_element())[..])).to_str_radix(16),
         "s",
-        (BigInt::from(&(sig.s.get_element())[..])).to_str_radix(16),
+        (BigInt::from_bytes(&(sig.s.get_element())[..])).to_str_radix(16),
     ))
     .unwrap();
 

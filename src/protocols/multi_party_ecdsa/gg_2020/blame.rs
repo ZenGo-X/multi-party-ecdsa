@@ -19,10 +19,10 @@ use crate::utilities::mta::{MessageA, MessageB};
 use curv::cryptographic_primitives::proofs::sigma_ec_ddh::ECDDHProof;
 use curv::cryptographic_primitives::proofs::sigma_ec_ddh::ECDDHStatement;
 use curv::cryptographic_primitives::proofs::sigma_ec_ddh::ECDDHWitness;
-use curv::cryptographic_primitives::proofs::sigma_ec_ddh::NISigmaProof;
+use curv::elliptic::curves::secp256_k1::{FE, GE};
 use curv::elliptic::curves::traits::ECPoint;
 use curv::elliptic::curves::traits::ECScalar;
-use curv::{BigInt, FE, GE};
+use curv::BigInt;
 use paillier::traits::EncryptWithChosenRandomness;
 use paillier::traits::Open;
 use paillier::DecryptionKey;
@@ -218,7 +218,7 @@ pub struct LocalStatePhase6 {
     pub k_randomness: BigInt,
     pub miu: Vec<BigInt>, //we need the value before reduction
     pub miu_randomness: Vec<BigInt>,
-    pub proof_of_eq_dlog: ECDDHProof,
+    pub proof_of_eq_dlog: ECDDHProof<GE>,
 }
 
 // It is assumed the second message of MtAwc (ciphertext from b to a) is broadcasted in the original protocol
@@ -230,7 +230,7 @@ pub struct GlobalStatePhase6 {
     pub miu_randomness_vec: Vec<Vec<BigInt>>,
     pub g_w_vec: Vec<GE>,
     pub encryption_key_vec: Vec<EncryptionKey>,
-    pub proof_vec: Vec<ECDDHProof>,
+    pub proof_vec: Vec<ECDDHProof<GE>>,
     pub S_vec: Vec<GE>,
     pub m_a_vec: Vec<MessageA>,
     pub m_b_mat: Vec<Vec<MessageB>>,
@@ -243,7 +243,7 @@ impl GlobalStatePhase6 {
         randomness.0
     }
 
-    pub fn ecddh_proof(sigma_i: &FE, R: &GE, S: &GE) -> ECDDHProof {
+    pub fn ecddh_proof(sigma_i: &FE, R: &GE, S: &GE) -> ECDDHProof<GE> {
         let delta = ECDDHStatement {
             g1: GE::generator(),
             g2: R.clone(),
@@ -274,7 +274,7 @@ impl GlobalStatePhase6 {
             .collect::<Vec<BigInt>>();
         let proof_vec = (0..len)
             .map(|i| local_state_vec[i].proof_of_eq_dlog.clone())
-            .collect::<Vec<ECDDHProof>>();
+            .collect::<Vec<ECDDHProof<GE>>>();
         let miu_randomness_vec = (0..len)
             .map(|i| {
                 (0..len - 1)

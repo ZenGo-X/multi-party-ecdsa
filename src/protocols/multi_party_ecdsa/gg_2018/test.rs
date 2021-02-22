@@ -27,8 +27,8 @@ use curv::cryptographic_primitives::hashing::hash_sha256::HSha256;
 use curv::cryptographic_primitives::hashing::traits::Hash;
 use curv::cryptographic_primitives::proofs::sigma_dlog::DLogProof;
 use curv::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS;
+use curv::elliptic::curves::secp256_k1::{FE, GE};
 use curv::elliptic::curves::traits::*;
-use curv::{FE, GE};
 use paillier::*;
 
 #[test]
@@ -55,7 +55,10 @@ fn test_sign_n8_t4_ttag6() {
     sign(4, 8, 6, vec![0, 1, 2, 4, 6, 7])
 }
 
-fn keygen_t_n_parties(t: u16, n: u16) -> (Vec<Keys>, Vec<SharedKeys>, Vec<GE>, GE, VerifiableSS) {
+fn keygen_t_n_parties(
+    t: u16,
+    n: u16,
+) -> (Vec<Keys>, Vec<SharedKeys>, Vec<GE>, GE, VerifiableSS<GE>) {
     let parames = Parameters {
         threshold: t,
         share_count: n,
@@ -290,14 +293,14 @@ fn sign(t: u16, n: u16, ttag: u16, s: Vec<usize>) {
                     let b_gamma_vec = &m_b_gamma_vec_all[j];
                     &b_gamma_vec[0].b_proof
                 })
-                .collect::<Vec<&DLogProof>>();
+                .collect::<Vec<&DLogProof<GE>>>();
             SignKeys::phase4(&delta_inv, &b_proof_vec, decommit_vec1.clone(), &bc1_vec)
                 .expect("bad gamma_i decommit")
         })
         .collect::<Vec<GE>>();
 
     let message: [u8; 4] = [79, 77, 69, 82];
-    let message_bn = HSha256::create_hash(&[&BigInt::from(&message[..])]);
+    let message_bn = HSha256::create_hash(&[&BigInt::from_bytes(&message[..])]);
     let mut local_sig_vec = Vec::new();
 
     // each party computes s_i but don't send it yet. we start with phase5
@@ -375,7 +378,7 @@ fn sign(t: u16, n: u16, ttag: u16, s: Vec<usize>) {
 fn check_sig(r: &FE, s: &FE, msg: &BigInt, pk: &GE) {
     use secp256k1::{verify, Message, PublicKey, PublicKeyFormat, Signature};
 
-    let raw_msg = BigInt::to_vec(&msg);
+    let raw_msg = BigInt::to_bytes(&msg);
     let mut msg: Vec<u8> = Vec::new(); // padding
     msg.extend(vec![0u8; 32 - raw_msg.len()]);
     msg.extend(raw_msg.iter());
