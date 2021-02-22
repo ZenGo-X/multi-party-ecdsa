@@ -1,6 +1,6 @@
 [package]
 name = "multi-party-ecdsa"
-version = "0.4.3"
+version = "0.4.4"
 edition = "2018"
 authors = [
     "Gary <gary@kzencorp.com>",
