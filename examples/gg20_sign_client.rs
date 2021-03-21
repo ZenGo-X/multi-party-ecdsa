@@ -170,6 +170,11 @@ fn main() {
             j += 1;
         }
     }
+
+    assert_eq!(signers_vec.len(), (THRESHOLD + 1) as usize);
+    if signers_vec.len()> (THRESHOLD + 1) as usize{
+        panic!("The assumption is that number of shares = threshold + 1");
+    }
     let mut enc_key: Vec<Vec<u8>> = vec![];
     for (i, k) in signers_vec.iter().enumerate() {
         if *k != signers_vec[party_num_int as usize - 1] as usize {
