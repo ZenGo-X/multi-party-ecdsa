@@ -185,18 +185,22 @@ fn main() {
     let mut j = 0;
     for i in 1..THRESHOLD + 2 {
         if i != party_num_int {
+            // private values and they should never be sent out.
             beta_vec.push(res_stage2.gamma_i_vec[j].1);
             ni_vec.push(res_stage2.w_i_vec[j].1);
+            // Below two are the C_b messages on page 11 https://eprint.iacr.org/2020/540.pdf
+            // paillier encrypted values and are thus safe to send as is.
+            let c_b_messageb_gammai = res_stage2.gamma_i_vec[j].0.clone();
+            let c_b_messageb_wi = res_stage2.w_i_vec[j].0.clone();
+
+            // If this client were implementing blame(Identifiable abort) then this message should have been broadcast.
+            // For the current implementation p2p send is also fine.
             assert!(sendp2p(
                 &client,
                 party_num_int,
                 i,
                 "round2",
-                serde_json::to_string(&(
-                    res_stage2.gamma_i_vec[j].0.clone(),
-                    res_stage2.w_i_vec[j].0.clone(),
-                ))
-                .unwrap(),
+                serde_json::to_string(&(c_b_messageb_gammai, c_b_messageb_wi,)).unwrap(),
                 uuid.clone()
             )
             .is_ok());
