@@ -18,11 +18,7 @@ use std::{env, fs, time};
 use zk_paillier::zkproofs::DLogStatement;
 
 mod common;
-use crate::common::AES_KEY_BYTES_LEN;
-use common::{
-    aes_decrypt, aes_encrypt, broadcast, poll_for_broadcasts, poll_for_p2p, postb, sendp2p, Params,
-    PartySignup, AEAD,
-};
+use common::{broadcast, poll_for_broadcasts, poll_for_p2p, postb, sendp2p, Params, PartySignup};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 struct ParamsFile {
@@ -170,20 +166,6 @@ fn main() {
             j += 1;
         }
     }
-    let mut enc_key: Vec<Vec<u8>> = vec![];
-    for (i, k) in signers_vec.iter().enumerate() {
-        if *k != signers_vec[party_num_int as usize - 1] as usize {
-            let key_bn: BigInt = (g_w_i_vec[i as usize] * res_stage1.sign_keys.w_i.clone())
-                .x_coor()
-                .unwrap();
-            let key_bytes = BigInt::to_bytes(&key_bn);
-            let mut template: Vec<u8> = vec![0u8; AES_KEY_BYTES_LEN - key_bytes.len()];
-            template.extend_from_slice(&key_bytes[..]);
-            enc_key.push(template);
-        }
-    }
-
-    assert_eq!(signers_vec.len() - 1, enc_key.len());
     assert_eq!(signers_vec.len(), bc1_vec.len());
 
     let input_stage2 = SignStage2Input {
@@ -261,50 +243,9 @@ fn main() {
         if i != party_num_int {
             alpha_vec.push(res_stage3.alpha_vec_gamma[j]);
             miu_vec.push(res_stage3.alpha_vec_w[j]);
-            /*            let alpha_enc: AEAD = aes_encrypt(
-                            &enc_key[j],
-                            &BigInt::to_bytes(&res_stage3.alpha_vec_gamma[j].to_big_int()),
-                        );
-                        let miu_enc: AEAD = aes_encrypt(
-                            &enc_key[j],
-                            &BigInt::to_bytes(&res_stage3.alpha_vec_w[j].to_big_int()),
-                        );
-
-                        assert!(sendp2p(
-                            &client,
-                            party_num_int,
-                            i,
-                            "round3",
-                            serde_json::to_string(&(alpha_enc, miu_enc)).unwrap(),
-                            uuid.clone()
-                        )
-                        .is_ok());
-            */
             j += 1;
         }
     }
-
-    /*    let round3_ans_vec = poll_for_p2p(
-        &client,
-        party_num_int,
-        THRESHOLD + 1,
-        delay,
-        "round3",
-        uuid.clone(),
-    );*/
-    /*
-    for i in 0..THRESHOLD {
-        let (l_alpha_enc, l_miu_enc): (AEAD, AEAD) =
-            serde_json::from_str(&round3_ans_vec[i as usize]).unwrap();
-        let out = aes_decrypt(&enc_key[i as usize], l_alpha_enc);
-        let bn = BigInt::from_bytes(&out[..]);
-        alpha_vec.push(ECScalar::from(&bn));
-
-        let out = aes_decrypt(&enc_key[i as usize], l_miu_enc);
-        let bn = BigInt::from_bytes(&out[..]);
-        miu_vec.push(ECScalar::from(&bn));
-    }
-    */
 
     let input_stage4 = SignStage4Input {
         alpha_vec_s: alpha_vec.clone(),
