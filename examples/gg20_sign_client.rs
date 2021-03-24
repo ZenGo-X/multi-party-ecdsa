@@ -18,11 +18,7 @@ use std::{env, fs, time};
 use zk_paillier::zkproofs::DLogStatement;
 
 mod common;
-use crate::common::AES_KEY_BYTES_LEN;
-use common::{
-    aes_decrypt, aes_encrypt, broadcast, poll_for_broadcasts, poll_for_p2p, postb, sendp2p, Params,
-    PartySignup, AEAD,
-};
+use common::{broadcast, poll_for_broadcasts, poll_for_p2p, postb, sendp2p, Params, PartySignup};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 struct ParamsFile {
@@ -170,20 +166,6 @@ fn main() {
             j += 1;
         }
     }
-    let mut enc_key: Vec<Vec<u8>> = vec![];
-    for (i, k) in signers_vec.iter().enumerate() {
-        if *k != signers_vec[party_num_int as usize - 1] as usize {
-            let key_bn: BigInt = (g_w_i_vec[i as usize] * res_stage1.sign_keys.w_i.clone())
-                .x_coor()
-                .unwrap();
-            let key_bytes = BigInt::to_bytes(&key_bn);
-            let mut template: Vec<u8> = vec![0u8; AES_KEY_BYTES_LEN - key_bytes.len()];
-            template.extend_from_slice(&key_bytes[..]);
-            enc_key.push(template);
-        }
-    }
-
-    assert_eq!(signers_vec.len() - 1, enc_key.len());
     assert_eq!(signers_vec.len(), bc1_vec.len());
 
     let input_stage2 = SignStage2Input {
@@ -196,35 +178,33 @@ fn main() {
         l_s: signers_vec.clone(),
     };
 
+    let mut beta_vec: Vec<FE> = vec![];
+    let mut ni_vec: Vec<FE> = vec![];
     let res_stage2 = sign_stage2(&input_stage2).expect("sign stage2 failed.");
     // Send out MessageB, beta, ni to other signers so that they can calculate there alpha values.
     let mut j = 0;
     for i in 1..THRESHOLD + 2 {
         if i != party_num_int {
-            let beta_enc: AEAD = aes_encrypt(
-                &enc_key[j],
-                &BigInt::to_bytes(&res_stage2.gamma_i_vec[j].1.to_big_int()),
-            );
-            let ni_enc: AEAD = aes_encrypt(
-                &enc_key[j],
-                &BigInt::to_bytes(&res_stage2.w_i_vec[j].1.to_big_int()),
-            );
+            // private values and they should never be sent out.
+            beta_vec.push(res_stage2.gamma_i_vec[j].1);
+            ni_vec.push(res_stage2.w_i_vec[j].1);
+            // Below two are the C_b messages on page 11 https://eprint.iacr.org/2020/540.pdf
+            // paillier encrypted values and are thus safe to send as is.
+            let c_b_messageb_gammai = res_stage2.gamma_i_vec[j].0.clone();
+            let c_b_messageb_wi = res_stage2.w_i_vec[j].0.clone();
 
+            // If this client were implementing blame(Identifiable abort) then this message should have been broadcast.
+            // For the current implementation p2p send is also fine.
             assert!(sendp2p(
                 &client,
                 party_num_int,
                 i,
                 "round2",
-                serde_json::to_string(&(
-                    res_stage2.gamma_i_vec[j].0.clone(),
-                    beta_enc,
-                    res_stage2.w_i_vec[j].0.clone(),
-                    ni_enc,
-                ))
-                .unwrap(),
+                serde_json::to_string(&(c_b_messageb_gammai, c_b_messageb_wi,)).unwrap(),
                 uuid.clone()
             )
             .is_ok());
+
             j += 1;
         }
     }
@@ -241,22 +221,11 @@ fn main() {
     let mut m_b_gamma_rec_vec: Vec<MessageB> = Vec::new();
     let mut m_b_w_rec_vec: Vec<MessageB> = Vec::new();
 
-    // Will store the decrypted values received from other parties.
-    let mut beta_vec: Vec<FE> = vec![];
-    let mut ni_vec: Vec<FE> = vec![];
-
     for i in 0..THRESHOLD {
-        let (l_mb_gamma, l_enc_beta, l_mb_w, l_enc_ni): (MessageB, AEAD, MessageB, AEAD) =
+        let (l_mb_gamma, l_mb_w): (MessageB, MessageB) =
             serde_json::from_str(&round2_ans_vec[i as usize]).unwrap();
         m_b_gamma_rec_vec.push(l_mb_gamma);
         m_b_w_rec_vec.push(l_mb_w);
-        let out = aes_decrypt(&enc_key[i as usize], l_enc_beta);
-        let bn = BigInt::from_bytes(&out[..]);
-        beta_vec.push(ECScalar::from(&bn));
-
-        let out = aes_decrypt(&enc_key[i as usize], l_enc_ni);
-        let bn = BigInt::from_bytes(&out[..]);
-        ni_vec.push(ECScalar::from(&bn));
     }
 
     let input_stage3 = SignStage3Input {
@@ -270,52 +239,16 @@ fn main() {
     };
 
     let res_stage3 = sign_stage3(&input_stage3).expect("Sign stage 3 failed.");
+    let mut alpha_vec = vec![];
+    let mut miu_vec = vec![];
     // Send out alpha, miu to other signers.
     let mut j = 0;
     for i in 1..THRESHOLD + 2 {
         if i != party_num_int {
-            let alpha_enc: AEAD = aes_encrypt(
-                &enc_key[j],
-                &BigInt::to_bytes(&res_stage3.alpha_vec_gamma[j].to_big_int()),
-            );
-            let miu_enc: AEAD = aes_encrypt(
-                &enc_key[j],
-                &BigInt::to_bytes(&res_stage3.alpha_vec_w[j].to_big_int()),
-            );
-
-            assert!(sendp2p(
-                &client,
-                party_num_int,
-                i,
-                "round3",
-                serde_json::to_string(&(alpha_enc, miu_enc)).unwrap(),
-                uuid.clone()
-            )
-            .is_ok());
+            alpha_vec.push(res_stage3.alpha_vec_gamma[j]);
+            miu_vec.push(res_stage3.alpha_vec_w[j]);
             j += 1;
         }
-    }
-
-    let round3_ans_vec = poll_for_p2p(
-        &client,
-        party_num_int,
-        THRESHOLD + 1,
-        delay,
-        "round3",
-        uuid.clone(),
-    );
-    let mut alpha_vec = vec![];
-    let mut miu_vec = vec![];
-    for i in 0..THRESHOLD {
-        let (l_alpha_enc, l_miu_enc): (AEAD, AEAD) =
-            serde_json::from_str(&round3_ans_vec[i as usize]).unwrap();
-        let out = aes_decrypt(&enc_key[i as usize], l_alpha_enc);
-        let bn = BigInt::from_bytes(&out[..]);
-        alpha_vec.push(ECScalar::from(&bn));
-
-        let out = aes_decrypt(&enc_key[i as usize], l_miu_enc);
-        let bn = BigInt::from_bytes(&out[..]);
-        miu_vec.push(ECScalar::from(&bn));
     }
 
     let input_stage4 = SignStage4Input {
