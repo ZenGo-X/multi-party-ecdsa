@@ -1,6 +1,6 @@
 [package]
 name = "multi-party-ecdsa"
-version = "0.4.4"
+version = "0.4.5"
 edition = "2018"
 authors = [
     "Gary <gary@kzencorp.com>",
@@ -32,27 +32,27 @@ cclst = ["class_group"]
 [dependencies]
 subtle = { version = "2" }
 serde = { version = "1.0", features = ["derive"] }
-zeroize = "0.10.1"
+zeroize = "1"
 libsecp256k1 = "0.3.2"
 
 [dependencies.curv]
 git = "https://github.com/KZen-networks/curv"
-tag = "v0.6.1"
+tag = "v0.6.2"
 default-features = false
 
 [dependencies.centipede]
 git = "https://github.com/KZen-networks/centipede"
-tag = "v0.2.10"
+tag = "v0.2.11"
 default-features = false
 
 [dependencies.paillier]
 git = "https://github.com/KZen-networks/rust-paillier"
-tag = "v0.3.8"
+tag = "v0.3.9"
 default-features = false
 
 [dependencies.zk-paillier]
 git = "https://github.com/KZen-networks/zk-paillier"
-tag = "v0.3.10"
+tag = "v0.3.11"
 default-features = false
 
 [dependencies.class_group]
