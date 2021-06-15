@@ -6,7 +6,7 @@ use std::time::Duration;
 
 use curv::cryptographic_primitives::proofs::sigma_dlog::DLogProof;
 use curv::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS;
-use curv::FE;
+use curv::elliptic::curves::secp256_k1::{FE, GE};
 use round_based::containers::{
     push::{Push, PushExt},
     *,
@@ -32,8 +32,8 @@ pub struct Keygen {
 
     msgs1: Option<Store<BroadcastMsgs<gg_2020::party_i::KeyGenBroadcastMessage1>>>,
     msgs2: Option<Store<BroadcastMsgs<gg_2020::party_i::KeyGenDecommitMessage1>>>,
-    msgs3: Option<Store<P2PMsgs<(VerifiableSS, FE)>>>,
-    msgs4: Option<Store<BroadcastMsgs<DLogProof>>>,
+    msgs3: Option<Store<P2PMsgs<(VerifiableSS<GE>, FE)>>>,
+    msgs4: Option<Store<BroadcastMsgs<DLogProof<GE>>>>,
 
     msgs_queue: Vec<Msg<ProtocolMessage>>,
 
@@ -400,8 +400,8 @@ pub struct ProtocolMessage(M);
 enum M {
     Round1(gg_2020::party_i::KeyGenBroadcastMessage1),
     Round2(gg_2020::party_i::KeyGenDecommitMessage1),
-    Round3((VerifiableSS, FE)),
-    Round4(DLogProof),
+    Round3((VerifiableSS<GE>, FE)),
+    Round4(DLogProof<GE>),
 }
 
 // Error

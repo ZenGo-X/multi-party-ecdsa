@@ -1,6 +1,6 @@
 use curv::cryptographic_primitives::proofs::sigma_dlog::DLogProof;
 use curv::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS;
-use curv::{FE, GE};
+use curv::elliptic::curves::secp256_k1::{FE, GE};
 
 use paillier::EncryptionKey;
 use round_based::containers::push::Push;
@@ -105,7 +105,7 @@ impl Round2 {
         mut output: O,
     ) -> Result<Round3>
     where
-        O: Push<Msg<(VerifiableSS, FE)>>,
+        O: Push<Msg<(VerifiableSS<GE>, FE)>>,
     {
         let params = gg_2020::party_i::Parameters {
             threshold: self.t.into(),
@@ -167,7 +167,7 @@ pub struct Round3 {
     y_vec: Vec<GE>,
     bc_vec: Vec<gg_2020::party_i::KeyGenBroadcastMessage1>,
 
-    own_vss: VerifiableSS,
+    own_vss: VerifiableSS<GE>,
     own_share: FE,
 
     party_i: u16,
@@ -176,9 +176,9 @@ pub struct Round3 {
 }
 
 impl Round3 {
-    pub fn proceed<O>(self, input: P2PMsgs<(VerifiableSS, FE)>, mut output: O) -> Result<Round4>
+    pub fn proceed<O>(self, input: P2PMsgs<(VerifiableSS<GE>, FE)>, mut output: O) -> Result<Round4>
     where
-        O: Push<Msg<DLogProof>>,
+        O: Push<Msg<DLogProof<GE>>>,
     {
         let params = gg_2020::party_i::Parameters {
             threshold: self.t.into(),
@@ -222,7 +222,7 @@ impl Round3 {
     pub fn is_expensive(&self) -> bool {
         true
     }
-    pub fn expects_messages(i: u16, n: u16) -> Store<P2PMsgs<(VerifiableSS, FE)>> {
+    pub fn expects_messages(i: u16, n: u16) -> Store<P2PMsgs<(VerifiableSS<GE>, FE)>> {
         containers::P2PMsgsStore::new(i, n)
     }
 }
@@ -232,7 +232,7 @@ pub struct Round4 {
     y_vec: Vec<GE>,
     bc_vec: Vec<gg_2020::party_i::KeyGenBroadcastMessage1>,
     shared_keys: gg_2020::party_i::SharedKeys,
-    own_dlog_proof: DLogProof,
+    own_dlog_proof: DLogProof<GE>,
 
     party_i: u16,
     t: u16,
@@ -240,7 +240,7 @@ pub struct Round4 {
 }
 
 impl Round4 {
-    pub fn proceed(self, input: BroadcastMsgs<DLogProof>) -> Result<LocalKey> {
+    pub fn proceed(self, input: BroadcastMsgs<DLogProof<GE>>) -> Result<LocalKey> {
         let params = gg_2020::party_i::Parameters {
             threshold: self.t.into(),
             share_count: self.n.into(),
@@ -284,7 +284,7 @@ impl Round4 {
     pub fn is_expensive(&self) -> bool {
         true
     }
-    pub fn expects_messages(i: u16, n: u16) -> Store<BroadcastMsgs<DLogProof>> {
+    pub fn expects_messages(i: u16, n: u16) -> Store<BroadcastMsgs<DLogProof<GE>>> {
         containers::BroadcastMsgsStore::new(i, n)
     }
 }
