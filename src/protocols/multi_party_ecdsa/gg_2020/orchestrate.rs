@@ -622,10 +622,9 @@ mod tests {
                     threshold: threshold_test,
                 })
                 .is_ok(),
-                format!(
-                    " Test failed for Threshold {} Share Count {}",
-                    threshold_test, share_count_test
-                )
+                " Test failed for Threshold {} Share Count {}",
+                threshold_test,
+                share_count_test
             );
         }
     }

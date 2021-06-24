@@ -185,7 +185,7 @@ impl Round3 {
             share_count: self.n.into(),
         };
         let (vss_schemes, party_shares): (Vec<_>, Vec<_>) = input
-            .into_vec_including_me((self.own_vss, self.own_share))
+            .into_vec_including_me((self.own_vss.clone(), self.own_share))
             .into_iter()
             .unzip();
 
@@ -213,6 +213,7 @@ impl Round3 {
             bc_vec: self.bc_vec,
             shared_keys: res_stage3.shared_keys_s.clone(),
             own_dlog_proof: res_stage3.dlog_proof_s.clone(),
+            own_vss: self.own_vss,
 
             party_i: self.party_i.clone(),
             t: self.t,
@@ -233,6 +234,7 @@ pub struct Round4 {
     bc_vec: Vec<gg_2020::party_i::KeyGenBroadcastMessage1>,
     shared_keys: gg_2020::party_i::SharedKeys,
     own_dlog_proof: DLogProof<GE>,
+    own_vss: VerifiableSS<GE>,
 
     party_i: u16,
     t: u16,
@@ -274,6 +276,8 @@ impl Round4 {
             y_sum_s: y_sum,
             h1_h2_n_tilde_vec,
 
+            vss_scheme: self.own_vss,
+
             i: self.party_i,
             t: self.t,
             n: self.n,
@@ -297,6 +301,7 @@ pub struct LocalKey {
     pub paillier_key_vec: Vec<EncryptionKey>,
     pub y_sum_s: GE,
     pub h1_h2_n_tilde_vec: Vec<DLogStatement>,
+    pub vss_scheme: VerifiableSS<GE>,
     pub i: u16,
     pub t: u16,
     pub n: u16,

@@ -35,7 +35,7 @@ serde = { version = "1.0", features = ["derive"] }
 zeroize = "1"
 libsecp256k1 = "0.3.2"
 curv = { package = "curv-kzen", version = "0.7", default-features = false }
-round-based = { version = "0.1.0", features = [] }
+round-based = { version = "0.1.4", features = [] }
 thiserror = "1.0.23"
 
 [dependencies.centipede]
@@ -70,7 +70,7 @@ serde_json = "1.0"
 rand = "0.7"
 
 thiserror = "1.0.23"
-round-based = { version = "0.1.0", features = ["dev"] }
+round-based = { version = "0.1.4", features = ["dev"] }
 
 [patch.crates-io]
 rust-gmp = { version = "0.5.0", features = ["serde_support"], git = "https://github.com/KZen-networks/rust-gmp" }

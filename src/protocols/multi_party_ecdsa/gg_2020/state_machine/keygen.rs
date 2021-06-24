@@ -26,7 +26,7 @@ use rounds::{Round0, Round1, Round2, Round3, Round4};
 /// Keygen protocol state machine
 ///
 /// Successfully completed keygen protocol produces [LocalKey] that can be used in further
-/// [signing](super::sign::Sign) protocol.
+/// [signing](super::sign) protocol.
 pub struct Keygen {
     round: R,
 
@@ -365,7 +365,7 @@ impl fmt::Debug for Keygen {
         };
         write!(
             f,
-            "{{MPCRandom at round={} msgs1={} msgs2={} msgs3={} msgs4={} queue=[len={}]}}",
+            "{{Keygen at round={} msgs1={} msgs2={} msgs3={} msgs4={} queue=[len={}]}}",
             current_round,
             msgs1,
             msgs2,
@@ -469,12 +469,12 @@ mod private {
 }
 
 #[cfg(test)]
-mod test {
+pub mod test {
     use round_based::dev::Simulation;
 
     use super::*;
 
-    fn simulate_keygen(t: u16, n: u16) -> Vec<LocalKey> {
+    pub fn simulate_keygen(t: u16, n: u16) -> Vec<LocalKey> {
         let mut simulation = Simulation::new();
         simulation.enable_benchmarks(true);
 
