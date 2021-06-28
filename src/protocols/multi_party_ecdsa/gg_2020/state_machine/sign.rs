@@ -689,7 +689,7 @@ impl IsCritical for Error {
 /// // Complete signing
 /// let signature = sign.complete(sigs)?;
 /// // Verify that signature matches joint public key
-/// assert!(verify(&signature, completed_offline_stage.public_key(), &data));
+/// assert!(verify(&signature, completed_offline_stage.public_key(), &data).is_ok());
 /// # Ok(())
 /// # }
 /// ```
