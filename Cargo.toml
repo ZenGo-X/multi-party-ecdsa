@@ -34,28 +34,29 @@ subtle = { version = "2" }
 serde = { version = "1.0", features = ["derive"] }
 zeroize = "1"
 libsecp256k1 = "0.3.2"
-curv = { package = "curv-kzen", version = "0.7", default-features = false }
 round-based = { version = "0.1.4", features = [] }
 thiserror = "1.0.23"
+#curv = { package = "curv-kzen", version = "0.7", default-features = false }
+curv = {git = "https://github.com/Polkadex-Substrate/curv.git", default-features = false, version = "0.7"}
 
 [dependencies.centipede]
-git = "https://github.com/KZen-networks/centipede"
-tag = "v0.2.12"
+git = "https://github.com/Polkadex-Substrate/centipede"
+#tag = "v0.2.12"
 default-features = false
 
 [dependencies.paillier]
-git = "https://github.com/KZen-networks/rust-paillier"
-tag = "v0.3.10"
+git = "https://github.com/Polkadex-Substrate/rust-paillier"
+#tag = "v0.3.10"
 default-features = false
 
 [dependencies.zk-paillier]
-git = "https://github.com/KZen-networks/zk-paillier"
-tag = "v0.3.12"
+git = "https://github.com/Polkadex-Substrate/zk-paillier"
+#tag = "v0.3.12"
 default-features = false
 
 [dependencies.class_group]
-git = "https://github.com/KZen-networks/class"
-tag = "v0.5.2"
+git = "https://github.com/Polkadex-Substrate/class"
+#tag = "v0.5.2"
 optional = true
 
 [dev-dependencies]
