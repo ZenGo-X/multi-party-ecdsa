@@ -17,6 +17,7 @@
 pub mod blame;
 pub mod orchestrate;
 pub mod party_i;
+pub mod state_machine;
 #[cfg(test)]
 mod test;
 
