@@ -2,15 +2,18 @@ use curv::cryptographic_primitives::proofs::sigma_dlog::DLogProof;
 use curv::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS;
 use curv::elliptic::curves::secp256_k1::{FE, GE};
 
+use derivative::Derivative;
+use serde::{Deserialize, Serialize};
+use thiserror::Error;
+
 use paillier::EncryptionKey;
 use round_based::containers::push::Push;
 use round_based::containers::{self, BroadcastMsgs, P2PMsgs, Store};
 use round_based::Msg;
-use serde::{Deserialize, Serialize};
-use thiserror::Error;
 use zk_paillier::zkproofs::DLogStatement;
 
 use crate::protocols::multi_party_ecdsa::gg_2020::{self, orchestrate::*, ErrorType};
+use curv::elliptic::curves::traits::ECPoint;
 
 pub struct Round0 {
     pub party_i: u16,
@@ -294,22 +297,25 @@ impl Round4 {
 }
 
 /// Local secret obtained by party after [keygen](super::Keygen) protocol is completed
-#[derive(Clone, Serialize, Deserialize)]
-pub struct LocalKey {
-    pub keys_additive: gg_2020::party_i::Keys,
-    pub keys_linear: gg_2020::party_i::SharedKeys,
+#[derive(Derivative, Serialize, Deserialize)]
+#[derivative(Clone(bound = "P: Clone, P::Scalar: Clone"))]
+#[serde(bound(serialize = "P: Serialize, P::Scalar: Serialize"))]
+#[serde(bound(deserialize = "P: Deserialize<'de>, P::Scalar: Deserialize<'de>"))]
+pub struct LocalKey<P = GE> where P: ECPoint {
+    pub keys_additive: gg_2020::party_i::Keys<P>,
+    pub keys_linear: gg_2020::party_i::SharedKeys<P>,
     pub paillier_key_vec: Vec<EncryptionKey>,
-    pub y_sum_s: GE,
+    pub y_sum_s: P,
     pub h1_h2_n_tilde_vec: Vec<DLogStatement>,
-    pub vss_scheme: VerifiableSS<GE>,
+    pub vss_scheme: VerifiableSS<P>,
     pub i: u16,
     pub t: u16,
     pub n: u16,
 }
 
-impl LocalKey {
+impl<P: ECPoint + Clone> LocalKey<P> {
     /// Public key of secret shared between parties
-    pub fn public_key(&self) -> GE {
+    pub fn public_key(&self) -> P {
         self.y_sum_s.clone()
     }
 }

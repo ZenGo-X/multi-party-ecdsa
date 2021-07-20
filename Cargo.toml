@@ -1,6 +1,6 @@
 [package]
 name = "multi-party-ecdsa"
-version = "0.5.0"
+version = "0.5.1"
 edition = "2018"
 authors = [
     "Gary <gary@kzencorp.com>",
@@ -37,6 +37,7 @@ libsecp256k1 = "0.3.2"
 curv = { package = "curv-kzen", version = "0.7", default-features = false }
 round-based = { version = "0.1.4", features = [] }
 thiserror = "1.0.23"
+derivative = "2"
 
 [dependencies.centipede]
 git = "https://github.com/KZen-networks/centipede"

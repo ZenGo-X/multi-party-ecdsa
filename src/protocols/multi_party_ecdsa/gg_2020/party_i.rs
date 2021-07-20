@@ -15,6 +15,11 @@
 
     @license GPL-3.0+ <https://github.com/KZen-networks/multi-party-ecdsa/blob/master/LICENSE>
 */
+
+use std::fmt::Debug;
+
+use derivative::Derivative;
+
 use centipede::juggling::proof_system::{Helgamalsegmented, Witness};
 use centipede::juggling::segmentation::Msegmentation;
 use curv::arithmetic::traits::*;
@@ -47,10 +52,12 @@ pub struct Parameters {
     pub share_count: u16, //n
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Keys {
-    pub u_i: FE,
-    pub y_i: GE,
+#[derive(Derivative, Serialize, Deserialize)]
+#[derivative(Clone(bound = "P: Clone, P::Scalar: Clone"))]
+#[derivative(Debug(bound = "P: Debug, P::Scalar: Debug"))]
+pub struct Keys<P = GE> where P: ECPoint {
+    pub u_i: P::Scalar,
+    pub y_i: P,
     pub dk: DecryptionKey,
     pub ek: EncryptionKey,
     pub party_index: usize,
@@ -83,9 +90,9 @@ pub struct KeyGenDecommitMessage1 {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct SharedKeys {
-    pub y: GE,
-    pub x_i: FE,
+pub struct SharedKeys<P = GE> where P: ECPoint {
+    pub y: P,
+    pub x_i: P::Scalar,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
