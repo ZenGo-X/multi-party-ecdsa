@@ -29,7 +29,7 @@ use curv::elliptic::curves::secp256_k1::{FE, GE};
 use curv::elliptic::curves::traits::ECPoint;
 use curv::elliptic::curves::traits::ECScalar;
 use curv::BigInt;
-use paillier::{DecryptionKey, EncryptionKey};
+use paillier::EncryptionKey;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -46,7 +46,6 @@ pub struct PDLwSlackStatement {
 pub struct PDLwSlackWitness {
     pub x: FE,
     pub r: BigInt,
-    pub dk: DecryptionKey,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

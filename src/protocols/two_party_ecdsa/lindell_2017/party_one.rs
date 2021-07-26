@@ -387,7 +387,6 @@ impl PaillierKeyPair {
         let pdl_w_slack_witness = PDLwSlackWitness {
             x: party1_private.x1.clone(),
             r: party1_private.c_key_randomness.clone(),
-            dk: party1_private.paillier_priv.clone(),
         };
 
         let pdl_w_slack_proof = PDLwSlackProof::prove(&pdl_w_slack_witness, &pdl_w_slack_statement);

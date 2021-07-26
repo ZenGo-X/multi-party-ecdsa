@@ -20,8 +20,8 @@ use crate::protocols::multi_party_ecdsa::gg_2020::blame::{
 };
 use crate::protocols::multi_party_ecdsa::gg_2020::party_i::SignatureRecid;
 use crate::protocols::multi_party_ecdsa::gg_2020::party_i::{
-    KeyGenBroadcastMessage1, KeyGenDecommitMessage1, Keys, LocalSignature, Parameters,
-    PartyPrivate, SharedKeys, SignKeys,
+    KeyGenBroadcastMessage1, KeyGenDecommitMessage1, Keys, LocalSignature, Parameters, SharedKeys,
+    SignKeys,
 };
 use crate::utilities::mta::{MessageA, MessageB};
 use curv::arithmetic::traits::Converter;
@@ -282,8 +282,8 @@ fn sign(
     let g_w_vec = SignKeys::g_w_vec(&pk_vec, &s[..], &vss_scheme);
 
     let private_vec = (0..shared_keys_vec.len())
-        .map(|i| PartyPrivate::set_private(party_keys_vec[i].clone(), shared_keys_vec[i].clone()))
-        .collect::<Vec<PartyPrivate>>();
+        .map(|i| shared_keys_vec[i].x_i.clone())
+        .collect::<Vec<_>>();
     // make sure that we have t<t'<n and the group s contains id's for t' parties
     // TODO: make sure s has unique id's and they are all in range 0..n
     // TODO: make sure this code can run when id's are not in ascending order
@@ -489,7 +489,6 @@ fn sign(
                 &ek_vec[s[i]],
                 &sign_keys_vec[i].k_i,
                 &m_a_vec[i].1,
-                &party_keys_vec[s[i]],
                 &dlog_statement_vec[s[ind]],
             );
 

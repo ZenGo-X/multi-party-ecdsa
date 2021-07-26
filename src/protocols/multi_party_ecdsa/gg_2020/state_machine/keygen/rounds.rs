@@ -273,7 +273,9 @@ impl Round4 {
         let y_sum = tail.iter().fold(head[0], |acc, x| acc + x);
 
         let local_key = LocalKey {
-            keys_additive: self.keys.clone(),
+            paillier_dk: self.keys.dk,
+            paillier_ek: self.keys.ek,
+
             keys_linear: self.shared_keys.clone(),
             paillier_key_vec,
             y_sum_s: y_sum,
@@ -301,8 +303,13 @@ impl Round4 {
 #[derivative(Clone(bound = "P: Clone, P::Scalar: Clone"))]
 #[serde(bound(serialize = "P: Serialize, P::Scalar: Serialize"))]
 #[serde(bound(deserialize = "P: Deserialize<'de>, P::Scalar: Deserialize<'de>"))]
-pub struct LocalKey<P = GE> where P: ECPoint {
-    pub keys_additive: gg_2020::party_i::Keys<P>,
+pub struct LocalKey<P = GE>
+where
+    P: ECPoint,
+{
+    pub paillier_dk: paillier::DecryptionKey,
+    pub paillier_ek: paillier::EncryptionKey,
+
     pub keys_linear: gg_2020::party_i::SharedKeys<P>,
     pub paillier_key_vec: Vec<EncryptionKey>,
     pub y_sum_s: P,

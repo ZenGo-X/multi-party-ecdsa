@@ -57,10 +57,10 @@ impl Round0 {
         O: Push<Msg<MessageA>> + Push<Msg<GWI>> + Push<Msg<SignBroadcastPhase1>>,
     {
         let input = &SignStage1Input {
+            party_ek: self.local_key.paillier_ek.clone(),
             vss_scheme: self.local_key.vss_scheme.clone(),
             index: usize::from(self.s_l[usize::from(self.i - 1)]) - 1,
             s_l: self.s_l.iter().map(|&i| usize::from(i) - 1).collect(),
-            party_keys: self.local_key.keys_additive.clone(),
             shared_keys: self.local_key.keys_linear.clone(),
         };
         write_input(self.i, 1, &input);
@@ -204,7 +204,7 @@ impl Round2 {
             .unzip();
 
         let input = SignStage3Input {
-            dk_s: self.local_key.keys_additive.dk.clone(),
+            dk_s: self.local_key.paillier_dk.clone(),
             k_i_s: self.stage1.sign_keys.k_i,
             m_b_gamma_s: m_b_gamma_s.clone(),
             m_b_w_s,
@@ -479,7 +479,6 @@ impl Round5 {
                 .clone(),
             k_i: self.offline.stage1.sign_keys.k_i,
             randomness: self.offline.stage1.m_a.1,
-            party_keys: self.offline.local_key.keys_additive,
             h1_h2_N_tilde_vec: self.offline.local_key.h1_h2_n_tilde_vec,
             index: usize::from(self.offline.i) - 1,
             s: self
