@@ -274,7 +274,6 @@ impl Round4 {
 
         let local_key = LocalKey {
             paillier_dk: self.keys.dk,
-            paillier_ek: self.keys.ek,
 
             keys_linear: self.shared_keys.clone(),
             paillier_key_vec,
@@ -308,7 +307,6 @@ where
     P: ECPoint,
 {
     pub paillier_dk: paillier::DecryptionKey,
-    pub paillier_ek: paillier::EncryptionKey,
 
     pub keys_linear: gg_2020::party_i::SharedKeys<P>,
     pub paillier_key_vec: Vec<EncryptionKey>,

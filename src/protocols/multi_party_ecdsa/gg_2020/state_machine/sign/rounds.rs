@@ -57,7 +57,7 @@ impl Round0 {
         O: Push<Msg<MessageA>> + Push<Msg<GWI>> + Push<Msg<SignBroadcastPhase1>>,
     {
         let input = &SignStage1Input {
-            party_ek: self.local_key.paillier_ek.clone(),
+            party_ek: self.local_key.paillier_key_vec[usize::from(self.local_key.i - 1)].clone(),
             vss_scheme: self.local_key.vss_scheme.clone(),
             index: usize::from(self.s_l[usize::from(self.i - 1)]) - 1,
             s_l: self.s_l.iter().map(|&i| usize::from(i) - 1).collect(),
