@@ -19,7 +19,7 @@
 //! This proof ws taken from the proof 6.3 (left side ) in https://www.cs.unc.edu/~reiter/papers/2004/IJIS.pdf
 //!
 //! Statement: (c, pk, Q, G)
-//! witness (x, r, sk) such that Q = xG, c = Enc(pk, x, r) and Dec(sk, c) = x.
+//! witness (x, r) such that Q = xG, c = Enc(pk, x, r)
 //! note that because of the range proof, the proof has a slack in the range: x in [-q^3, q^3]
 
 use curv::arithmetic::traits::*;
