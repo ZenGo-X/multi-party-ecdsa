@@ -55,7 +55,10 @@ pub struct Parameters {
 #[derive(Derivative, Serialize, Deserialize)]
 #[derivative(Clone(bound = "P: Clone, P::Scalar: Clone"))]
 #[derivative(Debug(bound = "P: Debug, P::Scalar: Debug"))]
-pub struct Keys<P = GE> where P: ECPoint {
+pub struct Keys<P = GE>
+where
+    P: ECPoint,
+{
     pub u_i: P::Scalar,
     pub y_i: P,
     pub dk: DecryptionKey,
@@ -90,7 +93,10 @@ pub struct KeyGenDecommitMessage1 {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct SharedKeys<P = GE> where P: ECPoint {
+pub struct SharedKeys<P = GE>
+where
+    P: ECPoint,
+{
     pub y: P,
     pub x_i: P::Scalar,
 }
@@ -484,13 +490,13 @@ impl SignKeys {
     }
 
     pub fn create(
-        private: &PartyPrivate,
+        private_x_i: &FE,
         vss_scheme: &VerifiableSS<GE>,
         index: usize,
         s: &[usize],
     ) -> Self {
         let li = VerifiableSS::<GE>::map_share_to_new_params(&vss_scheme.parameters, index, s);
-        let w_i = li * private.x_i;
+        let w_i = li * private_x_i;
         let g: GE = ECPoint::generator();
         let g_w_i = g * w_i;
         let gamma_i: FE = ECScalar::new_random();
@@ -613,7 +619,6 @@ impl LocalSignature {
         ek: &EncryptionKey,
         k_i: &FE,
         k_enc_randomness: &BigInt,
-        key: &Keys,
         dlog_statement: &DLogStatement,
     ) -> PDLwSlackProof {
         // Generate PDL with slack statement, witness and proof
@@ -630,7 +635,6 @@ impl LocalSignature {
         let pdl_w_slack_witness = PDLwSlackWitness {
             x: k_i.clone(),
             r: k_enc_randomness.clone(),
-            dk: key.dk.clone(),
         };
 
         let proof = PDLwSlackProof::prove(&pdl_w_slack_witness, &pdl_w_slack_statement);

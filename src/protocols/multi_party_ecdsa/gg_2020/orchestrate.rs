@@ -38,8 +38,8 @@
 //!               jsons keygen.txt and sign.txt which will contain keygen and sign json
 //!               input/output pairs for all the stages.
 use crate::protocols::multi_party_ecdsa::gg_2020::party_i::{
-    KeyGenBroadcastMessage1, KeyGenDecommitMessage1, Keys, LocalSignature, Parameters,
-    PartyPrivate, SharedKeys, SignBroadcastPhase1, SignDecommitPhase1, SignKeys, SignatureRecid,
+    KeyGenBroadcastMessage1, KeyGenDecommitMessage1, Keys, LocalSignature, Parameters, SharedKeys,
+    SignBroadcastPhase1, SignDecommitPhase1, SignKeys, SignatureRecid,
 };
 use curv::arithmetic::traits::Converter;
 use curv::elliptic::curves::traits::*;
@@ -244,16 +244,15 @@ pub struct KeyPairResult {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SignStage1Input {
+    pub party_ek: paillier::EncryptionKey,
     pub vss_scheme: VerifiableSS<GE>,
     pub index: usize,
     pub s_l: Vec<usize>,
-    pub party_keys: Keys,
     pub shared_keys: SharedKeys,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SignStage1Result {
     pub sign_keys: SignKeys,
-    pub party_private: PartyPrivate,
     pub bc1: SignBroadcastPhase1,
     pub decom1: SignDecommitPhase1,
     pub m_a: (MessageA, BigInt),
@@ -272,12 +271,9 @@ pub struct SignStage1Result {
 //  s: list of participants taking part in signing.
 //  keypair_result: output of the key generation protocol.
 pub fn sign_stage1(input: &SignStage1Input) -> SignStage1Result {
-    //t,n to t,t for it's share.
-    let l_party_private =
-        PartyPrivate::set_private(input.party_keys.clone(), input.shared_keys.clone());
     //ephemeral keys. w_i, gamma_i and k_i and the curve points for the same.
     let l_sign_keys = SignKeys::create(
-        &l_party_private,
+        &input.shared_keys.x_i,
         &input.vss_scheme,
         input.index,
         &input.s_l[..],
@@ -285,11 +281,9 @@ pub fn sign_stage1(input: &SignStage1Input) -> SignStage1Result {
     // Commitment for g^gamma_i
     let (l_bc1, l_decom1) = l_sign_keys.phase1_broadcast();
     // encryption of k_i
-    let ek = input.party_keys.ek.clone();
-    let l_m_a = MessageA::a(&l_sign_keys.k_i, &ek);
+    let l_m_a = MessageA::a(&l_sign_keys.k_i, &input.party_ek);
     SignStage1Result {
         sign_keys: l_sign_keys,
-        party_private: l_party_private,
         bc1: l_bc1,
         decom1: l_decom1,
         m_a: l_m_a,
@@ -447,7 +441,6 @@ pub struct SignStage6Input {
     pub randomness: BigInt,
     pub e_k: EncryptionKey,
     pub k_i: FE,
-    pub party_keys: Keys,
     pub h1_h2_N_tilde_vec: Vec<DLogStatement>,
     pub s: Vec<usize>,
     pub index: usize,
@@ -472,7 +465,6 @@ pub fn sign_stage6(input: &SignStage6Input) -> Result<SignStage6Result, ErrorTyp
             &input.e_k,
             &input.k_i,
             &input.randomness,
-            &input.party_keys,
             &input.h1_h2_N_tilde_vec[input.s[ind]],
         );
 
@@ -869,13 +861,6 @@ mod tests {
         //
         // Values to be kept private(Each value needs to be encrypted with a key only known to that
         // party):
-        // 1. private_vec[i].u_i
-        // 2. private_vec[i].x_i
-        // 3. private_vec[i].dk
-        let mut private_vec = vec![];
-        //
-        // Values to be kept private(Each value needs to be encrypted with a key only known to that
-        // party):
         // 1. sign_keys_vec[i].w_i
         // 2. sign_keys_vec[i].k_i
         // 3. sign_keys_vec[i].gamma_i
@@ -892,7 +877,7 @@ mod tests {
                 vss_scheme: keypair_result.vss_scheme.clone(),
                 index: s[i],
                 s_l: s.to_vec(),
-                party_keys: keypair_result.party_keys_vec[s[i]].clone(),
+                party_ek: keypair_result.party_keys_vec[s[i]].ek.clone(),
                 shared_keys: keypair_result.shared_keys_vec[s[i]].clone(),
             };
             write_input!(
@@ -909,7 +894,6 @@ mod tests {
                 serde_json::to_string_pretty(&res_stage1).unwrap()
             );
 
-            private_vec.push(res_stage1.party_private);
             sign_keys_vec.push(res_stage1.sign_keys);
             bc1_vec.push(res_stage1.bc1);
             decom1_vec.push(res_stage1.decom1);
@@ -1140,7 +1124,6 @@ mod tests {
                 e_k: keypair_result.e_vec[s[i]].clone(),
                 k_i: sign_keys_vec[i].k_i.clone(),
                 randomness: m_a_vec[i].1.clone(),
-                party_keys: keypair_result.party_keys_vec[s[i]].clone(),
                 h1_h2_N_tilde_vec: keypair_result.h1_h2_N_tilde_vec.clone(),
                 index: i as usize,
                 s: s.to_vec(),

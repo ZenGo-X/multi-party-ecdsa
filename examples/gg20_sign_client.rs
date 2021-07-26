@@ -119,7 +119,7 @@ fn main() {
         vss_scheme: keypair.vss_scheme_vec_s[signers_vec[(party_num_int - 1) as usize]].clone(),
         index: signers_vec[(party_num_int - 1) as usize],
         s_l: signers_vec.clone(),
-        party_keys: keypair.party_keys_s.clone(),
+        party_ek: keypair.party_keys_s.ek.clone(),
         shared_keys: keypair.shared_keys,
     };
     let res_stage1 = sign_stage1(&input_stage1);
@@ -342,7 +342,6 @@ fn main() {
         e_k: keypair.paillier_key_vec_s[signers_vec[(party_num_int - 1) as usize] as usize].clone(),
         k_i: res_stage1.sign_keys.k_i.clone(),
         randomness: res_stage1.m_a.1.clone(),
-        party_keys: keypair.party_keys_s.clone(),
         h1_h2_N_tilde_vec: keypair.h1_h2_N_tilde_vec_s.clone(),
         index: (party_num_int - 1) as usize,
         s: signers_vec.clone(),

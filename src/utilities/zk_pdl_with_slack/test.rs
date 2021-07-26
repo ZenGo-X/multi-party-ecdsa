@@ -30,7 +30,7 @@ fn test_zk_pdl_with_slack() {
     let composite_dlog_proof = CompositeDLogProof::prove(&statement, &xhi);
 
     // generate the scalar secret and Paillier encrypt it
-    let (ek, dk) = Paillier::keypair().keys();
+    let (ek, _dk) = Paillier::keypair().keys();
     // note: safe primes should be used here as well:
     // let (ek_tilde, dk_tilde) = Paillier::keypair_safe_primes().keys();
     let randomness = Randomness::sample(&ek);
@@ -57,11 +57,7 @@ fn test_zk_pdl_with_slack() {
         N_tilde: ek_tilde.n,
     };
 
-    let pdl_w_slack_witness = PDLwSlackWitness {
-        x,
-        r: randomness.0,
-        dk,
-    };
+    let pdl_w_slack_witness = PDLwSlackWitness { x, r: randomness.0 };
 
     let proof = PDLwSlackProof::prove(&pdl_w_slack_witness, &pdl_w_slack_statement);
     // verify h1,h2, N_tilde
@@ -94,7 +90,7 @@ fn test_zk_pdl_with_slack_soundness() {
     let composite_dlog_proof = CompositeDLogProof::prove(&statement, &xhi);
 
     // generate the scalar secret and Paillier encrypt it
-    let (ek, dk) = Paillier::keypair().keys();
+    let (ek, _dk) = Paillier::keypair().keys();
     // note: safe primes should be used here as well:
     // let (ek_tilde, dk_tilde) = Paillier::keypair_safe_primes().keys();
     let randomness = Randomness::sample(&ek);
@@ -122,11 +118,7 @@ fn test_zk_pdl_with_slack_soundness() {
         N_tilde: ek_tilde.n,
     };
 
-    let pdl_w_slack_witness = PDLwSlackWitness {
-        x,
-        r: randomness.0,
-        dk,
-    };
+    let pdl_w_slack_witness = PDLwSlackWitness { x, r: randomness.0 };
 
     let proof = PDLwSlackProof::prove(&pdl_w_slack_witness, &pdl_w_slack_statement);
     // verify h1,h2, N_tilde
