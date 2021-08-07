@@ -1,5 +1,6 @@
 use std::convert::TryFrom;
 
+use paillier::EncryptionKey;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -13,6 +14,9 @@ use round_based::Msg;
 use crate::utilities::mta::{MessageA, MessageB};
 
 use crate::protocols::multi_party_ecdsa::gg_2020 as gg20;
+use crate::utilities::zk_pdl::PDLWitness;
+
+use crate::utilities::zk_pdl_with_slack::{PDLwSlackProof, PDLwSlackStatement, PDLwSlackWitness};
 use gg20::orchestrate::*;
 use gg20::party_i::{
     LocalSignature, SignBroadcastPhase1, SignDecommitPhase1, SignKeys, SignatureRecid,
@@ -347,6 +351,10 @@ impl Round3 {
             index: usize::from(self.i) - 1,
             sign_keys: self.stage1.sign_keys.clone(),
             s_ttag: self.s_l.len(),
+            h1_h2_N_tilde_vec: self.local_key.h1_h2_n_tilde_vec[(self.local_key.i - 1) as usize]
+                .clone(),
+            m_a: self.stage1.m_a.clone(),
+            e_k: self.local_key.paillier_key_vec[(self.local_key.i - 1) as usize].clone(),
         };
 
         write_input(self.i, 5, &input);
@@ -406,6 +414,8 @@ impl Round4 {
     pub fn proceed(self, input: BroadcastMsgs<RDash>) -> Result<CompletedOfflineStage> {
         let r_dash = input.into_vec_including_me(RDash(self.stage5.R_dash.clone()));
         let r_dash = r_dash.into_iter().map(|RDash(r)| r).collect();
+        let r_vec = input.into_vec_including_me(me)
+            let r_vec = input.into_vec_including_me
         Ok(CompletedOfflineStage {
             i: self.i,
             s_l: self.s_l,
@@ -443,6 +453,10 @@ pub struct CompletedOfflineStage {
     stage5: SignStage5Result,
 
     r_dash: Vec<GE>,
+    r_vec: Vec<GE>,
+    m_a_vec: Vec<MessageA>,
+    e_k_vec: Vec<EncryptionKey>,
+    phase_5_proof_vec: Vec<PDLwSlackProof>,
 }
 
 impl CompletedOfflineStage {
@@ -472,13 +486,11 @@ impl Round5 {
         );
         let input = SignStage6Input {
             R_dash_vec: self.offline.r_dash,
-            R: self.offline.stage5.R,
-            m_a: self.offline.stage1.m_a.0,
-            e_k: self.offline.local_key.paillier_key_vec
-                [usize::from(self.offline.s_l[usize::from(self.offline.i) - 1]) - 1]
-                .clone(),
+            R_vec: self.offline.r_vec,
+            m_a_vec: self.offline.m_a_vec,
+            e_k_vec: self.offline.e_k_vec,
             k_i: self.offline.stage1.sign_keys.k_i,
-            randomness: self.offline.stage1.m_a.1,
+            phase5_proof_vec: self.offline.phase_5_proof_vec,
             h1_h2_N_tilde_vec: self.offline.local_key.h1_h2_n_tilde_vec,
             index: usize::from(self.offline.i) - 1,
             s: self
