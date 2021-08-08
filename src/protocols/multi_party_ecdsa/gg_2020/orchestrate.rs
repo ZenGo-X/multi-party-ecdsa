@@ -1094,8 +1094,8 @@ mod tests {
                 sign_keys: sign_keys_vec[i].clone(),
                 s_ttag: ttag,
                 m_a: m_a_vec[i].clone(),
-                e_k: keypair_result.e_vec[s[i] - 1],
-                h1_h2_N_tilde_vec: keypair_result.h1_h2_N_tilde_vec[s[i] - 1],
+                e_k: keypair_result.e_vec[s[i] - 1].clone(),
+                h1_h2_N_tilde_vec: keypair_result.h1_h2_N_tilde_vec[s[i] - 1].clone(),
             };
             write_input!(
                 i as u16,

@@ -17,7 +17,7 @@ pub struct OfflineStageProgress {
     round1_msgs: ReceivedMessages,
     round2_msgs: (ReceivedMessages, ReceivedMessages),
     round3_msgs: (ReceivedMessages, ReceivedMessages),
-    round4_msgs: ReceivedMessages,
+    round4_msgs: (ReceivedMessages, ReceivedMessages, ReceivedMessages),
     decom_round_msgs: ReceivedMessages,
 
     msgs_queue: OutgoingMessages,
@@ -53,7 +53,11 @@ impl From<&super::OfflineStage> for OfflineStageProgress {
                 ReceivedMessages::from_broadcast(state.msgs3.as_ref().map(|s| &s.0)),
                 ReceivedMessages::from_broadcast(state.msgs3.as_ref().map(|s| &s.1)),
             ),
-            round4_msgs: ReceivedMessages::from_broadcast(state.msgs4.as_ref()),
+            round4_msgs: (
+                ReceivedMessages::from_broadcast(state.msgs4.as_ref().map(|s| &s.0)),
+                ReceivedMessages::from_broadcast(state.msgs4.as_ref().map(|s| &s.1)),
+                ReceivedMessages::from_broadcast(state.msgs4.as_ref().map(|s| &s.2)),
+             ),
             decom_round_msgs: ReceivedMessages::from_broadcast(state.msgs_com.as_ref()),
 
             msgs_queue: OutgoingMessages {

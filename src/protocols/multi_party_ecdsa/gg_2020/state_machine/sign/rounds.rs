@@ -1,6 +1,5 @@
 use std::convert::TryFrom;
 
-use paillier::EncryptionKey;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -14,9 +13,8 @@ use round_based::Msg;
 use crate::utilities::mta::{MessageA, MessageB};
 
 use crate::protocols::multi_party_ecdsa::gg_2020 as gg20;
-use crate::utilities::zk_pdl::PDLWitness;
 
-use crate::utilities::zk_pdl_with_slack::{PDLwSlackProof, PDLwSlackStatement, PDLwSlackWitness};
+use crate::utilities::zk_pdl_with_slack::PDLwSlackProof;
 use gg20::orchestrate::*;
 use gg20::party_i::{
     LocalSignature, SignBroadcastPhase1, SignDecommitPhase1, SignKeys, SignatureRecid,
@@ -36,6 +34,8 @@ pub struct WI(pub MessageB);
 pub struct DeltaI(FE);
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct RDash(GE);
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct RVal(GE);
 
 pub struct Round0 {
     /// Index of this party
@@ -124,7 +124,7 @@ impl Round1 {
     {
         let m_a_vec = input.into_vec_including_me(self.stage1.m_a.0.clone());
         let input = SignStage2Input {
-            m_a_vec,
+            m_a_vec: m_a_vec.clone(),
             gamma_i: self.stage1.sign_keys.gamma_i,
             w_i: self.stage1.sign_keys.w_i,
             ek_vec: self.local_key.paillier_key_vec.clone(),
@@ -165,6 +165,7 @@ impl Round1 {
 
             stage1: self.stage1,
             stage2,
+            m_a_vec,
         })
     }
 
@@ -184,6 +185,7 @@ pub struct Round2 {
 
     stage1: SignStage1Result,
     stage2: SignStage2Result,
+    m_a_vec: Vec<MessageA>,
 }
 
 impl Round2 {
@@ -262,6 +264,7 @@ impl Round2 {
             stage2: self.stage2,
             stage3,
             stage4,
+            m_a_vec: self.m_a_vec.clone(),
         })
     }
 
@@ -286,7 +289,7 @@ pub struct CompletedRound2 {
     local_key: LocalKey,
 
     mb_gamma_s: Vec<MessageB>,
-
+    m_a_vec: Vec<MessageA>,
     stage1: SignStage1Result,
     stage2: SignStage2Result,
     stage3: SignStage3Result,
@@ -302,7 +305,7 @@ pub struct Round3 {
 
     commitments: Vec<SignBroadcastPhase1>,
     mb_gamma_s: Vec<MessageB>,
-
+    m_a_vec: Vec<MessageA>,
     stage1: SignStage1Result,
     stage2: SignStage2Result,
     stage3: SignStage3Result,
@@ -318,7 +321,7 @@ impl Round3 {
 
             commitments: commitments.commitments,
             mb_gamma_s: round2.mb_gamma_s,
-
+            m_a_vec: round2.m_a_vec.clone(),
             stage1: round2.stage1,
             stage2: round2.stage2,
             stage3: round2.stage3,
@@ -333,7 +336,7 @@ impl Round3 {
         mut output: O,
     ) -> Result<Round4>
     where
-        O: Push<Msg<RDash>>,
+        O: Push<Msg<RDash>> + Push<Msg<RVal>>,
     {
         let decom_vec1 = input_decom.into_vec_including_me(self.stage1.decom1.clone());
         let deltas: Vec<_> = input_delta
@@ -367,11 +370,16 @@ impl Round3 {
             body: RDash(stage5.R_dash),
         });
 
+        output.push(Msg {
+            sender: self.i,
+            receiver: None,
+            body: RVal(stage5.R),
+        });
         Ok(Round4 {
             i: self.i,
             s_l: self.s_l,
             local_key: self.local_key,
-
+            m_a_vec: self.m_a_vec.clone(),
             stage1: self.stage1,
             stage2: self.stage2,
             stage3: self.stage3,
@@ -402,7 +410,7 @@ pub struct Round4 {
     i: u16,
     s_l: Vec<u16>,
     local_key: LocalKey,
-
+    m_a_vec: Vec<MessageA>,
     stage1: SignStage1Result,
     stage2: SignStage2Result,
     stage3: SignStage3Result,
@@ -411,11 +419,18 @@ pub struct Round4 {
 }
 
 impl Round4 {
-    pub fn proceed(self, input: BroadcastMsgs<RDash>) -> Result<CompletedOfflineStage> {
+    pub fn proceed(
+        self,
+        input: BroadcastMsgs<RDash>,
+        input_phase5_proof: BroadcastMsgs<PDLwSlackProof>,
+        input_r: BroadcastMsgs<RVal>,
+    ) -> Result<CompletedOfflineStage> {
         let r_dash = input.into_vec_including_me(RDash(self.stage5.R_dash.clone()));
         let r_dash = r_dash.into_iter().map(|RDash(r)| r).collect();
-        let r_vec = input.into_vec_including_me(me)
-            let r_vec = input.into_vec_including_me
+        let r = input_r.into_vec_including_me(RVal(self.stage5.R.clone()));
+        let r = r.into_iter().map(|a| a.0.clone()).collect();
+        let phase_5_proof_vec =
+            input_phase5_proof.into_vec_including_me(self.stage5.phase5_proof.clone());
         Ok(CompletedOfflineStage {
             i: self.i,
             s_l: self.s_l,
@@ -428,11 +443,25 @@ impl Round4 {
             stage5: self.stage5,
 
             r_dash,
+            r_vec: r,
+            m_a_vec: self.m_a_vec.clone(),
+            phase_5_proof_vec,
         })
     }
 
-    pub fn expects_messages(i: u16, n: u16) -> Store<BroadcastMsgs<RDash>> {
-        containers::BroadcastMsgsStore::new(i, n)
+    pub fn expects_messages(
+        i: u16,
+        n: u16,
+    ) -> (
+        Store<BroadcastMsgs<RDash>>,
+        Store<BroadcastMsgs<PDLwSlackProof>>,
+        Store<BroadcastMsgs<RVal>>,
+    ) {
+        (
+            containers::BroadcastMsgsStore::new(i, n),
+            containers::BroadcastMsgsStore::new(i, n),
+            containers::BroadcastMsgsStore::new(i, n),
+        )
     }
 
     pub fn is_expensive(&self) -> bool {
@@ -455,7 +484,6 @@ pub struct CompletedOfflineStage {
     r_dash: Vec<GE>,
     r_vec: Vec<GE>,
     m_a_vec: Vec<MessageA>,
-    e_k_vec: Vec<EncryptionKey>,
     phase_5_proof_vec: Vec<PDLwSlackProof>,
 }
 
@@ -488,7 +516,7 @@ impl Round5 {
             R_dash_vec: self.offline.r_dash,
             R_vec: self.offline.r_vec,
             m_a_vec: self.offline.m_a_vec,
-            e_k_vec: self.offline.e_k_vec,
+            e_k_vec: self.offline.local_key.paillier_key_vec.clone(),
             k_i: self.offline.stage1.sign_keys.k_i,
             phase5_proof_vec: self.offline.phase_5_proof_vec,
             h1_h2_N_tilde_vec: self.offline.local_key.h1_h2_n_tilde_vec,
