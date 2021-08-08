@@ -404,11 +404,16 @@ pub struct SignStage5Input {
     pub index: usize,
     pub sign_keys: SignKeys,
     pub s_ttag: usize,
+    pub m_a: (MessageA, BigInt),
+    pub e_k: EncryptionKey,
+    pub h1_h2_N_tilde_vec: DLogStatement,
 }
+use crate::utilities::zk_pdl_with_slack::{PDLwSlackProof, PDLwSlackStatement, PDLwSlackWitness};
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SignStage5Result {
     pub R: GE,
     pub R_dash: GE,
+    pub phase5_proof: PDLwSlackProof,
 }
 pub fn sign_stage5(input: &SignStage5Input) -> Result<SignStage5Result, ErrorType> {
     let b_proof_vec = (0..input.s_ttag - 1)
@@ -428,18 +433,28 @@ pub fn sign_stage5(input: &SignStage5Input) -> Result<SignStage5Result, ErrorTyp
 
     let Rvec_i = check_Rvec_i.unwrap();
     let Rdash_vec_i = Rvec_i * input.sign_keys.k_i;
+    let proof = LocalSignature::phase5_proof_pdl(
+        &Rdash_vec_i,
+        &Rvec_i,
+        &input.m_a.0.c,
+        &input.e_k,
+        &input.sign_keys.k_i,
+        &input.m_a.1,
+        &input.h1_h2_N_tilde_vec,
+    );
+
     Ok(SignStage5Result {
         R: Rvec_i,
         R_dash: Rdash_vec_i,
+        phase5_proof: proof,
     })
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SignStage6Input {
     pub R_dash_vec: Vec<GE>,
-    pub R: GE,
-    pub m_a: MessageA,
-    pub randomness: BigInt,
-    pub e_k: EncryptionKey,
+    pub R_vec: Vec<GE>,
+    pub m_a_vec: Vec<MessageA>,
+    pub e_k_vec: Vec<EncryptionKey>,
     pub k_i: FE,
     pub h1_h2_N_tilde_vec: Vec<DLogStatement>,
     pub s: Vec<usize>,
@@ -448,6 +463,7 @@ pub struct SignStage6Input {
     pub message_bn: BigInt,
     pub sigma: FE,
     pub ysum: GE,
+    pub phase5_proof_vec: Vec<PDLwSlackProof>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -455,33 +471,24 @@ pub struct SignStage6Result {
     pub local_sig: LocalSignature,
 }
 pub fn sign_stage6(input: &SignStage6Input) -> Result<SignStage6Result, ErrorType> {
-    let mut proof_vec = vec![];
     for j in 0..input.s.len() - 1 {
+        if j == input.index {
+            continue;
+        }
         let ind = if j < input.index { j } else { j + 1 };
-        let proof = LocalSignature::phase5_proof_pdl(
+        let phase5_verify_zk = LocalSignature::phase5_verify_pdl(
+            &input.phase5_proof_vec,
             &input.R_dash_vec[input.index],
-            &input.R,
-            &input.m_a.c,
-            &input.e_k,
-            &input.k_i,
-            &input.randomness,
-            &input.h1_h2_N_tilde_vec[input.s[ind]],
+            &input.R_vec[input.index],
+            &input.m_a_vec[input.index].c,
+            &input.e_k_vec[input.s[ind]],
+            &input.h1_h2_N_tilde_vec[..],
+            &input.s,
+            input.index,
         );
-
-        proof_vec.push(proof);
-    }
-    let phase5_verify_zk = LocalSignature::phase5_verify_pdl(
-        &proof_vec,
-        &input.R_dash_vec[input.index],
-        &input.R,
-        &input.m_a.c,
-        &input.e_k,
-        &input.h1_h2_N_tilde_vec[..],
-        &input.s,
-        input.index,
-    );
-    if phase5_verify_zk.is_err() {
-        return Err(phase5_verify_zk.err().unwrap());
+        if phase5_verify_zk.is_err() {
+            return Err(phase5_verify_zk.err().unwrap());
+        }
     }
 
     let phase5_check = LocalSignature::phase5_check_R_dash_sum(&input.R_dash_vec);
@@ -495,7 +502,7 @@ pub fn sign_stage6(input: &SignStage6Input) -> Result<SignStage6Result, ErrorTyp
         local_sig: LocalSignature::phase7_local_sig(
             &input.sign_key.k_i,
             &input.message_bn,
-            &input.R,
+            &input.R_vec[input.index],
             &input.sigma,
             &input.ysum,
         ),
@@ -1086,6 +1093,9 @@ mod tests {
                 index: i,
                 sign_keys: sign_keys_vec[i].clone(),
                 s_ttag: ttag,
+                m_a: m_a_vec[i].clone(),
+                e_k: keypair_result.e_vec[s[i] - 1].clone(),
+                h1_h2_N_tilde_vec: keypair_result.h1_h2_N_tilde_vec[s[i] - 1].clone(),
             };
             write_input!(
                 i as u16,
@@ -1118,12 +1128,15 @@ mod tests {
         let mut res_stage6_vec = vec![];
         for i in 0..ttag {
             let input = SignStage6Input {
+                phase5_proof_vec: result_stage5_vec
+                    .iter()
+                    .map(|a| a.phase5_proof.clone())
+                    .collect(),
                 R_dash_vec: R_dash_vec.clone(),
-                R: R_vec[i].clone(),
-                m_a: m_a_vec[i].0.clone(),
-                e_k: keypair_result.e_vec[s[i]].clone(),
+                R_vec: R_vec.clone(),
+                m_a_vec: m_a_vec.iter().map(|a| a.0.clone()).collect(),
+                e_k_vec: keypair_result.e_vec.clone(),
                 k_i: sign_keys_vec[i].k_i.clone(),
-                randomness: m_a_vec[i].1.clone(),
                 h1_h2_N_tilde_vec: keypair_result.h1_h2_N_tilde_vec.clone(),
                 index: i as usize,
                 s: s.to_vec(),

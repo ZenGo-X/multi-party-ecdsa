@@ -32,6 +32,7 @@ use thiserror::Error;
 use crate::utilities::mta::MessageA;
 
 use crate::protocols::multi_party_ecdsa::gg_2020 as gg20;
+use crate::utilities::zk_pdl_with_slack::PDLwSlackProof;
 use gg20::party_i::{LocalSignature, SignBroadcastPhase1, SignDecommitPhase1, SignatureRecid};
 use gg20::state_machine::keygen::LocalKey;
 
@@ -56,7 +57,11 @@ pub struct OfflineStage {
         Store<BroadcastMsgs<SignDecommitPhase1>>,
         Store<BroadcastMsgs<DeltaI>>,
     )>,
-    msgs4: Option<Store<BroadcastMsgs<RDash>>>,
+    msgs4: Option<(
+        Store<BroadcastMsgs<RDash>>,
+        Store<BroadcastMsgs<PDLwSlackProof>>,
+        Store<BroadcastMsgs<RVal>>,
+    )>,
     msgs_com: Option<Store<BroadcastMsgs<SignBroadcastPhase1>>>,
 
     msgs_queue: MsgQueue,
@@ -136,7 +141,13 @@ impl OfflineStage {
             .as_ref()
             .map(|(s1, s2)| s1.wants_more() || s2.wants_more())
             .unwrap_or(false);
-        let store4_wants_more = self.msgs4.as_ref().map(|s| s.wants_more()).unwrap_or(false);
+        let store4_wants_more = self
+            .msgs4
+            .as_ref()
+            .map(|(s1, s2, s3)| {
+                s1.wants_more() || s2.wants_more() || s3.wants_more()
+            })
+            .unwrap_or(false);
 
         let next_state: OfflineR;
         let try_again: bool = match replace(&mut self.round, OfflineR::Gone) {
@@ -217,12 +228,19 @@ impl OfflineStage {
                 false
             }
             OfflineR::R4(round) if !store4_wants_more && (!round.is_expensive() || may_block) => {
-                let store = self.msgs4.take().ok_or(InternalError::StoreGone)?;
-                let msgs = store
+                let (store1, store2, store3) =
+                    self.msgs4.take().ok_or(InternalError::StoreGone)?;
+                let msgs1 = store1
+                    .finish()
+                    .map_err(InternalError::RetrieveMessagesFromStore)?;
+                let msgs2 = store2
+                    .finish()
+                    .map_err(InternalError::RetrieveMessagesFromStore)?;
+                let msgs3 = store3
                     .finish()
                     .map_err(InternalError::RetrieveMessagesFromStore)?;
                 next_state = round
-                    .proceed(msgs)
+                    .proceed(msgs1, msgs2, msgs3)
                     .map(OfflineR::Finished)
                     .map_err(Error::ProceedRound)?;
                 false
@@ -383,14 +401,46 @@ impl StateMachine for OfflineStage {
                     })
                     .map_err(Error::HandleMessage)?;
             }
-            OfflineProtocolMessage(OfflineM::M4(m)) => {
-                let store = self
-                    .msgs4
-                    .as_mut()
-                    .ok_or(Error::ReceivedOutOfOrderMessage {
-                        current_round,
-                        msg_round: 4,
-                    })?;
+            OfflineProtocolMessage(OfflineM::M4A(m)) => {
+                let (store, _, _) =
+                    self.msgs4
+                        .as_mut()
+                        .ok_or(Error::ReceivedOutOfOrderMessage {
+                            current_round,
+                            msg_round: 4,
+                        })?;
+                store
+                    .push_msg(Msg {
+                        sender: msg.sender,
+                        receiver: msg.receiver,
+                        body: m,
+                    })
+                    .map_err(Error::HandleMessage)?;
+            }
+            OfflineProtocolMessage(OfflineM::M4B(m)) => {
+                let (_, store, _) =
+                    self.msgs4
+                        .as_mut()
+                        .ok_or(Error::ReceivedOutOfOrderMessage {
+                            current_round,
+                            msg_round: 4,
+                        })?;
+                store
+                    .push_msg(Msg {
+                        sender: msg.sender,
+                        receiver: msg.receiver,
+                        body: m,
+                    })
+                    .map_err(Error::HandleMessage)?;
+            }
+            OfflineProtocolMessage(OfflineM::M4C(m)) => {
+                let (_, _, store) =
+                    self.msgs4
+                        .as_mut()
+                        .ok_or(Error::ReceivedOutOfOrderMessage {
+                            current_round,
+                            msg_round: 4,
+                        })?;
                 store
                     .push_msg(Msg {
                         sender: msg.sender,
@@ -435,7 +485,13 @@ impl StateMachine for OfflineStage {
             .as_ref()
             .map(|(s1, s2)| s1.wants_more() || s2.wants_more())
             .unwrap_or(false);
-        let store4_wants_more = self.msgs4.as_ref().map(|s| s.wants_more()).unwrap_or(false);
+        let store4_wants_more = self
+            .msgs4
+            .as_ref()
+            .map(|(s1, s2, s3)| {
+                s1.wants_more() || s2.wants_more() || s3.wants_more() 
+            })
+            .unwrap_or(false);
         let store_com_wants_more = self
             .msgs_com
             .as_ref()
@@ -555,8 +611,9 @@ enum OfflineM {
     M2B((GammaI, WI)),
     M3A(SignDecommitPhase1),
     M3B(DeltaI),
-    M4(RDash),
-
+    M4A(RDash),
+    M4B(PDLwSlackProof),
+    M4C(RVal),
     MD(SignBroadcastPhase1),
 }
 
@@ -584,7 +641,9 @@ make_pushable! {
     M2B (GammaI, WI),
     M3A SignDecommitPhase1,
     M3B DeltaI,
-    M4 RDash,
+    M4A RDash,
+    M4B PDLwSlackProof,
+    M4C RVal,
     MD SignBroadcastPhase1,
 }
 

@@ -301,6 +301,9 @@ fn main() {
         index: (party_num_int - 1) as usize,
         sign_keys: res_stage1.sign_keys.clone(),
         s_ttag: signers_vec.len(),
+        m_a:,
+        e_k:,
+        h1_h2_N_tilde_vec:,
     };
     let res_stage5 = sign_stage5(&input_stage5).expect("Sign Stage 5 failed.");
     assert!(broadcast(
