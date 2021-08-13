@@ -43,6 +43,7 @@ use zk_paillier::zkproofs::{CompositeDLogProof, DLogStatement};
 
 use crate::protocols::multi_party_ecdsa::gg_2020::ErrorType;
 use crate::utilities::zk_pdl_with_slack::{PDLwSlackProof, PDLwSlackStatement, PDLwSlackWitness};
+use curv::cryptographic_primitives::proofs::sigma_valid_pedersen::PedersenProof;
 
 const SECURITY: usize = 256;
 
@@ -550,12 +551,14 @@ impl SignKeys {
             .fold(ki_w_i, |acc, x| acc + x)
     }
 
-    pub fn phase3_compute_t_i(sigma_i: &FE) -> (GE, FE) {
+    pub fn phase3_compute_t_i(sigma_i: &FE) -> (GE, FE, PedersenProof<GE>) {
         let g_sigma_i = GE::generator() * sigma_i;
         let l: FE = ECScalar::new_random();
         let h_l = GE::base_point2() * &l;
         let T = g_sigma_i + h_l;
-        (T, l)
+        let T_zk_proof = PedersenProof::<GE>::prove(&sigma_i, &l);
+
+        (T, l, T_zk_proof)
     }
     pub fn phase3_reconstruct_delta(delta_vec: &[FE]) -> FE {
         let sum = delta_vec.iter().fold(FE::zero(), |acc, x| acc + x);

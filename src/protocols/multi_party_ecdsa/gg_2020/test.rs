@@ -31,6 +31,7 @@ use crate::utilities::zk_pdl_with_slack::PDLwSlackProof;
 use curv::cryptographic_primitives::hashing::hash_sha256::HSha256;
 use curv::cryptographic_primitives::hashing::traits::Hash;
 use curv::cryptographic_primitives::proofs::sigma_dlog::DLogProof;
+use curv::cryptographic_primitives::proofs::sigma_valid_pedersen::PedersenProof;
 use curv::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS;
 use curv::elliptic::curves::secp256_k1::{FE, GE};
 use curv::elliptic::curves::traits::*;
@@ -451,10 +452,16 @@ fn sign(
     // all parties broadcast T_i:
     let mut T_vec = Vec::new();
     let mut l_vec = Vec::new();
+    let mut T_proof_vec = Vec::new();
     for i in 0..ttag {
-        let (T_i, l_i) = SignKeys::phase3_compute_t_i(&sigma_vec[i]);
+        let (T_i, l_i, T_proof_i) = SignKeys::phase3_compute_t_i(&sigma_vec[i]);
         T_vec.push(T_i);
         l_vec.push(l_i);
+        T_proof_vec.push(T_proof_i);
+    }
+    // verify T_proof_vec
+    for i in 0..ttag {
+        PedersenProof::verify(&T_proof_vec[i]).expect("error T proof");
     }
     // de-commit to g^gamma_i from phase1, test comm correctness, and that it is the same value used in MtA.
     // Return R
