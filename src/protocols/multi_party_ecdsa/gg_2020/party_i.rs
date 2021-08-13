@@ -556,7 +556,7 @@ impl SignKeys {
         let l: FE = ECScalar::new_random();
         let h_l = GE::base_point2() * &l;
         let T = g_sigma_i + h_l;
-        let T_zk_proof = PedersenProof::<GE>::prove(&sigma_i, &l_i);
+        let T_zk_proof = PedersenProof::<GE>::prove(&sigma_i, &l);
 
         (T, l, T_zk_proof)
     }
