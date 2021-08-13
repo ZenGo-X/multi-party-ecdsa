@@ -38,6 +38,7 @@ use gg20::state_machine::keygen::LocalKey;
 mod fmt;
 mod rounds;
 
+use crate::utilities::zk_pdl_with_slack::PDLwSlackProof;
 use curv::BigInt;
 use rounds::*;
 pub use rounds::{CompletedOfflineStage, Error as ProceedError};
@@ -48,16 +49,13 @@ pub use rounds::{CompletedOfflineStage, Error as ProceedError};
 /// be used for one-round signing multiple times.
 pub struct OfflineStage {
     round: OfflineR,
-    decommit_round: DecommitR,
 
-    msgs1: Option<Store<BroadcastMsgs<MessageA>>>,
-    msgs2: Option<(Store<BroadcastMsgs<GWI>>, Store<P2PMsgs<(GammaI, WI)>>)>,
-    msgs3: Option<(
-        Store<BroadcastMsgs<SignDecommitPhase1>>,
-        Store<BroadcastMsgs<DeltaI>>,
-    )>,
-    msgs4: Option<Store<BroadcastMsgs<RDash>>>,
-    msgs_com: Option<Store<BroadcastMsgs<SignBroadcastPhase1>>>,
+    msgs1: Option<Store<BroadcastMsgs<(MessageA, SignBroadcastPhase1)>>>,
+    msgs2: Option<Store<P2PMsgs<(GammaI, WI)>>>,
+    msgs3: Option<Store<BroadcastMsgs<(DeltaI, TI, TIProof)>>>,
+    msgs4: Option<Store<BroadcastMsgs<SignDecommitPhase1>>>,
+    msgs5: Option<Store<BroadcastMsgs<(RDash, Vec<PDLwSlackProof>)>>>,
+    msgs6: Option<Store<BroadcastMsgs<(SI, HEGProof)>>>,
 
     msgs_queue: MsgQueue,
 
@@ -104,13 +102,13 @@ impl OfflineStage {
 
         Ok(Self {
             round: OfflineR::R0(Round0 { i, s_l, local_key }),
-            decommit_round: DecommitR::NotStarted,
 
             msgs1: Some(Round1::expects_messages(i, n)),
             msgs2: Some(Round2::expects_messages(i, n)),
             msgs3: Some(Round3::expects_messages(i, n)),
             msgs4: Some(Round4::expects_messages(i, n)),
-            msgs_com: Some(DecommitRound::expects_messages(i, n)),
+            msgs5: Some(Round5::expects_messages(i, n)),
+            msgs6: Some(Round6::expects_messages(i, n)),
 
             msgs_queue: MsgQueue(vec![]),
 
@@ -119,36 +117,26 @@ impl OfflineStage {
         })
     }
 
-    fn proceed_state(&mut self, may_block: bool) -> Result<()> {
-        self.proceed_round(may_block)?;
-        self.proceed_decommit_round(may_block)
-    }
+    // fn proceed_state(&mut self, may_block: bool) -> Result<()> {
+    //     self.proceed_round(may_block)?;
+    //     self.proceed_decommit_round(may_block)
+    // }
 
     fn proceed_round(&mut self, may_block: bool) -> Result<()> {
         let store1_wants_more = self.msgs1.as_ref().map(|s| s.wants_more()).unwrap_or(false);
-        let store2_wants_more = self
-            .msgs2
-            .as_ref()
-            .map(|(s1, s2)| s1.wants_more() || s2.wants_more())
-            .unwrap_or(false);
-        let store3_wants_more = self
-            .msgs3
-            .as_ref()
-            .map(|(s1, s2)| s1.wants_more() || s2.wants_more())
-            .unwrap_or(false);
+        let store2_wants_more = self.msgs2.as_ref().map(|s| s.wants_more()).unwrap_or(false);
+        let store3_wants_more = self.msgs3.as_ref().map(|s| s.wants_more()).unwrap_or(false);
         let store4_wants_more = self.msgs4.as_ref().map(|s| s.wants_more()).unwrap_or(false);
+        let store5_wants_more = self.msgs5.as_ref().map(|s| s.wants_more()).unwrap_or(false);
+        let store6_wants_more = self.msgs6.as_ref().map(|s| s.wants_more()).unwrap_or(false);
 
         let next_state: OfflineR;
         let try_again: bool = match replace(&mut self.round, OfflineR::Gone) {
             OfflineR::R0(round) if !round.is_expensive() || may_block => {
-                if !matches!(self.decommit_round, DecommitR::NotStarted) {
-                    return Err(InternalError::DecommitRoundWasntInInitialState.into());
-                }
-                let (next_s, next_d) = round
+                next_state = round
                     .proceed(&mut self.msgs_queue)
+                    .map(OfflineR::R1)
                     .map_err(Error::ProceedRound)?;
-                next_state = OfflineR::R1(next_s);
-                self.decommit_round = DecommitR::R0(next_d);
                 true
             }
             s @ OfflineR::R0(_) => {
@@ -171,16 +159,13 @@ impl OfflineStage {
                 false
             }
             OfflineR::R2(round) if !store2_wants_more && (!round.is_expensive() || may_block) => {
-                let (store1, store2) = self.msgs2.take().ok_or(InternalError::StoreGone)?;
-                let msgs1 = store1
-                    .finish()
-                    .map_err(InternalError::RetrieveMessagesFromStore)?;
-                let msgs2 = store2
+                let store = self.msgs2.take().ok_or(InternalError::StoreGone)?;
+                let msgs = store
                     .finish()
                     .map_err(InternalError::RetrieveMessagesFromStore)?;
                 next_state = round
-                    .proceed(msgs1, msgs2, &mut self.msgs_queue)
-                    .map(OfflineR::CR2)
+                    .proceed(msgs, &mut self.msgs_queue)
+                    .map(OfflineR::R3)
                     .map_err(Error::ProceedRound)?;
                 true
             }
@@ -188,26 +173,13 @@ impl OfflineStage {
                 next_state = s;
                 false
             }
-            OfflineR::CR2(completed_round) => match self.decommit_round.steal_results() {
-                Some(result) => {
-                    next_state = OfflineR::R3(Round3::new(completed_round, result));
-                    true
-                }
-                None => {
-                    next_state = OfflineR::CR2(completed_round);
-                    false
-                }
-            },
             OfflineR::R3(round) if !store3_wants_more && (!round.is_expensive() || may_block) => {
-                let (store1, store2) = self.msgs3.take().ok_or(InternalError::StoreGone)?;
-                let msgs1 = store1
-                    .finish()
-                    .map_err(InternalError::RetrieveMessagesFromStore)?;
-                let msgs2 = store2
+                let store = self.msgs3.take().ok_or(InternalError::StoreGone)?;
+                let msgs = store
                     .finish()
                     .map_err(InternalError::RetrieveMessagesFromStore)?;
                 next_state = round
-                    .proceed(msgs1, msgs2, &mut self.msgs_queue)
+                    .proceed(msgs, &mut self.msgs_queue)
                     .map(OfflineR::R4)
                     .map_err(Error::ProceedRound)?;
                 true
@@ -222,12 +194,42 @@ impl OfflineStage {
                     .finish()
                     .map_err(InternalError::RetrieveMessagesFromStore)?;
                 next_state = round
+                    .proceed(msgs, &mut self.msgs_queue)
+                    .map(OfflineR::R5)
+                    .map_err(Error::ProceedRound)?;
+                false
+            }
+            s @ OfflineR::R4(_) => {
+                next_state = s;
+                false
+            }
+            OfflineR::R5(round) if !store5_wants_more && (!round.is_expensive() || may_block) => {
+                let store = self.msgs5.take().ok_or(InternalError::StoreGone)?;
+                let msgs = store
+                    .finish()
+                    .map_err(InternalError::RetrieveMessagesFromStore)?;
+                next_state = round
+                    .proceed(msgs, &mut self.msgs_queue)
+                    .map(OfflineR::R6)
+                    .map_err(Error::ProceedRound)?;
+                false
+            }
+            s @ OfflineR::R5(_) => {
+                next_state = s;
+                false
+            }
+            OfflineR::R6(round) if !store6_wants_more && (!round.is_expensive() || may_block) => {
+                let store = self.msgs6.take().ok_or(InternalError::StoreGone)?;
+                let msgs = store
+                    .finish()
+                    .map_err(InternalError::RetrieveMessagesFromStore)?;
+                next_state = round
                     .proceed(msgs)
                     .map(OfflineR::Finished)
                     .map_err(Error::ProceedRound)?;
                 false
             }
-            s @ OfflineR::R4(_) => {
+            s @ OfflineR::R6(_) => {
                 next_state = s;
                 false
             }
@@ -239,54 +241,6 @@ impl OfflineStage {
 
         self.round = next_state;
         if try_again {
-            self.proceed_round(may_block)
-        } else {
-            Ok(())
-        }
-    }
-
-    fn proceed_decommit_round(&mut self, may_block: bool) -> Result<()> {
-        let store_com_wants_more = self
-            .msgs_com
-            .as_ref()
-            .map(|s| s.wants_more())
-            .unwrap_or(false);
-
-        let next_state: DecommitR;
-        let finished: bool = match replace(&mut self.decommit_round, DecommitR::Gone) {
-            s @ DecommitR::NotStarted => {
-                next_state = s;
-                false
-            }
-            DecommitR::R0(round)
-                if !store_com_wants_more && (!round.is_expensive() || may_block) =>
-            {
-                let store = self.msgs_com.take().ok_or(InternalError::StoreGone)?;
-                let msgs = store
-                    .finish()
-                    .map_err(InternalError::RetrieveMessagesFromStore)?;
-                next_state = round
-                    .proceed(msgs, &mut self.msgs_queue)
-                    .map(DecommitR::Finished)
-                    .map_err(Error::ProceedRound)?;
-                true
-            }
-            s @ DecommitR::R0(_) => {
-                next_state = s;
-                false
-            }
-            s @ DecommitR::Finished(_) => {
-                next_state = s;
-                true
-            }
-            s @ DecommitR::Gone => {
-                next_state = s;
-                false
-            }
-        };
-        self.decommit_round = next_state;
-
-        if finished {
             self.proceed_round(may_block)
         } else {
             Ok(())
@@ -319,8 +273,8 @@ impl StateMachine for OfflineStage {
                     })
                     .map_err(Error::HandleMessage)?;
             }
-            OfflineProtocolMessage(OfflineM::M2A(m)) => {
-                let (store, _) = self
+            OfflineProtocolMessage(OfflineM::M2(m)) => {
+                let store = self
                     .msgs2
                     .as_mut()
                     .ok_or(Error::ReceivedOutOfOrderMessage {
@@ -335,45 +289,13 @@ impl StateMachine for OfflineStage {
                     })
                     .map_err(Error::HandleMessage)?;
             }
-            OfflineProtocolMessage(OfflineM::M2B(m)) => {
-                let (_, store) = self
-                    .msgs2
+            OfflineProtocolMessage(OfflineM::M3(m)) => {
+                let store = self
+                    .msgs3
                     .as_mut()
                     .ok_or(Error::ReceivedOutOfOrderMessage {
                         current_round,
                         msg_round: 2,
-                    })?;
-                store
-                    .push_msg(Msg {
-                        sender: msg.sender,
-                        receiver: msg.receiver,
-                        body: m,
-                    })
-                    .map_err(Error::HandleMessage)?;
-            }
-            OfflineProtocolMessage(OfflineM::M3A(m)) => {
-                let (store, _) = self
-                    .msgs3
-                    .as_mut()
-                    .ok_or(Error::ReceivedOutOfOrderMessage {
-                        current_round,
-                        msg_round: 3,
-                    })?;
-                store
-                    .push_msg(Msg {
-                        sender: msg.sender,
-                        receiver: msg.receiver,
-                        body: m,
-                    })
-                    .map_err(Error::HandleMessage)?;
-            }
-            OfflineProtocolMessage(OfflineM::M3B(m)) => {
-                let (_, store) = self
-                    .msgs3
-                    .as_mut()
-                    .ok_or(Error::ReceivedOutOfOrderMessage {
-                        current_round,
-                        msg_round: 3,
                     })?;
                 store
                     .push_msg(Msg {
@@ -389,7 +311,7 @@ impl StateMachine for OfflineStage {
                     .as_mut()
                     .ok_or(Error::ReceivedOutOfOrderMessage {
                         current_round,
-                        msg_round: 4,
+                        msg_round: 2,
                     })?;
                 store
                     .push_msg(Msg {
@@ -399,13 +321,29 @@ impl StateMachine for OfflineStage {
                     })
                     .map_err(Error::HandleMessage)?;
             }
-            OfflineProtocolMessage(OfflineM::MD(m)) => {
+            OfflineProtocolMessage(OfflineM::M5(m)) => {
                 let store = self
-                    .msgs_com
+                    .msgs5
                     .as_mut()
                     .ok_or(Error::ReceivedOutOfOrderMessage {
                         current_round,
-                        msg_round: 10,
+                        msg_round: 2,
+                    })?;
+                store
+                    .push_msg(Msg {
+                        sender: msg.sender,
+                        receiver: msg.receiver,
+                        body: m,
+                    })
+                    .map_err(Error::HandleMessage)?;
+            }
+            OfflineProtocolMessage(OfflineM::M6(m)) => {
+                let store = self
+                    .msgs6
+                    .as_mut()
+                    .ok_or(Error::ReceivedOutOfOrderMessage {
+                        current_round,
+                        msg_round: 2,
                     })?;
                 store
                     .push_msg(Msg {
@@ -416,7 +354,7 @@ impl StateMachine for OfflineStage {
                     .map_err(Error::HandleMessage)?;
             }
         }
-        self.proceed_state(false)
+        self.proceed_round(false)
     }
 
     fn message_queue(&mut self) -> &mut Vec<Msg<Self::MessageBody>> {
@@ -425,44 +363,26 @@ impl StateMachine for OfflineStage {
 
     fn wants_to_proceed(&self) -> bool {
         let store1_wants_more = self.msgs1.as_ref().map(|s| s.wants_more()).unwrap_or(false);
-        let store2_wants_more = self
-            .msgs2
-            .as_ref()
-            .map(|(s1, s2)| s1.wants_more() || s2.wants_more())
-            .unwrap_or(false);
-        let store3_wants_more = self
-            .msgs3
-            .as_ref()
-            .map(|(s1, s2)| s1.wants_more() || s2.wants_more())
-            .unwrap_or(false);
+        let store2_wants_more = self.msgs2.as_ref().map(|s| s.wants_more()).unwrap_or(false);
+        let store3_wants_more = self.msgs3.as_ref().map(|s| s.wants_more()).unwrap_or(false);
         let store4_wants_more = self.msgs4.as_ref().map(|s| s.wants_more()).unwrap_or(false);
-        let store_com_wants_more = self
-            .msgs_com
-            .as_ref()
-            .map(|s| s.wants_more())
-            .unwrap_or(false);
+        let store5_wants_more = self.msgs5.as_ref().map(|s| s.wants_more()).unwrap_or(false);
+        let store6_wants_more = self.msgs6.as_ref().map(|s| s.wants_more()).unwrap_or(false);
 
-        let proceed_round = match &self.round {
+        match &self.round {
             OfflineR::R0(_) => true,
             OfflineR::R1(_) => !store1_wants_more,
             OfflineR::R2(_) => !store2_wants_more,
-            OfflineR::CR2(_) => matches!(&self.decommit_round, DecommitR::Finished(_)),
             OfflineR::R3(_) => !store3_wants_more,
             OfflineR::R4(_) => !store4_wants_more,
+            OfflineR::R5(_) => !store5_wants_more,
+            OfflineR::R6(_) => !store6_wants_more,
             OfflineR::Finished(_) | OfflineR::Gone => false,
-        };
-
-        let proceed_decommit_round = match &self.decommit_round {
-            DecommitR::NotStarted => false,
-            DecommitR::R0(_) => !store_com_wants_more,
-            DecommitR::Finished(_) | DecommitR::Gone => false,
-        };
-
-        proceed_round || proceed_decommit_round
+        }
     }
 
     fn proceed(&mut self) -> Result<(), Self::Err> {
-        self.proceed_state(true)
+        self.proceed_round(true)
     }
 
     fn round_timeout(&self) -> Option<Duration> {
@@ -495,15 +415,16 @@ impl StateMachine for OfflineStage {
             OfflineR::R0(_) => 0,
             OfflineR::R1(_) => 1,
             OfflineR::R2(_) => 2,
-            OfflineR::CR2(_) => 2,
             OfflineR::R3(_) => 3,
             OfflineR::R4(_) => 4,
-            OfflineR::Finished(_) | OfflineR::Gone => 5,
+            OfflineR::R5(_) => 5,
+            OfflineR::R6(_) => 6,
+            OfflineR::Finished(_) | OfflineR::Gone => 7,
         }
     }
 
     fn total_rounds(&self) -> Option<u16> {
-        Some(4)
+        Some(6)
     }
 
     fn party_ind(&self) -> u16 {
@@ -519,30 +440,12 @@ enum OfflineR {
     R0(Round0),
     R1(Round1),
     R2(Round2),
-    CR2(CompletedRound2),
     R3(Round3),
     R4(Round4),
+    R5(Round5),
+    R6(Round6),
     Finished(CompletedOfflineStage),
     Gone,
-}
-
-enum DecommitR {
-    NotStarted,
-    R0(DecommitRound),
-    Finished(Commitments),
-    Gone,
-}
-
-impl DecommitR {
-    pub fn steal_results(&mut self) -> Option<Commitments> {
-        match replace(self, DecommitR::Gone) {
-            DecommitR::Finished(r) => Some(r),
-            s => {
-                *self = s;
-                None
-            }
-        }
-    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -550,14 +453,12 @@ pub struct OfflineProtocolMessage(OfflineM);
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 enum OfflineM {
-    M1(MessageA),
-    M2A(GWI),
-    M2B((GammaI, WI)),
-    M3A(SignDecommitPhase1),
-    M3B(DeltaI),
-    M4(RDash),
-
-    MD(SignBroadcastPhase1),
+    M1((MessageA, SignBroadcastPhase1)),
+    M2((GammaI, WI)),
+    M3((DeltaI, TI, TIProof)),
+    M4(SignDecommitPhase1),
+    M5((RDash, Vec<PDLwSlackProof>)),
+    M6((SI, HEGProof)),
 }
 
 struct MsgQueue(Vec<Msg<OfflineProtocolMessage>>);
@@ -579,13 +480,12 @@ macro_rules! make_pushable {
 }
 
 make_pushable! {
-    M1 MessageA,
-    M2A GWI,
-    M2B (GammaI, WI),
-    M3A SignDecommitPhase1,
-    M3B DeltaI,
-    M4 RDash,
-    MD SignBroadcastPhase1,
+    M1 (MessageA, SignBroadcastPhase1),
+    M2 (GammaI, WI),
+    M3 (DeltaI, TI, TIProof),
+    M4 SignDecommitPhase1,
+    M5 (RDash, Vec<PDLwSlackProof>),
+    M6 (SI, HEGProof),
 }
 
 type Result<T, E = Error> = std::result::Result<T, E>;
@@ -694,7 +594,7 @@ impl IsCritical for Error {
 /// # }
 /// ```
 pub struct SignManual {
-    state: Round6,
+    state: Round7,
 }
 
 impl SignManual {
@@ -702,16 +602,18 @@ impl SignManual {
         message_bn: BigInt,
         completed_offline_stage: CompletedOfflineStage,
     ) -> Result<(Self, LocalSignature), SignError> {
-        Round5::new(message_bn, completed_offline_stage)
-            .proceed_manual()
-            .map(|(state, m)| (Self { state }, m))
-            .map_err(SignError::LocalSigning)
+        todo!()
+        // Round7::new(message_bn, completed_offline_stage)
+        //     .proceed_manual()
+        //     .map(|(state, m)| (Self { state }, m))
+        //     .map_err(SignError::LocalSigning)
     }
 
     pub fn complete(self, sigs: Vec<LocalSignature>) -> Result<SignatureRecid, SignError> {
-        self.state
-            .proceed_manual(sigs)
-            .map_err(SignError::CompleteSigning)
+        todo!()
+        // self.state
+        //     .proceed_manual(sigs)
+        //     .map_err(SignError::CompleteSigning)
     }
 }
 

@@ -1,4 +1,7 @@
+#![allow(non_snake_case)]
+
 use std::convert::TryFrom;
+use std::iter;
 
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -7,7 +10,7 @@ use curv::elliptic::curves::secp256_k1::{FE, GE};
 use curv::BigInt;
 
 use round_based::containers::push::Push;
-use round_based::containers::{self, BroadcastMsgs, MessageStore, P2PMsgs, Store};
+use round_based::containers::{self, BroadcastMsgs, P2PMsgs, Store};
 use round_based::Msg;
 
 use crate::utilities::mta::{MessageA, MessageB};
@@ -15,7 +18,6 @@ use crate::utilities::mta::{MessageA, MessageB};
 use crate::protocols::multi_party_ecdsa::gg_2020 as gg20;
 use crate::utilities::zk_pdl_with_slack::PDLwSlackProof;
 use curv::cryptographic_primitives::proofs::sigma_correct_homomorphic_elgamal_enc::HomoELGamalProof;
-use curv::cryptographic_primitives::proofs::sigma_dlog::DLogProof;
 use curv::cryptographic_primitives::proofs::sigma_valid_pedersen::PedersenProof;
 use gg20::party_i::{
     LocalSignature, SignBroadcastPhase1, SignDecommitPhase1, SignKeys, SignatureRecid,
@@ -61,17 +63,19 @@ pub struct Round0 {
 }
 
 impl Round0 {
-    /// Round 0 initiates two branches of protocol execution: [Round1] and [DecommitRound]. Both of
-    /// them should be carried out simultaneously.
     pub fn proceed<O>(self, mut output: O) -> Result<Round1>
     where
-        O: Push<Msg<MessageA>> + Push<Msg<SignBroadcastPhase1>>,
+        O: Push<Msg<(MessageA, SignBroadcastPhase1)>>,
     {
         let sign_keys = SignKeys::create(
-            &private_vec[s[i]],
+            &self.local_key.keys_linear.x_i,
             &self.local_key.vss_scheme.clone(),
             usize::from(self.s_l[usize::from(self.i - 1)]) - 1,
-            &self.s_l.iter().map(|&i| usize::from(i) - 1).collect(),
+            &self
+                .s_l
+                .iter()
+                .map(|&i| usize::from(i) - 1)
+                .collect::<Vec<_>>(),
         );
         let (bc1, decom1) = sign_keys.phase1_broadcast();
 
@@ -81,27 +85,17 @@ impl Round0 {
         output.push(Msg {
             sender: self.i,
             receiver: None,
-            body: m_a.0.clone(),
+            body: (m_a.0.clone(), bc1.clone()),
         });
 
-        output.push(Msg {
-            sender: self.i,
-            receiver: None,
-            body: bc1.clone(),
-        });
-
-        let decom_round = DecommitRound {
-            i: self.i,
-            com: bc1.clone(),
-            decom: decom1.clone(),
-        };
         let round1 = Round1 {
             i: self.i,
             s_l: self.s_l.clone(),
             local_key: self.local_key,
             m_a,
             sign_keys,
-            decom_round,
+            phase1_com: bc1,
+            phase1_decom: decom1,
         };
 
         Ok(round1)
@@ -118,21 +112,23 @@ pub struct Round1 {
     local_key: LocalKey,
     m_a: (MessageA, BigInt),
     sign_keys: SignKeys,
-    decom_round: DecommitRound,
+    phase1_com: SignBroadcastPhase1,
+    phase1_decom: SignDecommitPhase1,
 }
 
 impl Round1 {
     pub fn proceed<O>(
         self,
-        input1: BroadcastMsgs<MessageA>,
-        input2: BroadcastMsgs<SignBroadcastPhase1>,
+        input: BroadcastMsgs<(MessageA, SignBroadcastPhase1)>,
         mut output: O,
     ) -> Result<Round2>
     where
         O: Push<Msg<(GammaI, WI)>>,
     {
-        let m_a_vec = input1.into_vec_including_me(self.m_a.0.clone());
-        let bc_vec = input2.into_vec_including_me(self.decom_round.com.clone());
+        let (m_a_vec, bc_vec): (Vec<_>, Vec<_>) = input
+            .into_vec_including_me((self.m_a.0.clone(), self.phase1_com.clone()))
+            .into_iter()
+            .unzip();
 
         let mut m_b_gamma_vec = Vec::new();
         let mut beta_vec = Vec::new();
@@ -154,12 +150,12 @@ impl Round1 {
             let (m_b_gamma, beta_gamma, beta_randomness, beta_tag) = MessageB::b(
                 &self.sign_keys.gamma_i,
                 &self.local_key.paillier_key_vec[l_s[ind]],
-                m_a_vec[ind].0.clone(),
+                m_a_vec[ind].clone(),
             );
             let (m_b_w, beta_wi, _, _) = MessageB::b(
                 &self.sign_keys.w_i,
                 &self.local_key.paillier_key_vec[l_s[ind]],
-                m_a_vec[ind].0.clone(),
+                m_a_vec[ind].clone(),
             );
 
             m_b_gamma_vec.push(m_b_gamma);
@@ -173,7 +169,7 @@ impl Round1 {
         let party_indices = (1..=self.s_l.len())
             .map(|j| u16::try_from(j).unwrap())
             .filter(|&j| j != self.i);
-        for (j, (gamma_i, w_i)) in party_indices.zip(m_b_gamma_vec.zip(m_b_w_vec)) {
+        for ((j, gamma_i), w_i) in party_indices.zip(m_b_gamma_vec).zip(m_b_w_vec) {
             output.push(Msg {
                 sender: self.i,
                 receiver: Some(j),
@@ -191,21 +187,15 @@ impl Round1 {
             ni_vec,
             bc_vec,
             m_a_vec,
-            decom_round1: self.decom_round,
+            phase1_decom: self.phase1_decom,
         })
     }
 
     pub fn expects_messages(
         i: u16,
         n: u16,
-    ) -> (
-        Store<BroadcastMsgs<(MessageA)>>,
-        Store<BroadcastMsgs<(SignBroadcastPhase1)>>,
-    ) {
-        (
-            containers::BroadcastMsgsStore::new(i, n),
-            containers::BroadcastMsgsStore::new(i, n),
-        )
+    ) -> Store<BroadcastMsgs<(MessageA, SignBroadcastPhase1)>> {
+        containers::BroadcastMsgsStore::new(i, n)
     }
 
     pub fn is_expensive(&self) -> bool {
@@ -223,15 +213,15 @@ pub struct Round2 {
     ni_vec: Vec<FE>,
     bc_vec: Vec<SignBroadcastPhase1>,
     m_a_vec: Vec<MessageA>,
-    decom_round1: DecommitRound,
+    phase1_decom: SignDecommitPhase1,
 }
 
 impl Round2 {
-    pub fn proceed<O>(self, input_round1: P2PMsgs<(GammaI, WI)>, mut output: O) -> Result<Round3>
+    pub fn proceed<O>(self, input_p2p: P2PMsgs<(GammaI, WI)>, mut output: O) -> Result<Round3>
     where
-        O: Push<Msg<DeltaI>> + Push<Msg<TI>> + Push<Msg<TIProof>>, // TODO: unify TI and TIProof
+        O: Push<Msg<(DeltaI, TI, TIProof)>>, // TODO: unify TI and TIProof
     {
-        let (m_b_gamma_s, m_b_w_s): (Vec<_>, Vec<_>) = input_round1
+        let (m_b_gamma_s, m_b_w_s): (Vec<_>, Vec<_>) = input_p2p
             .into_vec()
             .into_iter()
             .map(|(gamma_i, w_i)| (gamma_i.0, w_i.0))
@@ -270,24 +260,14 @@ impl Round2 {
             miu_vec.push(alpha_ij_wi.0);
         }
 
-        let mut delta_i = self.sign_keys.phase2_delta_i(&alpha_vec, &self.beta_vec);
+        let delta_i = self.sign_keys.phase2_delta_i(&alpha_vec, &self.beta_vec);
 
-        let mut sigma_i = self.sign_keys.phase2_sigma_i(&miu_vec, &self.ni_vec);
-        let (t_i, l_i, t_proof_i) = SignKeys::phase3_compute_t_i(&sigma_i);
+        let sigma_i = self.sign_keys.phase2_sigma_i(&miu_vec, &self.ni_vec);
+        let (t_i, l_i, t_i_proof) = SignKeys::phase3_compute_t_i(&sigma_i);
         output.push(Msg {
             sender: self.i,
             receiver: None,
-            body: DeltaI(delta_i),
-        });
-        output.push(Msg {
-            sender: self.i,
-            receiver: None,
-            body: TI(t_i),
-        });
-        output.push(Msg {
-            sender: self.i,
-            receiver: None,
-            body: TIProof(t_proof_i),
+            body: (DeltaI(delta_i), TI(t_i), TIProof(t_i_proof.clone())),
         });
 
         Ok(Round3 {
@@ -299,17 +279,17 @@ impl Round2 {
             mb_gamma_s: m_b_gamma_s,
             bc_vec: self.bc_vec,
             m_a_vec: self.m_a_vec,
-            decom_round1: self.decom_round1,
             delta_i,
             t_i,
             l_i,
             sigma_i,
             t_i_proof,
+            phase1_decom: self.phase1_decom,
         })
     }
 
     pub fn expects_messages(i: u16, n: u16) -> Store<P2PMsgs<(GammaI, WI)>> {
-        (containers::P2PMsgsStore::new(i, n),)
+        containers::P2PMsgsStore::new(i, n)
     }
 
     pub fn is_expensive(&self) -> bool {
@@ -326,40 +306,29 @@ pub struct Round3 {
     mb_gamma_s: Vec<MessageB>,
     bc_vec: Vec<SignBroadcastPhase1>,
     m_a_vec: Vec<MessageA>,
-    decom_round1: DecommitRound,
     delta_i: FE,
     t_i: GE,
     l_i: FE,
     sigma_i: FE,
     t_i_proof: PedersenProof<GE>,
+
+    phase1_decom: SignDecommitPhase1,
 }
 
 impl Round3 {
     pub fn proceed<O>(
         self,
-        input_delta_i: BroadcastMsgs<DeltaI>,
-        input_t_i: BroadcastMsgs<TI>,
-        input_t_i_proof: BroadcastMsgs<TIProof>,
+        input: BroadcastMsgs<(DeltaI, TI, TIProof)>,
         mut output: O,
     ) -> Result<Round4>
     where
-        O: Push<Msg<DecommitRound>>,
+        O: Push<Msg<SignDecommitPhase1>>,
     {
-        let delta_vec: Vec<_> = input_delta_i
-            .into_vec_including_me(DeltaI(self.delta_i))
+        let (delta_vec, t_vec, t_proof_vec) = input
+            .into_vec_including_me((DeltaI(self.delta_i), TI(self.t_i), TIProof(self.t_i_proof)))
             .into_iter()
-            .map(|DeltaI(delta_i)| delta_i)
-            .collect();
-        let t_vec: Vec<_> = input_t_i
-            .into_vec_including_me(TI(self.t_i))
-            .into_iter()
-            .map(|TI(t_i)| t_i)
-            .collect();
-        let t_proof_vec: Vec<_> = input_t_i_proof
-            .into_vec_including_me(TIProof(self.t_i_proof))
-            .into_iter()
-            .map(|TIProof(t_i_proof)| t_i_proof)
-            .collect();
+            .map(|(delta_i, t_i, t_i_proof)| (delta_i.0, t_i.0, t_i_proof.0))
+            .unzip3();
 
         let delta_inv = SignKeys::phase3_reconstruct_delta(&delta_vec);
         let ttag = self.s_l.len();
@@ -370,7 +339,7 @@ impl Round3 {
         output.push(Msg {
             sender: self.i,
             receiver: None,
-            body: self.decom_round1.clone(),
+            body: self.phase1_decom.clone(),
         });
 
         Ok(Round4 {
@@ -382,28 +351,17 @@ impl Round3 {
             mb_gamma_s: self.mb_gamma_s,
             bc_vec: self.bc_vec,
             m_a_vec: self.m_a_vec,
-            decom_round1: self.decom_round1.clone(),
             t_i: self.t_i,
             l_i: self.l_i,
             sigma_i: self.sigma_i,
+            phase1_decom: self.phase1_decom,
             delta_inv,
             t_vec,
         })
     }
 
-    pub fn expects_messages(
-        i: u16,
-        n: u16,
-    ) -> (
-        Store<BroadcastMsgs<DeltaI>>,
-        Store<BroadcastMsgs<TI>>,
-        Store<BroadcastMsgs<TIProof>>,
-    ) {
-        (
-            containers::BroadcastMsgsStore::new(i, n),
-            containers::BroadcastMsgsStore::new(i, n),
-            containers::BroadcastMsgsStore::new(i, n),
-        )
+    pub fn expects_messages(i: u16, n: u16) -> Store<BroadcastMsgs<(DeltaI, TI, TIProof)>> {
+        containers::BroadcastMsgsStore::new(i, n)
     }
 
     pub fn is_expensive(&self) -> bool {
@@ -420,28 +378,24 @@ pub struct Round4 {
     mb_gamma_s: Vec<MessageB>,
     bc_vec: Vec<SignBroadcastPhase1>,
     m_a_vec: Vec<MessageA>,
-    decom_round1: DecommitRound,
     t_i: GE,
     l_i: FE,
     sigma_i: FE,
     delta_inv: FE,
     t_vec: Vec<GE>,
+    phase1_decom: SignDecommitPhase1,
 }
 
 impl Round4 {
     pub fn proceed<O>(
         self,
-        decommit_round1: BroadcastMsgs<DecommitRound>,
+        decommit_round1: BroadcastMsgs<SignDecommitPhase1>,
         mut output: O,
     ) -> Result<Round5>
     where
-        O: Push<Msg<RDash>> + Push<Msg<Vec<PDLwSlackProof>>>,
+        O: Push<Msg<(RDash, Vec<PDLwSlackProof>)>>,
     {
-        let decom_vec: Vec<_> = decommit_round1
-            .into_vec_including_me(DecommitRound(self.decom_round1))
-            .into_iter()
-            .map(|DecomRound| DecomRound.decom)
-            .collect();
+        let decom_vec: Vec<_> = decommit_round1.into_vec_including_me(self.phase1_decom.clone());
 
         let ttag = self.s_l.len();
         let b_proof_vec: Vec<_> = (0..ttag).map(|i| &self.mb_gamma_s[i].b_proof).collect();
@@ -450,7 +404,7 @@ impl Round4 {
             &b_proof_vec[..],
             decom_vec.clone(),
             &self.bc_vec,
-            i,
+            usize::from(self.i - 1),
         )
         .expect(""); //TODO: propagate the error
         let R_dash = R * self.sign_keys.k_i;
@@ -482,13 +436,7 @@ impl Round4 {
         output.push(Msg {
             sender: self.i,
             receiver: None,
-            body: R_dash,
-        });
-
-        output.push(Msg {
-            sender: self.i,
-            receiver: None,
-            body: phase5_proofs_vec.clone(),
+            body: (RDash(R_dash), phase5_proofs_vec.clone()),
         });
 
         Ok(Round5 {
@@ -506,7 +454,7 @@ impl Round4 {
         })
     }
 
-    pub fn expects_messages(i: u16, n: u16) -> Store<BroadcastMsgs<DecommitRound>> {
+    pub fn expects_messages(i: u16, n: u16) -> Store<BroadcastMsgs<SignDecommitPhase1>> {
         containers::BroadcastMsgsStore::new(i, n)
     }
 
@@ -532,19 +480,17 @@ pub struct Round5 {
 impl Round5 {
     pub fn proceed<O>(
         self,
-        R_dash_vec: BroadcastMsgs<RDash>,
-        pdl_proof_mat: BroadcastMsgs<Vec<PDLwSlackProof>>,
+        input: BroadcastMsgs<(RDash, Vec<PDLwSlackProof>)>,
         mut output: O,
-    ) -> Result<CompletedOfflineStage>
+    ) -> Result<Round6>
     where
-        O: Push<Msg<SI>> + Push<Msg<HomoELGamalProof<GE>>>,
+        O: Push<Msg<(SI, HEGProof)>>,
     {
-        let pdl_proof_mat_inc_me = pdl_proof_mat.into_vec_including_me(self.phase5_proofs_vec);
-        let r_dash_vec: Vec<_> = R_dash_vec
-            .into_vec_including_me(RDash(self.R_dash))
+        let (r_dash_vec, pdl_proof_mat_inc_me): (Vec<_>, Vec<_>) = input
+            .into_vec_including_me((RDash(self.R_dash), self.phase5_proofs_vec))
             .into_iter()
-            .map(|RDash| RDash.0)
-            .collect();
+            .map(|(r_dash, pdl_proof)| (r_dash.0, pdl_proof))
+            .unzip();
 
         let l_s: Vec<_> = self
             .s_l
@@ -557,7 +503,7 @@ impl Round5 {
             LocalSignature::phase5_verify_pdl(
                 &pdl_proof_mat_inc_me[i],
                 &r_dash_vec[i],
-                &R,
+                &self.R,
                 &self.m_a_vec[i].c,
                 &self.local_key.paillier_key_vec[l_s[i]],
                 &self.local_key.h1_h2_n_tilde_vec,
@@ -569,7 +515,7 @@ impl Round5 {
         LocalSignature::phase5_check_R_dash_sum(&r_dash_vec).expect("R_dash error");
 
         let (S_i, homo_elgamal_proof) = LocalSignature::phase6_compute_S_i_and_proof_of_consistency(
-            &R,
+            &self.R,
             &self.t_i,
             &self.sigma_i,
             &self.l_i,
@@ -578,37 +524,67 @@ impl Round5 {
         output.push(Msg {
             sender: self.i,
             receiver: None,
-            body: SI(S_i.clone()),
+            body: (SI(S_i.clone()), HEGProof(homo_elgamal_proof.clone())),
         });
 
-        output.push(Msg {
-            sender: self.i,
-            receiver: None,
-            body: HEGProof(homo_elgamal_proof.clone()),
-        });
-
-        Ok(CompletedOfflineStage {
-            i: self.i,
-            s_l: self.s_l,
-            local_key: self.local_key,
-            t_vec: self.t_vec,
-            R,
+        Ok(Round6 {
             S_i,
             homo_elgamal_proof,
+            R: self.R,
+            s_l: self.s_l,
+            protocol_output: CompletedOfflineStage {
+                i: self.i,
+                local_key: self.local_key,
+                t_vec: self.t_vec,
+            },
         })
     }
 
-    pub fn expects_messages(
-        i: u16,
-        n: u16,
-    ) -> (
-        Store<BroadcastMsgs<RDash>>,
-        Store<BroadcastMsgs<Vec<PDLwSlackProof>>>,
-    ) {
-        (
-            containers::BroadcastMsgsStore::new(i, n),
-            containers::BroadcastMsgsStore::new(i, n),
+    pub fn expects_messages(i: u16, n: u16) -> Store<BroadcastMsgs<(RDash, Vec<PDLwSlackProof>)>> {
+        containers::BroadcastMsgsStore::new(i, n)
+    }
+
+    pub fn is_expensive(&self) -> bool {
+        true
+    }
+}
+
+pub struct Round6 {
+    S_i: GE,
+    homo_elgamal_proof: HomoELGamalProof<GE>,
+    R: GE,
+    s_l: Vec<u16>,
+    /// Round 6 guards protocol output until final checks are taken the place
+    protocol_output: CompletedOfflineStage,
+}
+
+impl Round6 {
+    pub fn proceed(
+        self,
+        input: BroadcastMsgs<(SI, HEGProof)>,
+    ) -> Result<CompletedOfflineStage, Error> {
+        let (S_i_vec, hegp_vec): (Vec<_>, Vec<_>) = input
+            .into_vec_including_me((SI(self.S_i), HEGProof(self.homo_elgamal_proof)))
+            .into_iter()
+            .map(|(s_i, hegp_i)| (s_i.0, hegp_i.0))
+            .unzip();
+        let R_vec: Vec<_> = iter::repeat(self.R).take(self.s_l.len()).collect();
+
+        LocalSignature::phase6_verify_proof(
+            &S_i_vec,
+            &hegp_vec,
+            &R_vec,
+            &self.protocol_output.t_vec,
         )
+        .map_err(Error::Round6VerifyProof)?;
+        LocalSignature::phase6_check_S_i_sum(&self.protocol_output.local_key.y_sum_s, &S_i_vec)
+            .map_err(Error::Round6CheckSig)?;
+
+        Ok(self.protocol_output)
+    }
+
+    pub fn expects_messages(i: u16, n: u16) -> Store<BroadcastMsgs<(SI, HEGProof)>> {
+        containers::BroadcastMsgsStore::new(i, n)
     }
 
     pub fn is_expensive(&self) -> bool {
@@ -619,78 +595,37 @@ impl Round5 {
 #[derive(Clone)]
 pub struct CompletedOfflineStage {
     i: u16,
-    s_l: Vec<u16>,
     local_key: LocalKey,
     t_vec: Vec<GE>,
-    R: GE,
-    S_i: GE,
-    homo_elgamal_proof: HomoELGamalProof<GE>,
 }
 
 impl CompletedOfflineStage {
-    pub fn proceed<O>(
-        self,
-        SI: BroadcastMsgs<SI>,
-        homo_eg_proof: BroadcastMsgs<HEGProof>,
-        mut output: O,
-    ) {
-        let S_i_vec: Vec<_> = SI
-            .into_vec_including_me(SI(self.S_i))
-            .into_iter()
-            .map(|SI| SI.0)
-            .collect();
-        let hegp_vec: Vec<_> = homo_eg_proof
-            .into_vec_including_me(HEGProof(self.homo_elgamal_proof))
-            .into_iter()
-            .map(|HEGProof| HEGProof.0)
-            .collect();
-        let R_vec: Vec<_> = (0..self.s_l.len()).map(|_| self.R.clone()).collect();
-        LocalSignature::phase6_verify_proof(&S_i_vec, &hegp_vec, &R_vec, &self.t_vec)
-            .expect("phase6 verify error");
-
-        LocalSignature::phase6_check_S_i_sum(&self.local_key.y_sum_s, &S_i_vec)
-            .expect("phase6 check Si sum error");
-    }
-
-    pub fn expects_messages(
-        i: u16,
-        n: u16,
-    ) -> (Store<BroadcastMsgs<SI>>, Store<BroadcastMsgs<HEGProof>>) {
-        (
-            containers::BroadcastMsgsStore::new(i, n),
-            containers::BroadcastMsgsStore::new(i, n),
-        )
-    }
-
-    pub fn is_expensive(&self) -> bool {
-        true
-    }
-
     pub fn public_key(&self) -> &GE {
         &self.local_key.y_sum_s
     }
 }
 
-pub struct Round6 {
+pub struct Round7 {
     i: u16,
     y_sum: GE,
     // local_signature: LocalSignature,
 }
 
-impl Round6 {
+impl Round7 {
     pub fn proceed_manual(self, sigs: Vec<LocalSignature>) -> Result<SignatureRecid> {
-        let input = SignStage7Input {
-            local_sig_vec: sigs,
-            ysum: self.y_sum,
-        };
-
-        write_input(self.i, 7, &input);
-        let output = sign_stage7(&input)
-            .map(|s| s.local_sig)
-            .map_err(Error::Round6)?;
-        write_output(self.i, 7, &output);
-
-        Ok(output)
+        // let input = SignStage7Input {
+        //     local_sig_vec: sigs,
+        //     ysum: self.y_sum,
+        // };
+        //
+        // write_input(self.i, 7, &input);
+        // let output = sign_stage7(&input)
+        //     .map(|s| s.local_sig)
+        //     .map_err(Error::Round6)?;
+        // write_output(self.i, 7, &output);
+        //
+        // Ok(output)
+        todo!()
     }
 
     // pub fn proceed(self, input: BroadcastMsgs<LocalSignature>) -> Result<SignatureRecid> {
@@ -719,93 +654,25 @@ pub enum Error {
     Round3(ErrorType),
     #[error("round 5: {0:?}")]
     Round5(ErrorType),
-    #[error("round 6: {0:?}")]
-    Round6(ErrorType),
+    #[error("round 6: verify proof: {0:?}")]
+    Round6VerifyProof(ErrorType),
+    #[error("round 6: check sig: {0:?}")]
+    Round6CheckSig(crate::Error),
 }
 
-/// Round that published decommit message once all commits from all the parties were received
-pub struct DecommitRound {
-    i: u16,
-    com: SignBroadcastPhase1,
-    decom: SignDecommitPhase1,
-}
-
-/*
-impl DecommitRound {
-    pub fn proceed<O>(
-        self,
-        input: BroadcastMsgs<SignBroadcastPhase1>,
-        mut output: O,
-    ) -> Result<Commitments>
+trait IteratorExt: Iterator {
+    fn unzip3<A, B, C>(self) -> (Vec<A>, Vec<B>, Vec<C>)
     where
-        O: Push<Msg<SignDecommitPhase1>>,
+        Self: Iterator<Item = (A, B, C)> + Sized,
     {
-        let commitments = input.into_vec_including_me(self.com.clone());
-
-        output.push(Msg {
-            sender: self.i,
-            receiver: None,
-            body: self.decom,
-        });
-
-        Ok(Commitments { commitments })
-    }
-
-    pub fn expects_messages(i: u16, n: u16) -> Store<BroadcastMsgs<SignBroadcastPhase1>> {
-        containers::BroadcastMsgsStore::new(i, n)
-    }
-
-    pub fn is_expensive(&self) -> bool {
-        false
+        let (mut a, mut b, mut c) = (vec![], vec![], vec![]);
+        for (a_i, b_i, c_i) in self {
+            a.push(a_i);
+            b.push(b_i);
+            c.push(c_i);
+        }
+        (a, b, c)
     }
 }
 
- */
-
-/// Produced when [DecommitRound] is finished
-pub struct Commitments {
-    commitments: Vec<SignBroadcastPhase1>,
-}
-
-#[cfg(test)]
-fn write_input<T: Serialize>(party_i: u16, stage: u16, input: &T) {
-    if let Some(file_name) = std::env::var_os("WRITE_FILE") {
-        use std::fs::OpenOptions;
-        use std::io::Write;
-        let mut json_file = OpenOptions::new()
-            .append(true)
-            .create(true)
-            .open(file_name)
-            .unwrap();
-        writeln!(json_file, "Party {} stage {} input:", party_i, stage).unwrap();
-        writeln!(
-            json_file,
-            "{}",
-            serde_json::to_string_pretty(input).unwrap()
-        )
-        .unwrap();
-    }
-}
-#[cfg(test)]
-fn write_output<T: Serialize>(party_i: u16, stage: u16, output: &T) {
-    if let Some(file_name) = std::env::var_os("WRITE_FILE") {
-        use std::fs::OpenOptions;
-        use std::io::Write;
-        let mut json_file = OpenOptions::new()
-            .append(true)
-            .create(true)
-            .open(file_name)
-            .unwrap();
-        writeln!(json_file, "Party {} stage {} output:", party_i, stage).unwrap();
-        writeln!(
-            json_file,
-            "{}",
-            serde_json::to_string_pretty(output).unwrap()
-        )
-        .unwrap();
-    }
-}
-#[cfg(not(test))]
-fn write_input<T: Serialize>(_party_i: u16, _stage: u16, _input: &T) {}
-#[cfg(not(test))]
-fn write_output<T: Serialize>(_party_i: u16, _stage: u16, _output: &T) {}
+impl<I> IteratorExt for I where I: Iterator {}

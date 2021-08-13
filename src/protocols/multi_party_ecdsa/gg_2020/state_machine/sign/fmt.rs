@@ -12,13 +12,11 @@ impl fmt::Debug for super::OfflineStage {
 pub struct OfflineStageProgress {
     round: OfflineR,
 
-    decommit_round: DecommitR,
-
     round1_msgs: ReceivedMessages,
-    round2_msgs: (ReceivedMessages, ReceivedMessages),
-    round3_msgs: (ReceivedMessages, ReceivedMessages),
+    round2_msgs: ReceivedMessages,
+    round3_msgs: ReceivedMessages,
     round4_msgs: ReceivedMessages,
-    decom_round_msgs: ReceivedMessages,
+    round5_msgs: ReceivedMessages,
 
     msgs_queue: OutgoingMessages,
 }
@@ -30,31 +28,19 @@ impl From<&super::OfflineStage> for OfflineStageProgress {
                 super::OfflineR::R0(_) => OfflineR::R0,
                 super::OfflineR::R1(_) => OfflineR::R1,
                 super::OfflineR::R2(_) => OfflineR::R2,
-                super::OfflineR::CR2(_) => OfflineR::CR2,
                 super::OfflineR::R3(_) => OfflineR::R3,
                 super::OfflineR::R4(_) => OfflineR::R4,
+                super::OfflineR::R5(_) => OfflineR::R5,
+                super::OfflineR::R6(_) => OfflineR::R6,
                 super::OfflineR::Finished(_) => OfflineR::Finished,
                 super::OfflineR::Gone => OfflineR::Gone,
             },
 
-            decommit_round: match &state.decommit_round {
-                super::DecommitR::NotStarted => DecommitR::NotStarted,
-                super::DecommitR::R0(_) => DecommitR::R0,
-                super::DecommitR::Finished(_) => DecommitR::Finished,
-                super::DecommitR::Gone => DecommitR::Gone,
-            },
-
             round1_msgs: ReceivedMessages::from_broadcast(state.msgs1.as_ref()),
-            round2_msgs: (
-                ReceivedMessages::from_broadcast(state.msgs2.as_ref().map(|s| &s.0)),
-                ReceivedMessages::from_p2p(state.msgs2.as_ref().map(|s| &s.1)),
-            ),
-            round3_msgs: (
-                ReceivedMessages::from_broadcast(state.msgs3.as_ref().map(|s| &s.0)),
-                ReceivedMessages::from_broadcast(state.msgs3.as_ref().map(|s| &s.1)),
-            ),
+            round2_msgs: ReceivedMessages::from_p2p(state.msgs2.as_ref()),
+            round3_msgs: ReceivedMessages::from_broadcast(state.msgs3.as_ref()),
             round4_msgs: ReceivedMessages::from_broadcast(state.msgs4.as_ref()),
-            decom_round_msgs: ReceivedMessages::from_broadcast(state.msgs_com.as_ref()),
+            round5_msgs: ReceivedMessages::from_broadcast(state.msgs5.as_ref()),
 
             msgs_queue: OutgoingMessages {
                 len: state.msgs_queue.0.len(),
@@ -68,17 +54,10 @@ pub enum OfflineR {
     R0,
     R1,
     R2,
-    CR2,
     R3,
     R4,
-    Finished,
-    Gone,
-}
-
-#[derive(Debug)]
-pub enum DecommitR {
-    NotStarted,
-    R0,
+    R5,
+    R6,
     Finished,
     Gone,
 }
