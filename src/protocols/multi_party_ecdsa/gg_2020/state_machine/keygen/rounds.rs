@@ -12,8 +12,9 @@ use round_based::containers::{self, BroadcastMsgs, P2PMsgs, Store};
 use round_based::Msg;
 use zk_paillier::zkproofs::DLogStatement;
 
-use crate::protocols::multi_party_ecdsa::gg_2020::{self, orchestrate::*, ErrorType};
+use crate::protocols::multi_party_ecdsa::gg_2020::{self, ErrorType};
 use curv::elliptic::curves::traits::ECPoint;
+use crate::protocols::multi_party_ecdsa::gg_2020::party_i::{Keys, KeyGenBroadcastMessage1, KeyGenDecommitMessage1};
 
 pub struct Round0 {
     pub party_i: u16,
@@ -26,18 +27,19 @@ impl Round0 {
     where
         O: Push<Msg<gg_2020::party_i::KeyGenBroadcastMessage1>>,
     {
-        let input_stage1 = KeyGenStage1Input {
-            index: self.party_i as usize,
-        };
-        let keygen_stage1_res: KeyGenStage1Result = keygen_stage1(&input_stage1);
+        let party_keys = Keys::create(self.party_i as usize);
+        let (bc1, decom1) = party_keys.phase1_broadcast_phase3_proof_of_correct_key_proof_of_correct_h1h2();
+
 
         output.push(Msg {
             sender: self.party_i.clone(),
             receiver: None,
-            body: keygen_stage1_res.bc_com1_l.clone(),
+            body: bc1.clone(),
         });
         Ok(Round1 {
-            keygen_stage1_res,
+            keys: party_keys,
+            bc1,
+            decom1,
             party_i: self.party_i,
             t: self.t,
             n: self.n,
@@ -49,8 +51,9 @@ impl Round0 {
 }
 
 pub struct Round1 {
-    keygen_stage1_res: KeyGenStage1Result,
-
+    keys: Keys,
+    bc1: KeyGenBroadcastMessage1,
+    decom1: KeyGenDecommitMessage1,
     party_i: u16,
     t: u16,
     n: u16,
@@ -59,7 +62,7 @@ pub struct Round1 {
 impl Round1 {
     pub fn proceed<O>(
         self,
-        input: BroadcastMsgs<gg_2020::party_i::KeyGenBroadcastMessage1>,
+        input: BroadcastMsgs<KeyGenBroadcastMessage1>,
         mut output: O,
     ) -> Result<Round2>
     where
@@ -68,12 +71,12 @@ impl Round1 {
         output.push(Msg {
             sender: self.party_i.clone(),
             receiver: None,
-            body: self.keygen_stage1_res.decom1_l.clone(),
+            body: self.decom1.clone(),
         });
         Ok(Round2 {
-            keys: self.keygen_stage1_res.party_keys_l,
-            received_comm: input.into_vec_including_me(self.keygen_stage1_res.bc_com1_l),
-            decom: self.keygen_stage1_res.decom1_l.clone(),
+            keys: self.keys,
+            received_comm: input.into_vec_including_me(self.bc1),
+            decom: self.decom1,
 
             party_i: self.party_i.clone(),
             t: self.t,
@@ -86,15 +89,15 @@ impl Round1 {
     pub fn expects_messages(
         i: u16,
         n: u16,
-    ) -> Store<BroadcastMsgs<gg_2020::party_i::KeyGenBroadcastMessage1>> {
+    ) -> Store<BroadcastMsgs<KeyGenBroadcastMessage1>> {
         containers::BroadcastMsgsStore::new(i, n)
     }
 }
 
 pub struct Round2 {
     keys: gg_2020::party_i::Keys,
-    received_comm: Vec<gg_2020::party_i::KeyGenBroadcastMessage1>,
-    decom: gg_2020::party_i::KeyGenDecommitMessage1,
+    received_comm: Vec<KeyGenBroadcastMessage1>,
+    decom: KeyGenDecommitMessage1,
 
     party_i: u16,
     t: u16,
@@ -104,7 +107,7 @@ pub struct Round2 {
 impl Round2 {
     pub fn proceed<O>(
         self,
-        input: BroadcastMsgs<gg_2020::party_i::KeyGenDecommitMessage1>,
+        input: BroadcastMsgs<KeyGenDecommitMessage1>,
         mut output: O,
     ) -> Result<Round3>
     where
@@ -116,18 +119,12 @@ impl Round2 {
         };
         let received_decom = input.into_vec_including_me(self.decom);
 
-        let input_stage2 = KeyGenStage2Input {
-            index: self.party_i as usize,
-            params_s: params,
-            party_keys_s: self.keys.clone(),
-            decom1_vec_s: received_decom.clone(),
-            bc1_vec_s: self.received_comm.clone(),
-        };
+        let vss_result = self.keys.phase1_verify_com_phase3_verify_correct_key_verify_dlog_phase2_distribute(
+          &params, &received_decom, &self.received_comm
+        ).map_err(ProceedError::Round2VerifyCommitments)?;
 
-        let res_stage2 =
-            keygen_stage2(&input_stage2).map_err(ProceedError::Round2VerifyCommitments)?;
 
-        for (i, share) in res_stage2.secret_shares_s.iter().enumerate() {
+        for (i, share) in vss_result.1.iter().enumerate() {
             if i + 1 == usize::from(self.party_i.clone()) {
                 continue;
             }
@@ -135,7 +132,7 @@ impl Round2 {
             output.push(Msg {
                 sender: self.party_i.clone(),
                 receiver: Some(i as u16 + 1),
-                body: (res_stage2.vss_scheme_s.clone(), share.clone()),
+                body: (vss_result.0.clone(), share.clone()),
             })
         }
 
@@ -145,8 +142,8 @@ impl Round2 {
             y_vec: received_decom.into_iter().map(|d| d.y_i).collect(),
             bc_vec: self.received_comm,
 
-            own_vss: res_stage2.vss_scheme_s,
-            own_share: res_stage2.secret_shares_s[usize::from(self.party_i.clone() - 1)],
+            own_vss: vss_result.0.clone(),
+            own_share: vss_result.1[usize::from(self.party_i.clone() - 1)].clone(),
 
             party_i: self.party_i.clone(),
             t: self.t,
@@ -159,7 +156,7 @@ impl Round2 {
     pub fn expects_messages(
         i: u16,
         n: u16,
-    ) -> Store<BroadcastMsgs<gg_2020::party_i::KeyGenDecommitMessage1>> {
+    ) -> Store<BroadcastMsgs<KeyGenDecommitMessage1>> {
         containers::BroadcastMsgsStore::new(i, n)
     }
 }
@@ -192,30 +189,26 @@ impl Round3 {
             .into_iter()
             .unzip();
 
-        let input_stage3 = KeyGenStage3Input {
-            party_keys_s: self.keys.clone(),
-            vss_scheme_vec_s: vss_schemes,
-            secret_shares_vec_s: party_shares,
-            y_vec_s: self.y_vec.clone(),
-            index_s: (self.party_i.clone() - 1) as usize,
-            params_s: params,
-        };
-
-        let res_stage3 =
-            keygen_stage3(&input_stage3).map_err(ProceedError::Round3VerifyVssConstruct)?;
+        let (shared_keys, dlog_proof) = self.keys.phase2_verify_vss_construct_keypair_phase3_pok_dlog(
+            &params,
+            &self.y_vec,
+            &party_shares,
+            &vss_schemes,
+            self.party_i.clone() as usize
+        ).map_err(ProceedError::Round3VerifyVssConstruct)?;
 
         output.push(Msg {
             sender: self.party_i,
             receiver: None,
-            body: res_stage3.dlog_proof_s.clone(),
+            body: dlog_proof.clone(),
         });
 
         Ok(Round4 {
             keys: self.keys.clone(),
             y_vec: self.y_vec.clone(),
             bc_vec: self.bc_vec,
-            shared_keys: res_stage3.shared_keys_s.clone(),
-            own_dlog_proof: res_stage3.dlog_proof_s.clone(),
+            shared_keys,
+            own_dlog_proof: dlog_proof.clone(),
             own_vss: self.own_vss,
 
             party_i: self.party_i.clone(),
@@ -252,13 +245,8 @@ impl Round4 {
         };
         let dlog_proofs = input.into_vec_including_me(self.own_dlog_proof.clone());
 
-        let input_stage4 = KeyGenStage4Input {
-            params_s: params.clone(),
-            dlog_proof_vec_s: dlog_proofs,
-            y_vec_s: self.y_vec.clone(),
-        };
-
-        let _ = keygen_stage4(&input_stage4).map_err(ProceedError::Round4VerifyDLogProof)?;
+        Keys::verify_dlog_proofs(&params, &dlog_proofs, &self.y_vec).map_err(ProceedError::Round4VerifyDLogProof)?;
+        let pk_vec = (0..params.share_count as usize).map(|i| dlog_proofs[i].pk).collect::<Vec<GE>>();
 
         let paillier_key_vec = (0..params.share_count)
             .map(|i| self.bc_vec[i as usize].e.clone())
@@ -274,6 +262,7 @@ impl Round4 {
 
         let local_key = LocalKey {
             paillier_dk: self.keys.dk,
+            pk_vec,
 
             keys_linear: self.shared_keys.clone(),
             paillier_key_vec,
@@ -307,7 +296,7 @@ where
     P: ECPoint,
 {
     pub paillier_dk: paillier::DecryptionKey,
-
+    pub pk_vec: Vec<GE>,
     pub keys_linear: gg_2020::party_i::SharedKeys<P>,
     pub paillier_key_vec: Vec<EncryptionKey>,
     pub y_sum_s: P,
