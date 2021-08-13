@@ -32,7 +32,7 @@ use thiserror::Error;
 use crate::utilities::mta::MessageA;
 
 use crate::protocols::multi_party_ecdsa::gg_2020 as gg20;
-use gg20::party_i::{LocalSignature, SignBroadcastPhase1, SignDecommitPhase1, SignatureRecid};
+use gg20::party_i::{SignBroadcastPhase1, SignDecommitPhase1, SignatureRecid};
 use gg20::state_machine::keygen::LocalKey;
 
 mod fmt;
@@ -41,7 +41,7 @@ mod rounds;
 use crate::utilities::zk_pdl_with_slack::PDLwSlackProof;
 use curv::BigInt;
 use rounds::*;
-pub use rounds::{CompletedOfflineStage, Error as ProceedError};
+pub use rounds::{CompletedOfflineStage, Error as ProceedError, PartialSignature};
 
 /// Offline Stage of GG20 signing
 ///
@@ -569,25 +569,25 @@ impl IsCritical for Error {
 /// ## Example
 /// ```no_run
 /// # use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2020::{
-/// #     state_machine::sign::{CompletedOfflineStage, SignManual},
+/// #     state_machine::sign::{CompletedOfflineStage, SignManual, PartialSignature},
 /// #     party_i::{LocalSignature, verify},
 /// # };
 /// # use curv::arithmetic::{BigInt, Converter};
 /// # type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
-/// # fn broadcast(msg: LocalSignature) -> Result<()> { panic!() }
-/// # fn wait_messages() -> Result<Vec<LocalSignature>> { panic!() }
+/// # fn broadcast(msg: PartialSignature) -> Result<()> { panic!() }
+/// # fn wait_messages() -> Result<Vec<PartialSignature>> { panic!() }
 /// # fn main() -> Result<()> {
 /// # let completed_offline_stage: CompletedOfflineStage = panic!();
 /// let data = BigInt::from_bytes(b"a message");
 ///
 /// // Sign a message locally
 /// let (sign, msg) = SignManual::new(data.clone(), completed_offline_stage)?;
-/// // Broadcast local signature
+/// // Broadcast local partial signature
 /// broadcast(msg)?;
-/// // Collect local signatures from all the parties
-/// let sigs: Vec<LocalSignature> = wait_messages()?;
+/// // Collect partial signatures from other parties
+/// let sigs: Vec<PartialSignature> = wait_messages()?;
 /// // Complete signing
-/// let signature = sign.complete(sigs)?;
+/// let signature = sign.complete(&sigs)?;
 /// // Verify that signature matches joint public key
 /// assert!(verify(&signature, completed_offline_stage.public_key(), &data).is_ok());
 /// # Ok(())
@@ -599,21 +599,20 @@ pub struct SignManual {
 
 impl SignManual {
     pub fn new(
-        message_bn: BigInt,
+        message: BigInt,
         completed_offline_stage: CompletedOfflineStage,
-    ) -> Result<(Self, LocalSignature), SignError> {
-        todo!()
-        // Round7::new(message_bn, completed_offline_stage)
-        //     .proceed_manual()
-        //     .map(|(state, m)| (Self { state }, m))
-        //     .map_err(SignError::LocalSigning)
+    ) -> Result<(Self, PartialSignature), SignError> {
+        Round7::new(&message, completed_offline_stage)
+            .map(|(state, m)| (Self { state }, m))
+            .map_err(SignError::LocalSigning)
     }
 
-    pub fn complete(self, sigs: Vec<LocalSignature>) -> Result<SignatureRecid, SignError> {
-        todo!()
-        // self.state
-        //     .proceed_manual(sigs)
-        //     .map_err(SignError::CompleteSigning)
+    /// `sigs` must not include partial signature produced by local party (only partial signatures produced
+    /// by other parties)
+    pub fn complete(self, sigs: &[PartialSignature]) -> Result<SignatureRecid, SignError> {
+        self.state
+            .proceed_manual(&sigs)
+            .map_err(SignError::CompleteSigning)
     }
 }
 
@@ -672,10 +671,20 @@ mod test {
             .collect::<Result<Vec<_>, _>>()
             .unwrap();
         let (parties, local_sigs): (Vec<_>, Vec<_>) = parties.into_iter().unzip();
+        // parties.remove(0).complete(&local_sigs[1..]).unwrap();
+        let local_sigs_except = |i: usize| {
+            let mut v = vec![];
+            v.extend_from_slice(&local_sigs[..i]);
+            if i + 1 < local_sigs.len() {
+                v.extend_from_slice(&local_sigs[i + 1..]);
+            }
+            v
+        };
 
         assert!(parties
             .into_iter()
-            .map(|p| p.complete(local_sigs.clone()).unwrap())
+            .enumerate()
+            .map(|(i, p)| p.complete(&local_sigs_except(i)).unwrap())
             .all(|signature| verify(&signature, &pk, &message).is_ok()));
     }
 

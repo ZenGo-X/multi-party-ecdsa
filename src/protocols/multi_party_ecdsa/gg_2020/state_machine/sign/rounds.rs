@@ -398,7 +398,7 @@ impl Round4 {
         let decom_vec: Vec<_> = decommit_round1.into_vec_including_me(self.phase1_decom.clone());
 
         let ttag = self.s_l.len();
-        let b_proof_vec: Vec<_> = (0..ttag).map(|i| &self.mb_gamma_s[i].b_proof).collect();
+        let b_proof_vec: Vec<_> = (0..ttag-1).map(|i| &self.mb_gamma_s[i].b_proof).collect();
         let R = SignKeys::phase4(
             &self.delta_inv,
             &b_proof_vec[..],
@@ -443,6 +443,7 @@ impl Round4 {
             i: self.i,
             s_l: self.s_l,
             local_key: self.local_key,
+            sign_keys: self.sign_keys,
             t_vec: self.t_vec,
             m_a_vec: self.m_a_vec,
             t_i: self.t_i,
@@ -467,6 +468,7 @@ pub struct Round5 {
     i: u16,
     s_l: Vec<u16>,
     local_key: LocalKey,
+    sign_keys: SignKeys,
     t_vec: Vec<GE>,
     m_a_vec: Vec<MessageA>,
     t_i: GE,
@@ -530,12 +532,14 @@ impl Round5 {
         Ok(Round6 {
             S_i,
             homo_elgamal_proof,
-            R: self.R,
             s_l: self.s_l,
             protocol_output: CompletedOfflineStage {
                 i: self.i,
                 local_key: self.local_key,
+                sign_keys: self.sign_keys,
                 t_vec: self.t_vec,
+                R: self.R,
+                sigma_i: self.sigma_i,
             },
         })
     }
@@ -552,7 +556,6 @@ impl Round5 {
 pub struct Round6 {
     S_i: GE,
     homo_elgamal_proof: HomoELGamalProof<GE>,
-    R: GE,
     s_l: Vec<u16>,
     /// Round 6 guards protocol output until final checks are taken the place
     protocol_output: CompletedOfflineStage,
@@ -568,7 +571,9 @@ impl Round6 {
             .into_iter()
             .map(|(s_i, hegp_i)| (s_i.0, hegp_i.0))
             .unzip();
-        let R_vec: Vec<_> = iter::repeat(self.R).take(self.s_l.len()).collect();
+        let R_vec: Vec<_> = iter::repeat(self.protocol_output.R.clone())
+            .take(self.s_l.len())
+            .collect();
 
         LocalSignature::phase6_verify_proof(
             &S_i_vec,
@@ -596,7 +601,10 @@ impl Round6 {
 pub struct CompletedOfflineStage {
     i: u16,
     local_key: LocalKey,
+    sign_keys: SignKeys,
     t_vec: Vec<GE>,
+    R: GE,
+    sigma_i: FE,
 }
 
 impl CompletedOfflineStage {
@@ -605,41 +613,35 @@ impl CompletedOfflineStage {
     }
 }
 
+#[derive(Clone, Debug)]
+pub struct PartialSignature(FE);
+
 pub struct Round7 {
-    i: u16,
-    y_sum: GE,
-    // local_signature: LocalSignature,
+    local_signature: LocalSignature,
 }
 
 impl Round7 {
-    pub fn proceed_manual(self, sigs: Vec<LocalSignature>) -> Result<SignatureRecid> {
-        // let input = SignStage7Input {
-        //     local_sig_vec: sigs,
-        //     ysum: self.y_sum,
-        // };
-        //
-        // write_input(self.i, 7, &input);
-        // let output = sign_stage7(&input)
-        //     .map(|s| s.local_sig)
-        //     .map_err(Error::Round6)?;
-        // write_output(self.i, 7, &output);
-        //
-        // Ok(output)
-        todo!()
+    pub fn new(
+        message: &BigInt,
+        completed_offline_stage: CompletedOfflineStage,
+    ) -> Result<(Self, PartialSignature)> {
+        let local_signature = LocalSignature::phase7_local_sig(
+            &completed_offline_stage.sign_keys.k_i,
+            &message,
+            &completed_offline_stage.R,
+            &completed_offline_stage.sigma_i,
+            &completed_offline_stage.local_key.y_sum_s,
+        );
+        let partial = PartialSignature(local_signature.s_i.clone());
+        Ok((Self { local_signature }, partial))
     }
 
-    // pub fn proceed(self, input: BroadcastMsgs<LocalSignature>) -> Result<SignatureRecid> {
-    //     let sigs = input.into_vec_including_me(self.local_signature.clone());
-    //     self.proceed_manual(sigs)
-    // }
-
-    // pub fn expects_messages(i: u16, n: u16) -> Store<BroadcastMsgs<LocalSignature>> {
-    //     containers::BroadcastMsgsStore::new(i, n)
-    // }
-
-    // pub fn is_expensive(&self) -> bool {
-    //     true
-    // }
+    pub fn proceed_manual(self, sigs: &[PartialSignature]) -> Result<SignatureRecid> {
+        let sigs = sigs.iter().map(|s_i| s_i.0).collect::<Vec<_>>();
+        self.local_signature
+            .output_signature(&sigs)
+            .map_err(Error::Round7)
+    }
 }
 
 #[derive(Debug, Error)]
@@ -658,6 +660,8 @@ pub enum Error {
     Round6VerifyProof(ErrorType),
     #[error("round 6: check sig: {0:?}")]
     Round6CheckSig(crate::Error),
+    #[error("round 7: {0:?}")]
+    Round7(crate::Error),
 }
 
 trait IteratorExt: Iterator {
