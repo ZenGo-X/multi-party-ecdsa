@@ -609,7 +609,7 @@ mod tests {
                     share_count: share_count_test,
                     threshold: threshold_test,
                 })
-                    .is_ok(),
+                .is_ok(),
                 " Test failed for Threshold {} Share Count {}",
                 threshold_test,
                 share_count_test
@@ -623,7 +623,7 @@ mod tests {
             share_count: 3,
             threshold: 1,
         })
-            .unwrap();
+        .unwrap();
         let msg: Vec<u8> = vec![44, 56, 78, 90, 100];
         let mut s: Vec<usize> = vec![0, 1, 2];
         let sign_result = orchestrate_sign(&s[..], &msg, &keypairs);
@@ -647,7 +647,7 @@ mod tests {
             share_count: 3,
             threshold: 1,
         })
-            .unwrap();
+        .unwrap();
         let msg: Vec<u8> = vec![44, 56, 78, 90, 100];
         let mut s: Vec<usize> = vec![0, 1];
         let sign_result = orchestrate_sign(&s[..], &msg, &keypairs);
@@ -848,7 +848,7 @@ mod tests {
                         "Keypair information\n{}\n",
                         serde_json::to_string_pretty(keypair_result).unwrap()
                     )
-                        .as_bytes(),
+                    .as_bytes(),
                 )
                 .unwrap();
         }

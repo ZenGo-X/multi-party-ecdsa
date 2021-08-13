@@ -12,9 +12,11 @@ use round_based::containers::{self, BroadcastMsgs, P2PMsgs, Store};
 use round_based::Msg;
 use zk_paillier::zkproofs::DLogStatement;
 
+use crate::protocols::multi_party_ecdsa::gg_2020::party_i::{
+    KeyGenBroadcastMessage1, KeyGenDecommitMessage1, Keys,
+};
 use crate::protocols::multi_party_ecdsa::gg_2020::{self, ErrorType};
 use curv::elliptic::curves::traits::ECPoint;
-use crate::protocols::multi_party_ecdsa::gg_2020::party_i::{Keys, KeyGenBroadcastMessage1, KeyGenDecommitMessage1};
 
 pub struct Round0 {
     pub party_i: u16,
@@ -28,8 +30,8 @@ impl Round0 {
         O: Push<Msg<gg_2020::party_i::KeyGenBroadcastMessage1>>,
     {
         let party_keys = Keys::create(self.party_i as usize);
-        let (bc1, decom1) = party_keys.phase1_broadcast_phase3_proof_of_correct_key_proof_of_correct_h1h2();
-
+        let (bc1, decom1) =
+            party_keys.phase1_broadcast_phase3_proof_of_correct_key_proof_of_correct_h1h2();
 
         output.push(Msg {
             sender: self.party_i.clone(),
@@ -86,10 +88,7 @@ impl Round1 {
     pub fn is_expensive(&self) -> bool {
         false
     }
-    pub fn expects_messages(
-        i: u16,
-        n: u16,
-    ) -> Store<BroadcastMsgs<KeyGenBroadcastMessage1>> {
+    pub fn expects_messages(i: u16, n: u16) -> Store<BroadcastMsgs<KeyGenBroadcastMessage1>> {
         containers::BroadcastMsgsStore::new(i, n)
     }
 }
@@ -119,10 +118,14 @@ impl Round2 {
         };
         let received_decom = input.into_vec_including_me(self.decom);
 
-        let vss_result = self.keys.phase1_verify_com_phase3_verify_correct_key_verify_dlog_phase2_distribute(
-          &params, &received_decom, &self.received_comm
-        ).map_err(ProceedError::Round2VerifyCommitments)?;
-
+        let vss_result = self
+            .keys
+            .phase1_verify_com_phase3_verify_correct_key_verify_dlog_phase2_distribute(
+                &params,
+                &received_decom,
+                &self.received_comm,
+            )
+            .map_err(ProceedError::Round2VerifyCommitments)?;
 
         for (i, share) in vss_result.1.iter().enumerate() {
             if i + 1 == usize::from(self.party_i.clone()) {
@@ -153,10 +156,7 @@ impl Round2 {
     pub fn is_expensive(&self) -> bool {
         true
     }
-    pub fn expects_messages(
-        i: u16,
-        n: u16,
-    ) -> Store<BroadcastMsgs<KeyGenDecommitMessage1>> {
+    pub fn expects_messages(i: u16, n: u16) -> Store<BroadcastMsgs<KeyGenDecommitMessage1>> {
         containers::BroadcastMsgsStore::new(i, n)
     }
 }
@@ -189,13 +189,16 @@ impl Round3 {
             .into_iter()
             .unzip();
 
-        let (shared_keys, dlog_proof) = self.keys.phase2_verify_vss_construct_keypair_phase3_pok_dlog(
-            &params,
-            &self.y_vec,
-            &party_shares,
-            &vss_schemes,
-            self.party_i.clone() as usize
-        ).map_err(ProceedError::Round3VerifyVssConstruct)?;
+        let (shared_keys, dlog_proof) = self
+            .keys
+            .phase2_verify_vss_construct_keypair_phase3_pok_dlog(
+                &params,
+                &self.y_vec,
+                &party_shares,
+                &vss_schemes,
+                self.party_i.clone() as usize,
+            )
+            .map_err(ProceedError::Round3VerifyVssConstruct)?;
 
         output.push(Msg {
             sender: self.party_i,
@@ -245,8 +248,11 @@ impl Round4 {
         };
         let dlog_proofs = input.into_vec_including_me(self.own_dlog_proof.clone());
 
-        Keys::verify_dlog_proofs(&params, &dlog_proofs, &self.y_vec).map_err(ProceedError::Round4VerifyDLogProof)?;
-        let pk_vec = (0..params.share_count as usize).map(|i| dlog_proofs[i].pk).collect::<Vec<GE>>();
+        Keys::verify_dlog_proofs(&params, &dlog_proofs, &self.y_vec)
+            .map_err(ProceedError::Round4VerifyDLogProof)?;
+        let pk_vec = (0..params.share_count as usize)
+            .map(|i| dlog_proofs[i].pk)
+            .collect::<Vec<GE>>();
 
         let paillier_key_vec = (0..params.share_count)
             .map(|i| self.bc_vec[i as usize].e.clone())
