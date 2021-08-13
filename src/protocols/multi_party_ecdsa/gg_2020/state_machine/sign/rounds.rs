@@ -132,8 +132,6 @@ impl Round1 {
 
         let mut m_b_gamma_vec = Vec::new();
         let mut beta_vec = Vec::new();
-        //  let mut beta_randomness_vec = Vec::new();
-        //  let mut beta_tag_vec = Vec::new();
         let mut m_b_w_vec = Vec::new();
         let mut ni_vec = Vec::new();
 
@@ -147,7 +145,7 @@ impl Round1 {
         let i = usize::from(self.i - 1);
         for j in 0..ttag - 1 {
             let ind = if j < i { j } else { j + 1 };
-            let (m_b_gamma, beta_gamma, beta_randomness, beta_tag) = MessageB::b(
+            let (m_b_gamma, beta_gamma, _beta_randomness, _beta_tag) = MessageB::b(
                 &self.sign_keys.gamma_i,
                 &self.local_key.paillier_key_vec[l_s[ind]],
                 m_a_vec[ind].clone(),
@@ -160,8 +158,6 @@ impl Round1 {
 
             m_b_gamma_vec.push(m_b_gamma);
             beta_vec.push(beta_gamma);
-            //  beta_randomness_vec.push(beta_randomness);
-            //    beta_tag_vec.push(beta_tag);
             m_b_w_vec.push(m_b_w);
             ni_vec.push(beta_wi);
         }
@@ -398,7 +394,7 @@ impl Round4 {
         let decom_vec: Vec<_> = decommit_round1.into_vec_including_me(self.phase1_decom.clone());
 
         let ttag = self.s_l.len();
-        let b_proof_vec: Vec<_> = (0..ttag-1).map(|i| &self.mb_gamma_s[i].b_proof).collect();
+        let b_proof_vec: Vec<_> = (0..ttag - 1).map(|i| &self.mb_gamma_s[i].b_proof).collect();
         let R = SignKeys::phase4(
             &self.delta_inv,
             &b_proof_vec[..],
