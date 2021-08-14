@@ -302,7 +302,7 @@ where
     P: ECPoint,
 {
     pub paillier_dk: paillier::DecryptionKey,
-    pub pk_vec: Vec<GE>,
+    pub pk_vec: Vec<P>,
     pub keys_linear: gg_2020::party_i::SharedKeys<P>,
     pub paillier_key_vec: Vec<EncryptionKey>,
     pub y_sum_s: P,
