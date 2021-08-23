@@ -609,7 +609,7 @@ impl CompletedOfflineStage {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct PartialSignature(FE);
 
 pub struct Round7 {
