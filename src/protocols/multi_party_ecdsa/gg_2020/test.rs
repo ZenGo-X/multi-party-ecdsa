@@ -181,7 +181,7 @@ fn keygen_t_n_parties(
         .collect::<Vec<EncryptionKey>>();
     let h1_h2_N_tilde_vec = bc1_vec
         .iter()
-        .map(|bc1| bc1.dlog_statement.clone())
+        .map(|bc1| bc1.dlog_statement_base_h1.clone())
         .collect::<Vec<DLogStatement>>();
     let y_vec = (0..n).map(|i| decom_vec[i].y_i).collect::<Vec<GE>>();
     let mut y_vec_iter = y_vec.iter();

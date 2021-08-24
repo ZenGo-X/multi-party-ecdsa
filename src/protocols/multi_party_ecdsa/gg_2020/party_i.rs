@@ -69,6 +69,7 @@ where
     pub h1: BigInt,
     pub h2: BigInt,
     pub xhi: BigInt,
+    pub xhi_inv: BigInt,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -81,10 +82,12 @@ pub struct PartyPrivate {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct KeyGenBroadcastMessage1 {
     pub e: EncryptionKey,
-    pub dlog_statement: DLogStatement,
+    pub dlog_statement_base_h1: DLogStatement,
+    pub dlog_statement_base_h2: DLogStatement,
     pub com: BigInt,
     pub correct_key_proof: NICorrectKeyProof,
-    pub composite_dlog_proof: CompositeDLogProof,
+    pub composite_dlog_proof_base_h1: CompositeDLogProof,
+    pub composite_dlog_proof_base_h2: CompositeDLogProof,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -138,19 +141,25 @@ pub struct SignatureRecid {
     pub recid: u8,
 }
 
-pub fn generate_h1_h2_N_tilde() -> (BigInt, BigInt, BigInt, BigInt) {
-    //note, should be safe primes:
+pub fn generate_h1_h2_N_tilde() -> (BigInt, BigInt, BigInt, BigInt, BigInt) {
+    // note, should be safe primes:
     // let (ek_tilde, dk_tilde) = Paillier::keypair_safe_primes().keys();;
     let (ek_tilde, dk_tilde) = Paillier::keypair().keys();
     let one = BigInt::one();
     let phi = (&dk_tilde.p - &one) * (&dk_tilde.q - &one);
-    let h1 = BigInt::sample_below(&phi);
-    let S = BigInt::from(2).pow(256 as u32);
-    let xhi = BigInt::sample_below(&S);
-    let h1_inv = BigInt::mod_inv(&h1, &ek_tilde.n).unwrap();
-    let h2 = BigInt::mod_pow(&h1_inv, &xhi, &ek_tilde.n);
+    let h1 = BigInt::sample_below(&ek_tilde.n);
+    let (mut xhi, mut xhi_inv) = loop {
+        let xhi_ = BigInt::sample_below(&phi);
+        match BigInt::mod_inv(&xhi_, &phi) {
+            Some(inv) => break (xhi_, inv),
+            None => continue,
+        }
+    };
+    let h2 = BigInt::mod_pow(&h1, &xhi, &ek_tilde.n);
+    xhi = BigInt::sub(&phi, &xhi);
+    xhi_inv = BigInt::sub(&phi, &xhi_inv);
 
-    (ek_tilde.n, h1, h2, xhi)
+    (ek_tilde.n, h1, h2, xhi, xhi_inv)
 }
 
 impl Keys {
@@ -158,7 +167,7 @@ impl Keys {
         let u = FE::new_random();
         let y = GE::generator() * u;
         let (ek, dk) = Paillier::keypair().keys();
-        let (N_tilde, h1, h2, xhi) = generate_h1_h2_N_tilde();
+        let (N_tilde, h1, h2, xhi, xhi_inv) = generate_h1_h2_N_tilde();
 
         Self {
             u_i: u,
@@ -170,6 +179,7 @@ impl Keys {
             h1,
             h2,
             xhi,
+            xhi_inv,
         }
     }
 
@@ -179,7 +189,7 @@ impl Keys {
         let y = &ECPoint::generator() * &u;
 
         let (ek, dk) = Paillier::keypair_safe_primes().keys();
-        let (N_tilde, h1, h2, xhi) = generate_h1_h2_N_tilde();
+        let (N_tilde, h1, h2, xhi, xhi_inv) = generate_h1_h2_N_tilde();
 
         Self {
             u_i: u,
@@ -191,12 +201,13 @@ impl Keys {
             h1,
             h2,
             xhi,
+            xhi_inv,
         }
     }
     pub fn create_from(u: FE, index: usize) -> Keys {
         let y = &ECPoint::generator() * &u;
         let (ek, dk) = Paillier::keypair().keys();
-        let (N_tilde, h1, h2, xhi) = generate_h1_h2_N_tilde();
+        let (N_tilde, h1, h2, xhi, xhi_inv) = generate_h1_h2_N_tilde();
 
         Self {
             u_i: u,
@@ -208,6 +219,7 @@ impl Keys {
             h1,
             h2,
             xhi,
+            xhi_inv,
         }
     }
 
@@ -217,13 +229,21 @@ impl Keys {
         let blind_factor = BigInt::sample(SECURITY);
         let correct_key_proof = NICorrectKeyProof::proof(&self.dk, None);
 
-        let dlog_statement = DLogStatement {
+        let dlog_statement_base_h1 = DLogStatement {
             N: self.N_tilde.clone(),
             g: self.h1.clone(),
             ni: self.h2.clone(),
         };
+        let dlog_statement_base_h2 = DLogStatement {
+            N: self.N_tilde.clone(),
+            g: self.h2.clone(),
+            ni: self.h1.clone(),
+        };
 
-        let composite_dlog_proof = CompositeDLogProof::prove(&dlog_statement, &self.xhi);
+        let composite_dlog_proof_base_h1 =
+            CompositeDLogProof::prove(&dlog_statement_base_h1, &self.xhi);
+        let composite_dlog_proof_base_h2 =
+            CompositeDLogProof::prove(&dlog_statement_base_h2, &self.xhi_inv);
 
         let com = HashCommitment::create_commitment_with_user_defined_randomness(
             &self.y_i.bytes_compressed_to_big_int(),
@@ -231,10 +251,12 @@ impl Keys {
         );
         let bcm1 = KeyGenBroadcastMessage1 {
             e: self.ek.clone(),
-            dlog_statement,
+            dlog_statement_base_h1,
+            dlog_statement_base_h2,
             com,
             correct_key_proof,
-            composite_dlog_proof,
+            composite_dlog_proof_base_h1,
+            composite_dlog_proof_base_h2,
         };
         let decom1 = KeyGenDecommitMessage1 {
             blind_factor,
@@ -265,8 +287,12 @@ impl Keys {
                         .verify(&bc1_vec[i].e, zk_paillier::zkproofs::SALT_STRING)
                         .is_ok()
                     && bc1_vec[i]
-                        .composite_dlog_proof
-                        .verify(&bc1_vec[i].dlog_statement)
+                        .composite_dlog_proof_base_h1
+                        .verify(&bc1_vec[i].dlog_statement_base_h1)
+                        .is_ok()
+                    && bc1_vec[i]
+                        .composite_dlog_proof_base_h2
+                        .verify(&bc1_vec[i].dlog_statement_base_h2)
                         .is_ok();
                 if test_res == false {
                     bad_actors_vec.push(i);
@@ -422,7 +448,7 @@ impl PartyPrivate {
         let y = GE::generator() * u;
         let (ek, dk) = Paillier::keypair().keys();
 
-        let (N_tilde, h1, h2, xhi) = generate_h1_h2_N_tilde();
+        let (N_tilde, h1, h2, xhi, xhi_inv) = generate_h1_h2_N_tilde();
 
         Keys {
             u_i: u,
@@ -434,6 +460,7 @@ impl PartyPrivate {
             h1,
             h2,
             xhi,
+            xhi_inv,
         }
     }
 
@@ -443,7 +470,7 @@ impl PartyPrivate {
         let y = &ECPoint::generator() * &u;
         let (ek, dk) = Paillier::keypair_safe_primes().keys();
 
-        let (N_tilde, h1, h2, xhi) = generate_h1_h2_N_tilde();
+        let (N_tilde, h1, h2, xhi, xhi_inv) = generate_h1_h2_N_tilde();
 
         Keys {
             u_i: u,
@@ -455,6 +482,7 @@ impl PartyPrivate {
             h1,
             h2,
             xhi,
+            xhi_inv,
         }
     }
 
