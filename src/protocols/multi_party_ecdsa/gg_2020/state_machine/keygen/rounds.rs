@@ -185,7 +185,7 @@ impl Round3 {
             share_count: self.n.into(),
         };
         let (vss_schemes, party_shares): (Vec<_>, Vec<_>) = input
-            .into_vec_including_me((self.own_vss.clone(), self.own_share))
+            .into_vec_including_me((self.own_vss, self.own_share))
             .into_iter()
             .unzip();
 
@@ -212,7 +212,7 @@ impl Round3 {
             bc_vec: self.bc_vec,
             shared_keys,
             own_dlog_proof: dlog_proof.clone(),
-            own_vss: self.own_vss,
+            vss_vec: vss_schemes,
 
             party_i: self.party_i.clone(),
             t: self.t,
@@ -233,7 +233,7 @@ pub struct Round4 {
     bc_vec: Vec<gg_2020::party_i::KeyGenBroadcastMessage1>,
     shared_keys: gg_2020::party_i::SharedKeys,
     own_dlog_proof: DLogProof<GE>,
-    own_vss: VerifiableSS<GE>,
+    vss_vec: Vec<VerifiableSS<GE>>,
 
     party_i: u16,
     t: u16,
@@ -248,8 +248,13 @@ impl Round4 {
         };
         let dlog_proofs = input.into_vec_including_me(self.own_dlog_proof.clone());
 
-        Keys::verify_dlog_proofs(&params, &dlog_proofs, &self.y_vec)
-            .map_err(ProceedError::Round4VerifyDLogProof)?;
+        Keys::verify_dlog_proofs_check_against_vss(
+            &params,
+            &dlog_proofs,
+            &self.y_vec,
+            &self.vss_vec,
+        )
+        .map_err(ProceedError::Round4VerifyDLogProof)?;
         let pk_vec = (0..params.share_count as usize)
             .map(|i| dlog_proofs[i].pk)
             .collect::<Vec<GE>>();
@@ -275,7 +280,7 @@ impl Round4 {
             y_sum_s: y_sum,
             h1_h2_n_tilde_vec,
 
-            vss_scheme: self.own_vss,
+            vss_scheme: self.vss_vec[usize::from(self.party_i - 1)].clone(),
 
             i: self.party_i,
             t: self.t,
