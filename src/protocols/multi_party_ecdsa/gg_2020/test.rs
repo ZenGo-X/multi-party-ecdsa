@@ -718,7 +718,7 @@ pub fn check_sig(r: &FE, s: &FE, msg: &BigInt, pk: &GE) {
     compact.extend(vec![0u8; 32 - bytes_s.len()]);
     compact.extend(bytes_s.iter());
 
-    let secp_sig = Signature::parse_slice(compact.as_slice()).unwrap();
+    let secp_sig = Signature::parse_standard_slice(compact.as_slice()).unwrap();
 
     let is_correct = verify(&msg, &secp_sig, &pk);
     assert!(is_correct);
