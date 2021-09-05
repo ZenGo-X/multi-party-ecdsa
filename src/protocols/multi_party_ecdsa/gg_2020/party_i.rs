@@ -392,18 +392,21 @@ impl Keys {
         comm * &li
     }
 
-    pub fn verify_dlog_proofs(
+    pub fn verify_dlog_proofs_check_against_vss(
         params: &Parameters,
         dlog_proofs_vec: &[DLogProof<GE>],
         y_vec: &[GE],
+        vss_vec: &[VerifiableSS<GE>],
     ) -> Result<(), ErrorType> {
         let mut bad_actors_vec = Vec::new();
         assert_eq!(y_vec.len() as u16, params.share_count);
         assert_eq!(dlog_proofs_vec.len() as u16, params.share_count);
+        let xi_commitments = Keys::get_commitments_to_xi(vss_vec);
         let xi_dlog_verify = (0..y_vec.len())
             .map(|i| {
                 let ver_res = DLogProof::verify(&dlog_proofs_vec[i]).is_ok();
-                if ver_res == false {
+                let verify_against_vss = xi_commitments[i] == dlog_proofs_vec[i].pk;
+                if !ver_res || !verify_against_vss {
                     bad_actors_vec.push(i);
                     false
                 } else {

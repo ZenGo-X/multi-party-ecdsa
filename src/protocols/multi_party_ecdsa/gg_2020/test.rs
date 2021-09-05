@@ -243,7 +243,12 @@ fn keygen_t_n_parties(
 
     let pk_vec = (0..n).map(|i| dlog_proof_vec[i].pk).collect::<Vec<GE>>();
 
-    let dlog_verification = Keys::verify_dlog_proofs(&params, &dlog_proof_vec, &y_vec);
+    let dlog_verification = Keys::verify_dlog_proofs_check_against_vss(
+        &params,
+        &dlog_proof_vec,
+        &y_vec,
+        &vss_scheme_vec,
+    );
 
     if dlog_verification.is_err() {
         return Err(dlog_verification.err().unwrap());
