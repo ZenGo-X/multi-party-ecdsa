@@ -144,7 +144,7 @@ impl GlobalStatePhase5 {
                         let (message_b, beta) = MessageB::b_with_predefined_randomness(
                             &self.gamma_vec[ind],
                             &self.encryption_key_vec[i],
-                            message_a.clone(),
+                            self.m_a_vec[i].clone(),
                             &self.beta_randomness_vec[i][j],
                             &self.beta_tag_vec[i][j],
                         );
@@ -173,35 +173,40 @@ impl GlobalStatePhase5 {
         // We have n columns, one for each party for all the times the party played alice.
         // The Pi's indicate the counter party that played bob
 
-        //reconstruct delta's
-        let delta_vec_reconstruct = (0..len)
-            .map(|i| {
-                let k_i_gamma_i = self.k_vec[i] * self.gamma_vec[i];
+        // we only proceed to check the blame if everyone opened values that are
+        // consistent with publicly known commitments and ciphertexts
+        if bad_signers_vec.is_empty() {
+            //reconstruct delta's
+            let delta_vec_reconstruct = (0..len)
+                .map(|i| {
+                    let k_i_gamma_i = self.k_vec[i] * self.gamma_vec[i];
 
-                let alpha_sum = alpha_beta_matrix[i]
-                    .iter()
-                    .fold(FE::zero(), |acc, x| acc + &x.0);
-                let beta_vec = (0..len - 1)
-                    .map(|j| {
-                        let ind1 = if j < i { j } else { j + 1 };
-                        let ind2 = if j < i { i - 1 } else { i };
-                        alpha_beta_matrix[ind1][ind2].1
-                    })
-                    .collect::<Vec<FE>>();
+                    let alpha_sum = alpha_beta_matrix[i]
+                        .iter()
+                        .fold(FE::zero(), |acc, x| acc + &x.0);
+                    let beta_vec = (0..len - 1)
+                        .map(|j| {
+                            let ind1 = if j < i { j } else { j + 1 };
+                            let ind2 = if j < i { i - 1 } else { i };
+                            alpha_beta_matrix[ind1][ind2].1
+                        })
+                        .collect::<Vec<FE>>();
 
-                let beta_sum = beta_vec.iter().fold(FE::zero(), |acc, x| acc + x);
+                    let beta_sum = beta_vec.iter().fold(FE::zero(), |acc, x| acc + x);
 
-                k_i_gamma_i + alpha_sum + beta_sum
-            })
-            .collect::<Vec<FE>>();
+                    k_i_gamma_i + alpha_sum + beta_sum
+                })
+                .collect::<Vec<FE>>();
 
-        // compare delta vec to reconstructed delta vec
+            // compare delta vec to reconstructed delta vec
 
-        for i in 0..len {
-            if self.delta_vec[i] != delta_vec_reconstruct[i] {
-                bad_signers_vec.push(i)
+            for i in 0..len {
+                if self.delta_vec[i] != delta_vec_reconstruct[i] {
+                    bad_signers_vec.push(i)
+                }
             }
         }
+
         bad_signers_vec.sort();
         bad_signers_vec.dedup();
         let err_type = ErrorType {
@@ -216,7 +221,7 @@ impl GlobalStatePhase5 {
 pub struct LocalStatePhase6 {
     pub k: FE,
     pub k_randomness: BigInt,
-    pub miu: Vec<BigInt>, //we need the value before reduction
+    pub miu: Vec<BigInt>, // we need the value before reduction
     pub miu_randomness: Vec<BigInt>,
     pub proof_of_eq_dlog: ECDDHProof<GE>,
 }
@@ -322,56 +327,71 @@ impl GlobalStatePhase6 {
             }
         }
 
-        // compute g_ni
-        let g_ni_mat = (0..len)
-            .map(|i| {
-                (0..len - 1)
-                    .map(|j| {
-                        let ind = if j < i { j } else { j + 1 };
-                        let k_i = &self.k_vec[i];
-                        let g_w_j = &self.g_w_vec[ind];
-                        let g_w_j_ki = g_w_j * k_i;
-                        let miu: FE = ECScalar::from(&self.miu_vec[i][j]);
-                        let g_miu = GE::generator() * &miu;
-                        let g_ni = g_w_j_ki.sub_point(&g_miu.get_element());
-                        g_ni
-                    })
-                    .collect::<Vec<GE>>()
-            })
-            .collect::<Vec<Vec<GE>>>();
-
-        // compute g_sigma_i
-
-        let mut g_sigma_i_vec = (0..len)
-            .map(|i| {
-                let g_wi_ki = self.g_w_vec[i] * &self.k_vec[i];
-                let sum = self.miu_vec[i].iter().fold(g_wi_ki, |acc, x| {
-                    acc + (GE::generator() * &ECScalar::from(&x))
-                });
-                sum
-            })
-            .collect::<Vec<GE>>();
-
+        // check correctness of k
         for i in 0..len {
-            for j in 0..len - 1 {
-                let ind1 = if j < i { j } else { j + 1 };
-                let ind2 = if j < i { i - 1 } else { i };
-                g_sigma_i_vec[i] = g_sigma_i_vec[i] + g_ni_mat[ind1][ind2];
+            if MessageA::a_with_predefined_randomness(
+                &self.k_vec[i],
+                &self.encryption_key_vec[i],
+                &self.k_randomness_vec[i],
+            ).c != self.m_a_vec[i].c {
+                bad_signers_vec.push(i)
             }
         }
 
-        // check zero knowledge proof
-        for i in 0..len {
-            let statement = ECDDHStatement {
-                g1: GE::generator(),
-                g2: R.clone(),
-                h1: g_sigma_i_vec[i],
-                h2: self.S_vec[i],
-            };
+        // we only proceed to check the blame if everyone opened values that are
+        // consistent with publicly known ciphertexts sent during MtA
+        if bad_signers_vec.is_empty() {
+            // compute g_ni
+            let g_ni_mat = (0..len)
+                .map(|i| {
+                    (0..len - 1)
+                        .map(|j| {
+                            let ind = if j < i { j } else { j + 1 };
+                            let k_i = &self.k_vec[i];
+                            let g_w_j = &self.g_w_vec[ind];
+                            let g_w_j_ki = g_w_j * k_i;
+                            let miu: FE = ECScalar::from(&self.miu_vec[i][j]);
+                            let g_miu = GE::generator() * &miu;
+                            let g_ni = g_w_j_ki.sub_point(&g_miu.get_element());
+                            g_ni
+                        })
+                        .collect::<Vec<GE>>()
+                })
+                .collect::<Vec<Vec<GE>>>();
 
-            let result = self.proof_vec[i].verify(&statement);
-            if result.is_err() {
-                bad_signers_vec.push(i)
+            // compute g_sigma_i
+
+            let mut g_sigma_i_vec = (0..len)
+                .map(|i| {
+                    let g_wi_ki = self.g_w_vec[i] * &self.k_vec[i];
+                    let sum = self.miu_vec[i].iter().fold(g_wi_ki, |acc, x| {
+                        acc + (GE::generator() * &ECScalar::from(&x))
+                    });
+                    sum
+                })
+                .collect::<Vec<GE>>();
+
+            for i in 0..len {
+                for j in 0..len - 1 {
+                    let ind1 = if j < i { j } else { j + 1 };
+                    let ind2 = if j < i { i - 1 } else { i };
+                    g_sigma_i_vec[i] = g_sigma_i_vec[i] + g_ni_mat[ind1][ind2];
+                }
+            }
+
+            // check zero knowledge proof
+            for i in 0..len {
+                let statement = ECDDHStatement {
+                    g1: GE::generator(),
+                    g2: R.clone(),
+                    h1: g_sigma_i_vec[i],
+                    h2: self.S_vec[i],
+                };
+
+                let result = self.proof_vec[i].verify(&statement);
+                if result.is_err() {
+                    bad_signers_vec.push(i)
+                }
             }
         }
 
@@ -400,7 +420,7 @@ impl GlobalStatePhase7 {
         let len = self.s_vec.len(); //TODO: check bounds
         let mut bad_signers_vec = Vec::new();
 
-        for i in 1..len {
+        for i in 0..len {
             let R_si = self.R * &self.s_vec[i];
             let R_dash_m = self.R_dash_vec[i] * &ECScalar::from(&self.m);
             let Si_r = self.S_vec[i] * &self.r;

@@ -367,18 +367,21 @@ impl Keys {
 
     pub fn get_commitments_to_xi(vss_scheme_vec: &[VerifiableSS<GE>]) -> Vec<GE> {
         let len = vss_scheme_vec.len();
+        let (head, tail) = vss_scheme_vec.split_at(1);
+        let mut global_coefficients = head[0].commitments.clone();
+        for vss in tail {
+            for (i, coefficient_commitment) in vss.commitments.iter().enumerate() {
+                global_coefficients[i] =
+                    global_coefficients[i].add_point(&coefficient_commitment.get_element());
+            }
+        }
+
+        let global_vss = VerifiableSS {
+            parameters: vss_scheme_vec[0].parameters.clone(),
+            commitments: global_coefficients,
+        };
         (1..=len)
-            .map(|i| {
-                let xij_points_vec = (0..len)
-                    .map(|j| vss_scheme_vec[j].get_point_commitment(i))
-                    .collect::<Vec<GE>>();
-
-                let mut xij_points_iter = xij_points_vec.iter();
-                let first = xij_points_iter.next().unwrap();
-
-                let tail = xij_points_iter;
-                tail.fold(first.clone(), |acc, x| acc + x)
-            })
+            .map(|i| global_vss.get_point_commitment(i))
             .collect::<Vec<GE>>()
     }
 
@@ -616,7 +619,7 @@ impl SignKeys {
                         &phase1_decommit_vec[ind].blind_factor,
                     ) == bc1_vec[ind].com;
                 if res == false {
-                    bad_actors_vec.push(j);
+                    bad_actors_vec.push(ind);
                     false
                 } else {
                     true
