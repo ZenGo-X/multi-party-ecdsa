@@ -337,7 +337,8 @@ impl StateMachine for Keygen {
 }
 
 impl super::traits::RoundBlame for Keygen {
-    fn round_blame(&self) -> ((u16, Vec<u16>), (u16, Vec<u16>)) {
+    /// Returns number of unwilling parties and a vector of their party indexes.
+    fn round_blame(&self) -> (u16, Vec<u16>) {
         let store1_blame = self.msgs1.as_ref().map(|s| s.blame()).unwrap_or_default();
         let store2_blame = self.msgs2.as_ref().map(|s| s.blame()).unwrap_or_default();
         let store3_blame = self.msgs3.as_ref().map(|s| s.blame()).unwrap_or_default();
@@ -352,7 +353,7 @@ impl super::traits::RoundBlame for Keygen {
             R::Round4(_) => store4_blame,
             R::Final(_) | R::Gone => default.clone(),
         };
-        (res, default)
+        res
     }
 }
 

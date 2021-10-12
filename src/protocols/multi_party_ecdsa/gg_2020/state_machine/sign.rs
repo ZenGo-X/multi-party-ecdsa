@@ -437,39 +437,40 @@ impl StateMachine for OfflineStage {
 }
 
 impl super::traits::RoundBlame for OfflineStage {
-    fn round_blame(&self) -> ((u16, Vec<u16>), (u16, Vec<u16>)) {
+    /// RoundBlame returns number of unwilling parties and a vector of their party indexes.
+    fn round_blame(&self) -> (u16, Vec<u16>) {
         let store1_blame = self
             .msgs1
             .as_ref()
-            .map(|s| (s.blame(), (0, vec![])))
+            .map(|s| (s.blame()))
             .unwrap_or_default();
         let store2_blame = self
             .msgs2
             .as_ref()
-            .map(|p2p| (p2p.blame(), (0, vec![])))
+            .map(|p2p| (p2p.blame()))
             .unwrap_or_default();
         let store3_blame = self
             .msgs3
             .as_ref()
-            .map(|bms| (bms.blame(), (0, vec![])))
+            .map(|bms| (bms.blame()))
             .unwrap_or_default();
         let store4_blame = self
             .msgs4
             .as_ref()
-            .map(|s| (s.blame(), (0, vec![])))
+            .map(|s| (s.blame()))
             .unwrap_or_default();
         let store5_blame = self
             .msgs5
             .as_ref()
-            .map(|s| (s.blame(), (0, vec![])))
+            .map(|s| (s.blame()))
             .unwrap_or_default();
         let store6_blame = self
             .msgs6
             .as_ref()
-            .map(|s| (s.blame(), (0, vec![])))
+            .map(|s| (s.blame()))
             .unwrap_or_default();
 
-        let default = ((0, vec![]), (0, vec![]));
+        let default = (0, vec![]);
         match &self.round {
             OfflineR::R0(_) => default,
             OfflineR::R1(_) => store1_blame,
