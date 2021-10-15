@@ -612,6 +612,7 @@ impl CompletedOfflineStage {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct PartialSignature(FE);
 
+#[derive(Clone)]
 pub struct Round7 {
     local_signature: LocalSignature,
 }
