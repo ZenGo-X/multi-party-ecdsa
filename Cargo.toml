@@ -39,7 +39,10 @@ round-based = { version = "0.1.4", features = [] }
 thiserror = "1.0.23"
 derivative = "2"
 
-centipede = "0.3"
+[dependencies.centipede]
+git = "https://github.com/ZenGo-X/centipede"
+tag = "v0.3.0"
+default-features = false
 
 [dependencies.paillier]
 git = "https://github.com/ZenGo-X/rust-paillier"
@@ -48,9 +51,8 @@ tag = "v0.4.2"
 default-features = false
 
 [dependencies.zk-paillier]
-git = "https://github.com/tmpfs/zk-paillier"
-branch = "curv-0.8"
-#tag = "v0.3.12"
+git = "https://github.com/ZenGo-X/zk-paillier"
+tag = "v0.4.2"
 default-features = false
 
 [dependencies.class_group]
