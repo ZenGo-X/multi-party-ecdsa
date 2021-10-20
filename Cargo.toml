@@ -42,10 +42,9 @@ derivative = "2"
 centipede = "0.3"
 
 [dependencies.paillier]
-git = "https://github.com/tmpfs/rust-paillier"
+git = "https://github.com/ZenGo-X/rust-paillier"
 package = "kzen-paillier"
-branch = "curv-0.8"
-#tag = "v0.3.10"
+tag = "v0.4.2"
 default-features = false
 
 [dependencies.zk-paillier]
