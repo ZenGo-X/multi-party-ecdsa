@@ -40,8 +40,9 @@ thiserror = "1.0.23"
 derivative = "2"
 
 [dependencies.centipede]
-git = "https://github.com/ZenGo-X/centipede"
-tag = "v0.3.0"
+version = "0.3"
+#git = "https://github.com/ZenGo-X/centipede"
+#tag = "v0.3.0"
 default-features = false
 
 [dependencies.paillier]
@@ -51,8 +52,9 @@ tag = "v0.4.2"
 default-features = false
 
 [dependencies.zk-paillier]
-git = "https://github.com/ZenGo-X/zk-paillier"
-tag = "v0.4.2"
+version = "0.4.2"
+#git = "https://github.com/ZenGo-X/zk-paillier"
+#tag = "v0.4.2"
 default-features = false
 
 [dependencies.class_group]
