@@ -1,6 +1,6 @@
 use curv::cryptographic_primitives::proofs::sigma_dlog::DLogProof;
 use curv::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS;
-use curv::elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar};
+use curv::elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar, ECPoint};
 
 use derivative::Derivative;
 use serde::{Deserialize, Serialize};
