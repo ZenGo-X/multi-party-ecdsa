@@ -209,7 +209,7 @@ impl Keys {
         params: &Parameters,
         decom_vec: &[KeyGenDecommitMessage1],
         bc1_vec: &[KeyGenBroadcastMessage1],
-    ) -> Result<(VerifiableSS<Point::<Secp256k1>>, Vec<Scalar::<Secp256k1>>, usize), Error> {
+    ) -> Result<(VerifiableSS<Secp256k1>, Vec<Scalar::<Secp256k1>>, usize), Error> {
         // test length:
         assert_eq!(decom_vec.len() as u16, params.share_count);
         assert_eq!(bc1_vec.len() as u16, params.share_count);
@@ -244,7 +244,7 @@ impl Keys {
         params: &Parameters,
         y_vec: &[Point::<Secp256k1>],
         secret_shares_vec: &[Scalar::<Secp256k1>],
-        vss_scheme_vec: &[VerifiableSS<Point::<Secp256k1>>],
+        vss_scheme_vec: &[VerifiableSS<Secp256k1>],
         index: usize,
     ) -> Result<(SharedKeys, DLogProof<Point::<Secp256k1>, Sha256>), Error> {
         assert_eq!(y_vec.len() as u16, params.share_count);
@@ -272,7 +272,7 @@ impl Keys {
         }
     }
 
-    pub fn get_commitments_to_xi(vss_scheme_vec: &[VerifiableSS<Point::<Secp256k1>>]) -> Vec<Point::<Secp256k1>> {
+    pub fn get_commitments_to_xi(vss_scheme_vec: &[VerifiableSS<Secp256k1>]) -> Vec<Point::<Secp256k1>> {
         let len = vss_scheme_vec.len();
         (1..=len)
             .map(|i| {
@@ -291,7 +291,7 @@ impl Keys {
 
     pub fn update_commitments_to_xi(
         comm: &Point::<Secp256k1>,
-        vss_scheme: &VerifiableSS<Point::<Secp256k1>>,
+        vss_scheme: &VerifiableSS<Secp256k1>,
         index: usize,
         s: &[usize],
     ) -> Point::<Secp256k1> {
@@ -388,7 +388,7 @@ impl PartyPrivate {
 impl SignKeys {
     pub fn create(
         private: &PartyPrivate,
-        vss_scheme: &VerifiableSS<Point::<Secp256k1>>,
+        vss_scheme: &VerifiableSS<Secp256k1>,
         index: usize,
         s: &[usize],
     ) -> Self {

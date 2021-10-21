@@ -270,7 +270,7 @@ impl Keys {
         params: &Parameters,
         decom_vec: &[KeyGenDecommitMessage1],
         bc1_vec: &[KeyGenBroadcastMessage1],
-    ) -> Result<(VerifiableSS<Point::<Secp256k1>>, Vec<Scalar::<Secp256k1>>, usize), ErrorType> {
+    ) -> Result<(VerifiableSS<Secp256k1>, Vec<Scalar::<Secp256k1>>, usize), ErrorType> {
         let mut bad_actors_vec = Vec::new();
         // test length:
         assert_eq!(decom_vec.len() as u16, params.share_count);
@@ -325,7 +325,7 @@ impl Keys {
         params: &Parameters,
         y_vec: &[Point::<Secp256k1>],
         secret_shares_vec: &[Scalar::<Secp256k1>],
-        vss_scheme_vec: &[VerifiableSS<Point::<Secp256k1>>],
+        vss_scheme_vec: &[VerifiableSS<Secp256k1>],
         index: usize,
     ) -> Result<(SharedKeys, DLogProof<Point::<Secp256k1>, Sha256>), ErrorType> {
         let mut bad_actors_vec = Vec::new();
@@ -365,7 +365,7 @@ impl Keys {
         }
     }
 
-    pub fn get_commitments_to_xi(vss_scheme_vec: &[VerifiableSS<Point::<Secp256k1>>]) -> Vec<Point::<Secp256k1>> {
+    pub fn get_commitments_to_xi(vss_scheme_vec: &[VerifiableSS<Secp256k1>]) -> Vec<Point::<Secp256k1>> {
         let len = vss_scheme_vec.len();
         let (head, tail) = vss_scheme_vec.split_at(1);
         let mut global_coefficients = head[0].commitments.clone();
@@ -387,7 +387,7 @@ impl Keys {
 
     pub fn update_commitments_to_xi(
         comm: &Point::<Secp256k1>,
-        vss_scheme: &VerifiableSS<Point::<Secp256k1>>,
+        vss_scheme: &VerifiableSS<Secp256k1>,
         index: usize,
         s: &[usize],
     ) -> Point::<Secp256k1> {
@@ -399,7 +399,7 @@ impl Keys {
         params: &Parameters,
         dlog_proofs_vec: &[DLogProof<Point::<Secp256k1>, Sha256>],
         y_vec: &[Point::<Secp256k1>],
-        vss_vec: &[VerifiableSS<Point::<Secp256k1>>],
+        vss_vec: &[VerifiableSS<Secp256k1>],
     ) -> Result<(), ErrorType> {
         let mut bad_actors_vec = Vec::new();
         assert_eq!(y_vec.len() as u16, params.share_count);
@@ -513,7 +513,7 @@ impl PartyPrivate {
 }
 
 impl SignKeys {
-    pub fn g_w_vec(pk_vec: &[Point::<Secp256k1>], s: &[usize], vss_scheme: &VerifiableSS<Point::<Secp256k1>>) -> Vec<Point::<Secp256k1>> {
+    pub fn g_w_vec(pk_vec: &[Point::<Secp256k1>], s: &[usize], vss_scheme: &VerifiableSS<Secp256k1>) -> Vec<Point::<Secp256k1>> {
         // TODO: check bounds
         (0..s.len())
             .map(|i| {
@@ -526,7 +526,7 @@ impl SignKeys {
 
     pub fn create(
         private_x_i: &Scalar::<Secp256k1>,
-        vss_scheme: &VerifiableSS<Point::<Secp256k1>>,
+        vss_scheme: &VerifiableSS<Secp256k1>,
         index: usize,
         s: &[usize],
     ) -> Self {
