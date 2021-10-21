@@ -19,8 +19,6 @@ use centipede::juggling::segmentation::Msegmentation;
 use curv::arithmetic::traits::*;
 use curv::cryptographic_primitives::commitments::hash_commitment::HashCommitment;
 use curv::cryptographic_primitives::commitments::traits::Commitment;
-use curv::cryptographic_primitives::hashing::hash_sha256::HSha256;
-use curv::cryptographic_primitives::hashing::traits::Hash;
 use curv::cryptographic_primitives::proofs::sigma_dlog::*;
 use curv::cryptographic_primitives::proofs::sigma_ec_ddh::*;
 use curv::cryptographic_primitives::proofs::ProofError;
@@ -30,6 +28,7 @@ use paillier::{Add, Encrypt, Mul};
 use paillier::{EncryptionKey, RawCiphertext, RawPlaintext};
 use serde::{Deserialize, Serialize};
 use zk_paillier::zkproofs::{CorrectKeyProofError, NiCorrectKeyProof};
+use sha2::Sha256;
 
 use super::party_one::EphKeyGenFirstMsg as Party1EphKeyGenFirstMsg;
 use super::party_one::KeyGenFirstMsg as Party1KeyGenFirstMessage;
@@ -323,7 +322,7 @@ impl EphKeyGenFirstMsg {
 
         let zk_pok_blind_factor = BigInt::sample(SECURITY_BITS);
         let zk_pok_commitment = HashCommitment::create_commitment_with_user_defined_randomness(
-            &HSha256::create_hash_from_ge(&[&d_log_proof.a1, &d_log_proof.a2]).to_big_int(),
+            &Sha256::new().chain_points([&d_log_proof.a1, &d_log_proof.a2]).result_bigint(),
             &zk_pok_blind_factor,
         );
 
