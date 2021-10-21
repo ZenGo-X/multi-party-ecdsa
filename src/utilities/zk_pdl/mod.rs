@@ -100,7 +100,7 @@ pub struct Verifier {}
 
 impl Verifier {
     pub fn message1(statement: &PDLStatement) -> (PDLVerifierFirstMessage, PDLVerifierState) {
-        let a_fe: Scalar::<Secp256k1> = ECScalar::new_random();
+        let a_fe: Scalar::<Secp256k1> = Scalar::<Secp256k1>::random();
         let a = a_fe.to_big_int();
         let q = Scalar::<Secp256k1>::q();
         let q_sq = q.pow(2);

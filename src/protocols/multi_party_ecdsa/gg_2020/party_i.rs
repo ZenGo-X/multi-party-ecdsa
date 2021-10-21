@@ -184,7 +184,7 @@ impl Keys {
 
     // we recommend using safe primes if the code is used in production
     pub fn create_safe_prime(index: usize) -> Keys {
-        let u: Scalar::<Secp256k1> = ECScalar::new_random();
+        let u: Scalar::<Secp256k1> = Scalar::<Secp256k1>::random();
         let y = &ECPoint::generator() * &u;
 
         let (ek, dk) = Paillier::keypair_safe_primes().keys();
@@ -533,9 +533,9 @@ impl SignKeys {
         let w_i = li * private_x_i;
         let g: Point::<Secp256k1> = ECPoint::generator();
         let g_w_i = g * w_i;
-        let gamma_i: Scalar::<Secp256k1> = ECScalar::new_random();
+        let gamma_i: Scalar::<Secp256k1> = Scalar::<Secp256k1>::random();
         let g_gamma_i = g * gamma_i;
-        let k_i: Scalar::<Secp256k1> = ECScalar::new_random();
+        let k_i: Scalar::<Secp256k1> = Scalar::<Secp256k1>::random();
         Self {
             w_i,
             g_w_i,
@@ -586,7 +586,7 @@ impl SignKeys {
 
     pub fn phase3_compute_t_i(sigma_i: &Scalar::<Secp256k1>) -> (Point::<Secp256k1>, Scalar::<Secp256k1>, PedersenProof<Point::<Secp256k1>>) {
         let g_sigma_i = Point::<Secp256k1>::generator() * sigma_i;
-        let l: Scalar::<Secp256k1> = ECScalar::new_random();
+        let l: Scalar::<Secp256k1> = Scalar::<Secp256k1>::random();
         let h_l = Point::<Secp256k1>::base_point2() * &l;
         let T = g_sigma_i + h_l;
         let T_zk_proof = PedersenProof::<Point::<Secp256k1>>::prove(&sigma_i, &l);

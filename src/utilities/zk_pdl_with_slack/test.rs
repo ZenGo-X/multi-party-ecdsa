@@ -34,7 +34,7 @@ fn test_zk_pdl_with_slack() {
     // note: safe primes should be used here as well:
     // let (ek_tilde, dk_tilde) = Paillier::keypair_safe_primes().keys();
     let randomness = Randomness::sample(&ek);
-    let x: Scalar::<Secp256k1> = ECScalar::new_random();
+    let x: Scalar::<Secp256k1> = Scalar::<Secp256k1>::random();
 
     let Q = Point::<Secp256k1>::generator() * &x;
 
@@ -94,7 +94,7 @@ fn test_zk_pdl_with_slack_soundness() {
     // note: safe primes should be used here as well:
     // let (ek_tilde, dk_tilde) = Paillier::keypair_safe_primes().keys();
     let randomness = Randomness::sample(&ek);
-    let x: Scalar::<Secp256k1> = ECScalar::new_random();
+    let x: Scalar::<Secp256k1> = Scalar::<Secp256k1>::random();
 
     let Q = Point::<Secp256k1>::generator() * &x;
 

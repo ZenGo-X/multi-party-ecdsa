@@ -157,7 +157,7 @@ impl Keys {
 
     // we recommend using safe primes if the code is used in production
     pub fn create_safe_prime(index: usize) -> Keys {
-        let u: Scalar::<Secp256k1> = ECScalar::new_random();
+        let u: Scalar::<Secp256k1> = Scalar::<Secp256k1>::random();
         let y = &ECPoint::generator() * &u;
 
         let (ek, dk) = Paillier::keypair_safe_primes().keys();
@@ -396,13 +396,13 @@ impl SignKeys {
         let w_i = li * private.x_i;
         let g: Point::<Secp256k1> = ECPoint::generator();
         let g_w_i = g * w_i;
-        let gamma_i: Scalar::<Secp256k1> = ECScalar::new_random();
+        let gamma_i: Scalar::<Secp256k1> = Scalar::<Secp256k1>::random();
         let g_gamma_i = g * gamma_i;
 
         Self {
             w_i,
             g_w_i,
-            k_i: ECScalar::new_random(),
+            k_i: Scalar::<Secp256k1>::random(),
             gamma_i,
             g_gamma_i,
         }
@@ -492,8 +492,8 @@ impl LocalSignature {
         let m_fe: Scalar::<Secp256k1> = ECScalar::from(message);
         let r: Scalar::<Secp256k1> = ECScalar::from(&R.x_coor().unwrap().mod_floor(&Scalar::<Secp256k1>::q()));
         let s_i = m_fe * k_i + r * sigma_i;
-        let l_i: Scalar::<Secp256k1> = ECScalar::new_random();
-        let rho_i: Scalar::<Secp256k1> = ECScalar::new_random();
+        let l_i: Scalar::<Secp256k1> = Scalar::<Secp256k1>::random();
+        let rho_i: Scalar::<Secp256k1> = Scalar::<Secp256k1>::random();
         Self {
             l_i,
             rho_i,
