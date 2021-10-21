@@ -20,8 +20,6 @@ use centipede::juggling::segmentation::Msegmentation;
 use curv::arithmetic::traits::*;
 use curv::cryptographic_primitives::commitments::hash_commitment::HashCommitment;
 use curv::cryptographic_primitives::commitments::traits::Commitment;
-use curv::cryptographic_primitives::hashing::hash_sha256::HSha256;
-use curv::cryptographic_primitives::hashing::traits::Hash;
 use curv::cryptographic_primitives::proofs::sigma_dlog::*;
 use curv::cryptographic_primitives::proofs::sigma_ec_ddh::*;
 use curv::cryptographic_primitives::proofs::ProofError;
@@ -33,6 +31,7 @@ use serde::{Deserialize, Serialize};
 use subtle::ConstantTimeEq;
 use zeroize::Zeroize;
 use zk_paillier::zkproofs::NiCorrectKeyProof;
+use sha2::Sha256;
 
 use super::party_two::EphKeyGenFirstMsg as Party2EphKeyGenFirstMessage;
 use super::party_two::EphKeyGenSecondMsg as Party2EphKeyGenSecondMessage;
@@ -457,11 +456,10 @@ impl EphKeyGenSecondMsg {
         };
         if party_two_zk_pok_commitment
             == &HashCommitment::create_commitment_with_user_defined_randomness(
-                &HSha256::create_hash_from_ge(&[
+                &Sha256::new().chain_points([
                     &party_two_d_log_proof.a1,
                     &party_two_d_log_proof.a2,
-                ])
-                .to_big_int(),
+                ]).result_bigint(),
                 &party_two_zk_pok_blind_factor,
             )
         {
