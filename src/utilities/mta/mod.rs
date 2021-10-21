@@ -147,7 +147,7 @@ impl MessageB {
         a: &Scalar::<Secp256k1>,
     ) -> Result<(Scalar::<Secp256k1>, BigInt), Error> {
         let alice_share = Paillier::decrypt(dk, &RawCiphertext::from(self.c.clone()));
-        let g: Point::<Secp256k1> = ECPoint::generator();
+        let g = Point::<Secp256k1>::generator();
         let alpha: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(&alice_share.0);
         let g_alpha = g * alpha;
         let ba_btag = self.b_proof.pk * a + self.beta_tag_proof.pk;
@@ -170,7 +170,7 @@ impl MessageB {
         a: &Scalar::<Secp256k1>,
     ) -> Result<Scalar::<Secp256k1>, Error> {
         let alice_share = private.decrypt(self.c.clone());
-        let g: Point::<Secp256k1> = ECPoint::generator();
+        let g = Point::<Secp256k1>::generator();
         let alpha: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(&alice_share.0);
         let g_alpha = g * alpha;
         let ba_btag = self.b_proof.pk * a + self.beta_tag_proof.pk;

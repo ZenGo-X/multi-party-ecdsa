@@ -185,7 +185,7 @@ impl Keys {
     // we recommend using safe primes if the code is used in production
     pub fn create_safe_prime(index: usize) -> Keys {
         let u: Scalar::<Secp256k1> = Scalar::<Secp256k1>::random();
-        let y = &ECPoint::generator() * &u;
+        let y = &Point::<Secp256k1>::generator() * &u;
 
         let (ek, dk) = Paillier::keypair_safe_primes().keys();
         let (N_tilde, h1, h2, xhi, xhi_inv) = generate_h1_h2_N_tilde();
@@ -204,7 +204,7 @@ impl Keys {
         }
     }
     pub fn create_from(u: Scalar::<Secp256k1>, index: usize) -> Keys {
-        let y = &ECPoint::generator() * &u;
+        let y = &Point::<Secp256k1>::generator() * &u;
         let (ek, dk) = Paillier::keypair().keys();
         let (N_tilde, h1, h2, xhi, xhi_inv) = generate_h1_h2_N_tilde();
 
@@ -440,7 +440,7 @@ impl PartyPrivate {
     }
 
     pub fn y_i(&self) -> Point::<Secp256k1> {
-        let g: Point::<Secp256k1> = ECPoint::generator();
+        let g = Point::<Secp256k1>::generator();
         g * self.u_i
     }
 
@@ -472,7 +472,7 @@ impl PartyPrivate {
     // we recommend using safe primes if the code is used in production
     pub fn refresh_private_key_safe_prime(&self, factor: &Scalar::<Secp256k1>, index: usize) -> Keys {
         let u: Scalar::<Secp256k1> = self.u_i + factor;
-        let y = &ECPoint::generator() * &u;
+        let y = &Point::<Secp256k1>::generator() * &u;
         let (ek, dk) = Paillier::keypair_safe_primes().keys();
 
         let (N_tilde, h1, h2, xhi, xhi_inv) = generate_h1_h2_N_tilde();
@@ -531,7 +531,7 @@ impl SignKeys {
     ) -> Self {
         let li = VerifiableSS::<Point::<Secp256k1>>::map_share_to_new_params(&vss_scheme.parameters, index, s);
         let w_i = li * private_x_i;
-        let g: Point::<Secp256k1> = ECPoint::generator();
+        let g = Point::<Secp256k1>::generator();
         let g_w_i = g * w_i;
         let gamma_i: Scalar::<Secp256k1> = Scalar::<Secp256k1>::random();
         let g_gamma_i = g * gamma_i;
@@ -547,7 +547,7 @@ impl SignKeys {
 
     pub fn phase1_broadcast(&self) -> (SignBroadcastPhase1, SignDecommitPhase1) {
         let blind_factor = BigInt::sample(SECURITY);
-        let g: Point::<Secp256k1> = ECPoint::generator();
+        let g = Point::<Secp256k1>::generator();
         let g_gamma_i = g * self.gamma_i;
         let com = HashCommitment::create_commitment_with_user_defined_randomness(
             &g_gamma_i.bytes_compressed_to_big_int(),
@@ -846,7 +846,7 @@ pub fn verify(sig: &SignatureRecid, y: &Point::<Secp256k1>, message: &BigInt) ->
     let u1 = a * b;
     let u2 = sig.r * b;
 
-    let g: Point::<Secp256k1> = ECPoint::generator();
+    let g = Point::<Secp256k1>::generator();
     let gu1 = g * u1;
     let yu2 = y * &u2;
     // can be faster using shamir trick

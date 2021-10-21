@@ -158,7 +158,7 @@ impl Keys {
     // we recommend using safe primes if the code is used in production
     pub fn create_safe_prime(index: usize) -> Keys {
         let u: Scalar::<Secp256k1> = Scalar::<Secp256k1>::random();
-        let y = &ECPoint::generator() * &u;
+        let y = &Point::<Secp256k1>::generator() * &u;
 
         let (ek, dk) = Paillier::keypair_safe_primes().keys();
 
@@ -171,7 +171,7 @@ impl Keys {
         }
     }
     pub fn create_from(u: Scalar::<Secp256k1>, index: usize) -> Keys {
-        let y = &ECPoint::generator() * &u;
+        let y = &Point::<Secp256k1>::generator() * &u;
         let (ek, dk) = Paillier::keypair().keys();
 
         Self {
@@ -328,7 +328,7 @@ impl PartyPrivate {
     }
 
     pub fn y_i(&self) -> Point::<Secp256k1> {
-        let g: Point::<Secp256k1> = ECPoint::generator();
+        let g = Point::<Secp256k1>::generator();
         g * self.u_i
     }
 
@@ -353,7 +353,7 @@ impl PartyPrivate {
     // we recommend using safe primes if the code is used in production
     pub fn refresh_private_key_safe_prime(&self, factor: &Scalar::<Secp256k1>, index: usize) -> Keys {
         let u: Scalar::<Secp256k1> = self.u_i + factor;
-        let y = &ECPoint::generator() * &u;
+        let y = &Point::<Secp256k1>::generator() * &u;
         let (ek, dk) = Paillier::keypair_safe_primes().keys();
 
         Keys {
@@ -394,7 +394,7 @@ impl SignKeys {
     ) -> Self {
         let li = VerifiableSS::<Point::<Secp256k1>>::map_share_to_new_params(&vss_scheme.parameters, index, s);
         let w_i = li * private.x_i;
-        let g: Point::<Secp256k1> = ECPoint::generator();
+        let g = Point::<Secp256k1>::generator();
         let g_w_i = g * w_i;
         let gamma_i: Scalar::<Secp256k1> = Scalar::<Secp256k1>::random();
         let g_gamma_i = g * gamma_i;
@@ -410,7 +410,7 @@ impl SignKeys {
 
     pub fn phase1_broadcast(&self) -> (SignBroadcastPhase1, SignDecommitPhase1) {
         let blind_factor = BigInt::sample(SECURITY);
-        let g: Point::<Secp256k1> = ECPoint::generator();
+        let g = Point::<Secp256k1>::generator();
         let g_gamma_i = g * self.gamma_i;
         let com = HashCommitment::create_commitment_with_user_defined_randomness(
             &g_gamma_i.bytes_compressed_to_big_int(),
@@ -513,7 +513,7 @@ impl LocalSignature {
         DLogProof<Point::<Secp256k1>>,
     ) {
         let blind_factor = BigInt::sample(SECURITY);
-        let g: Point::<Secp256k1> = ECPoint::generator();
+        let g = Point::<Secp256k1>::generator();
         let A_i = g * self.rho_i;
         let l_i_rho_i = self.l_i.mul(&self.rho_i.get_element());
         let B_i = g * l_i_rho_i;
@@ -561,7 +561,7 @@ impl LocalSignature {
     ) -> Result<(Phase5Com2, Phase5DDecom2), Error> {
         assert_eq!(decom_vec.len(), com_vec.len());
 
-        let g: Point::<Secp256k1> = ECPoint::generator();
+        let g = Point::<Secp256k1>::generator();
         let test_com_elgamal = (0..com_vec.len())
             .map(|i| {
                 let delta = HomoElGamalStatement {
@@ -603,7 +603,7 @@ impl LocalSignature {
 
         let r: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(&self.R.x_coor().unwrap().mod_floor(&Scalar::<Secp256k1>::q()));
         let yr = self.y * r;
-        let g: Point::<Secp256k1> = ECPoint::generator();
+        let g = Point::<Secp256k1>::generator();
         let m_fe: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(&self.m);
         let gm = g * m_fe;
         let v = v.sub_point(&gm.get_element()).sub_point(&yr.get_element());
@@ -661,7 +661,7 @@ impl LocalSignature {
             .map(|i| &decom_vec1[i].B_i)
             .collect::<Vec<&Point::<Secp256k1>>>();
 
-        let g: Point::<Secp256k1> = ECPoint::generator();
+        let g = Point::<Secp256k1>::generator();
         let biased_sum_tb = t_vec.iter().zip(b_vec).fold(g, |acc, x| acc + *x.0 + x.1);
         let biased_sum_tb_minus_u = u_vec
             .iter()
@@ -712,7 +712,7 @@ pub fn verify(sig: &SignatureRecid, y: &Point::<Secp256k1>, message: &BigInt) ->
     let u1 = a * b;
     let u2 = sig.r * b;
 
-    let g: Point::<Secp256k1> = ECPoint::generator();
+    let g = Point::<Secp256k1>::generator();
     let gu1 = g * u1;
     let yu2 = y * &u2;
     // can be faster using shamir trick

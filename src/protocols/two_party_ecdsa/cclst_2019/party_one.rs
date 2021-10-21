@@ -135,7 +135,7 @@ pub struct EphKeyGenSecondMsg {}
 
 impl KeyGenFirstMsg {
     pub fn create_commitments() -> (KeyGenFirstMsg, CommWitness, EcKeyPair) {
-        let base: Point::<Secp256k1> = ECPoint::generator();
+        let base = Point::<Secp256k1>::generator();
 
         let secret_share: Scalar::<Secp256k1> = Scalar::<Secp256k1>::random();
         //in Lindell's protocol range proof works only for x1<q/3
@@ -181,7 +181,7 @@ impl KeyGenFirstMsg {
     pub fn create_commitments_with_fixed_secret_share(
         secret_share: Scalar::<Secp256k1>,
     ) -> (KeyGenFirstMsg, CommWitness, EcKeyPair) {
-        let base: Point::<Secp256k1> = ECPoint::generator();
+        let base = Point::<Secp256k1>::generator();
         let public_share = base.scalar_mul(&secret_share.get_element());
 
         let d_log_proof = DLogProof::prove(&secret_share);
@@ -276,7 +276,7 @@ impl HSMCL {
 
 impl EphKeyGenFirstMsg {
     pub fn create() -> (EphKeyGenFirstMsg, EphEcKeyPair) {
-        let base: Point::<Secp256k1> = ECPoint::generator();
+        let base = Point::<Secp256k1>::generator();
         let secret_share: Scalar::<Secp256k1> = Scalar::<Secp256k1>::random();
         let public_share = &base * &secret_share;
         let h: Point::<Secp256k1> = Point::<Secp256k1>::base_point2();

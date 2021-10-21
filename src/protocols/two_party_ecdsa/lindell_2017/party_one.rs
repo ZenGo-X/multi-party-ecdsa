@@ -136,7 +136,7 @@ pub struct EphKeyGenSecondMsg {}
 
 impl KeyGenFirstMsg {
     pub fn create_commitments() -> (KeyGenFirstMsg, CommWitness, EcKeyPair) {
-        let base: Point::<Secp256k1> = ECPoint::generator();
+        let base = Point::<Secp256k1>::generator();
 
         let mut secret_share: Scalar::<Secp256k1> = Scalar::<Secp256k1>::random();
 
@@ -180,7 +180,7 @@ impl KeyGenFirstMsg {
     pub fn create_commitments_with_fixed_secret_share(
         mut secret_share: Scalar::<Secp256k1>,
     ) -> (KeyGenFirstMsg, CommWitness, EcKeyPair) {
-        let base: Point::<Secp256k1> = ECPoint::generator();
+        let base = Point::<Secp256k1>::generator();
         let public_share = base.scalar_mul(&secret_share.get_element());
 
         let d_log_proof = DLogProof::<Point::<Secp256k1>>::prove(&secret_share);
@@ -398,7 +398,7 @@ impl PaillierKeyPair {
 
 impl EphKeyGenFirstMsg {
     pub fn create() -> (EphKeyGenFirstMsg, EphEcKeyPair) {
-        let base: Point::<Secp256k1> = ECPoint::generator();
+        let base = Point::<Secp256k1>::generator();
         let mut secret_share: Scalar::<Secp256k1> = Scalar::<Secp256k1>::random();
         let public_share = &base * &secret_share;
         let h: Point::<Secp256k1> = Point::<Secp256k1>::base_point2();
