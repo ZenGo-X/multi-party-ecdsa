@@ -348,7 +348,7 @@ impl GlobalStatePhase6 {
                             let k_i = &self.k_vec[i];
                             let g_w_j = &self.g_w_vec[ind];
                             let g_w_j_ki = g_w_j * k_i;
-                            let miu: Scalar::<Secp256k1> = ECScalar::from(&self.miu_vec[i][j]);
+                            let miu: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(&self.miu_vec[i][j]);
                             let g_miu = Point::<Secp256k1>::generator() * &miu;
                             let g_ni = g_w_j_ki.sub_point(&g_miu.get_element());
                             g_ni
@@ -363,7 +363,7 @@ impl GlobalStatePhase6 {
                 .map(|i| {
                     let g_wi_ki = self.g_w_vec[i] * &self.k_vec[i];
                     let sum = self.miu_vec[i].iter().fold(g_wi_ki, |acc, x| {
-                        acc + (Point::<Secp256k1>::generator() * &ECScalar::from(&x))
+                        acc + (Point::<Secp256k1>::generator() * &Scalar::<Secp256k1>::from(&x))
                     });
                     sum
                 })
@@ -420,7 +420,7 @@ impl GlobalStatePhase7 {
 
         for i in 0..len {
             let R_si = self.R * &self.s_vec[i];
-            let R_dash_m = self.R_dash_vec[i] * &ECScalar::from(&self.m);
+            let R_dash_m = self.R_dash_vec[i] * &Scalar::<Secp256k1>::from(&self.m);
             let Si_r = self.S_vec[i] * &self.r;
             let right = R_dash_m + Si_r;
             let left = R_si;

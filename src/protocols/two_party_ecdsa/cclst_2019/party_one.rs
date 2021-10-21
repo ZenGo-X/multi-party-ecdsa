@@ -140,7 +140,7 @@ impl KeyGenFirstMsg {
         let secret_share: Scalar::<Secp256k1> = Scalar::<Secp256k1>::random();
         //in Lindell's protocol range proof works only for x1<q/3
         let secret_share: Scalar::<Secp256k1> =
-            ECScalar::from(&secret_share.to_big_int().div_floor(&BigInt::from(3)));
+            Scalar::<Secp256k1>::from(&secret_share.to_big_int().div_floor(&BigInt::from(3)));
 
         let public_share = base.scalar_mul(&secret_share.get_element());
 
@@ -383,11 +383,11 @@ impl Signature {
 }
 
 pub fn verify(signature: &Signature, pubkey: &Point::<Secp256k1>, message: &BigInt) -> Result<(), Error> {
-    let s_fe: Scalar::<Secp256k1> = ECScalar::from(&signature.s);
-    let rx_fe: Scalar::<Secp256k1> = ECScalar::from(&signature.r);
+    let s_fe: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(&signature.s);
+    let rx_fe: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(&signature.r);
 
     let s_inv_fe = s_fe.invert();
-    let e_fe: Scalar::<Secp256k1> = ECScalar::from(&message.mod_floor(&Scalar::<Secp256k1>::q()));
+    let e_fe: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(&message.mod_floor(&Scalar::<Secp256k1>::q()));
     let u1 = Point::<Secp256k1>::generator() * e_fe * s_inv_fe;
     let u2 = *pubkey * rx_fe * s_inv_fe;
 

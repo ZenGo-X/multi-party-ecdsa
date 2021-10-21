@@ -74,7 +74,7 @@ impl PDLwSlackProof {
             &witness.x.to_big_int(),
             &rho,
         );
-        let u1 = &statement.G * &ECScalar::from(&alpha);
+        let u1 = &statement.G * &Scalar::<Secp256k1>::from(&alpha);
         let u2 = commitment_unknown_order(
             &(&statement.ek.n + BigInt::one()),
             &beta,
@@ -125,8 +125,8 @@ impl PDLwSlackProof {
             &self.u2,
             &self.u3,
         ]);
-        let g_s1 = statement.G.clone() * &ECScalar::from(&self.s1);
-        let e_fe_neg: Scalar::<Secp256k1> = ECScalar::from(&(Scalar::<Secp256k1>::q() - &e));
+        let g_s1 = statement.G.clone() * &Scalar::<Secp256k1>::from(&self.s1);
+        let e_fe_neg: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(&(Scalar::<Secp256k1>::q() - &e));
         let y_minus_e = &statement.Q * &e_fe_neg;
         let u1_test = g_s1 + y_minus_e;
 

@@ -798,8 +798,8 @@ impl LocalSignature {
     }
 
     pub fn phase7_local_sig(k_i: &Scalar::<Secp256k1>, message: &BigInt, R: &Point::<Secp256k1>, sigma_i: &Scalar::<Secp256k1>, pubkey: &Point::<Secp256k1>) -> Self {
-        let m_fe: Scalar::<Secp256k1> = ECScalar::from(message);
-        let r: Scalar::<Secp256k1> = ECScalar::from(&R.x_coor().unwrap().mod_floor(&Scalar::<Secp256k1>::q()));
+        let m_fe: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(message);
+        let r: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(&R.x_coor().unwrap().mod_floor(&Scalar::<Secp256k1>::q()));
         let s_i = m_fe * k_i + r * sigma_i;
         Self {
             r,
@@ -814,7 +814,7 @@ impl LocalSignature {
         let mut s = s_vec.iter().fold(self.s_i, |acc, x| acc + x);
         let s_bn = s.to_big_int();
 
-        let r: Scalar::<Secp256k1> = ECScalar::from(&self.R.x_coor().unwrap().mod_floor(&Scalar::<Secp256k1>::q()));
+        let r: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(&self.R.x_coor().unwrap().mod_floor(&Scalar::<Secp256k1>::q()));
         let ry: BigInt = self.R.y_coor().unwrap().mod_floor(&Scalar::<Secp256k1>::q());
 
         /*
@@ -827,7 +827,7 @@ impl LocalSignature {
         let mut recid = if is_ry_odd { 1 } else { 0 };
         let s_tag_bn = Scalar::<Secp256k1>::q() - &s_bn;
         if s_bn > s_tag_bn {
-            s = ECScalar::from(&s_tag_bn);
+            s = Scalar::<Secp256k1>::from(&s_tag_bn);
             recid = recid ^ 1;
         }
         let sig = SignatureRecid { r, s, recid };
@@ -842,7 +842,7 @@ impl LocalSignature {
 
 pub fn verify(sig: &SignatureRecid, y: &Point::<Secp256k1>, message: &BigInt) -> Result<(), Error> {
     let b = sig.s.invert();
-    let a: Scalar::<Secp256k1> = ECScalar::from(message);
+    let a: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(message);
     let u1 = a * b;
     let u2 = sig.r * b;
 
@@ -851,7 +851,7 @@ pub fn verify(sig: &SignatureRecid, y: &Point::<Secp256k1>, message: &BigInt) ->
     let yu2 = y * &u2;
     // can be faster using shamir trick
 
-    if sig.r == ECScalar::from(&(gu1 + yu2).x_coor().unwrap().mod_floor(&Scalar::<Secp256k1>::q())) {
+    if sig.r == Scalar::<Secp256k1>::from(&(gu1 + yu2).x_coor().unwrap().mod_floor(&Scalar::<Secp256k1>::q())) {
         Ok(())
     } else {
         Err(InvalidSig)

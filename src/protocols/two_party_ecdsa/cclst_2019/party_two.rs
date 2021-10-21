@@ -329,7 +329,7 @@ impl PartialSig {
             .invert(&q)
             .unwrap();
         let k2_inv_m = BigInt::mod_mul(&k2_inv, message, &q);
-        let k2_inv_m_fe: Scalar::<Secp256k1> = ECScalar::from(&k2_inv_m);
+        let k2_inv_m_fe: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(&k2_inv_m);
         let c1 = encrypt(&party_two_public.group, &party_two_public.ek, &k2_inv_m_fe);
         let v = BigInt::mod_mul(&k2_inv, &local_share.x2.to_big_int(), &q);
         let v = BigInt::mod_mul(&v, &rx, &q);

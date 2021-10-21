@@ -169,7 +169,7 @@ fn main() {
             let key_i = &enc_keys[j];
             let out = aes_decrypt(key_i, aead_pack);
             let out_bn = BigInt::from_bytes(&out[..]);
-            let out_fe = ECScalar::from(&out_bn);
+            let out_fe = Scalar::<Secp256k1>::from(&out_bn);
             party_shares.push(out_fe);
 
             j += 1;

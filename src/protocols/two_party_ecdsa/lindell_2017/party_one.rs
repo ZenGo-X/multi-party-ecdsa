@@ -256,7 +256,7 @@ impl Party1Private {
     ) {
         let (ek_new, dk_new) = Paillier::keypair().keys();
         let randomness = Randomness::sample(&ek_new);
-        let factor_fe: Scalar::<Secp256k1> = ECScalar::from(&factor);
+        let factor_fe: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(&factor);
         let x1_new = party_one_private.x1 * factor_fe;
         let c_key_new = Paillier::encrypt_with_chosen_randomness(
             &ek_new,
@@ -500,7 +500,7 @@ impl Signature {
             &RawCiphertext::from(partial_sig_c3),
         )
         .0;
-        let mut s_tag_fe: Scalar::<Secp256k1> = ECScalar::from(&s_tag);
+        let mut s_tag_fe: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(&s_tag);
         let s_tag_tag = s_tag_fe * k1_inv;
         k1_inv.zeroize();
         s_tag_fe.zeroize();
@@ -530,7 +530,7 @@ impl Signature {
             &RawCiphertext::from(partial_sig_c3),
         )
         .0;
-        let mut s_tag_fe: Scalar::<Secp256k1> = ECScalar::from(&s_tag);
+        let mut s_tag_fe: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(&s_tag);
         let s_tag_tag = s_tag_fe * k1_inv;
         k1_inv.zeroize();
         s_tag_fe.zeroize();
@@ -554,11 +554,11 @@ impl Signature {
 }
 
 pub fn verify(signature: &Signature, pubkey: &Point::<Secp256k1>, message: &BigInt) -> Result<(), Error> {
-    let s_fe: Scalar::<Secp256k1> = ECScalar::from(&signature.s);
-    let rx_fe: Scalar::<Secp256k1> = ECScalar::from(&signature.r);
+    let s_fe: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(&signature.s);
+    let rx_fe: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(&signature.r);
 
     let s_inv_fe = s_fe.invert();
-    let e_fe: Scalar::<Secp256k1> = ECScalar::from(&message.mod_floor(&Scalar::<Secp256k1>::q()));
+    let e_fe: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(&message.mod_floor(&Scalar::<Secp256k1>::q()));
     let u1 = Point::<Secp256k1>::generator() * e_fe * s_inv_fe;
     let u2 = *pubkey * rx_fe * s_inv_fe;
 
