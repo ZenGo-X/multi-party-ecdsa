@@ -50,7 +50,7 @@ use zk_paillier::zkproofs::{CompositeDLogProof, DLogStatement};
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct EcKeyPair {
     pub public_share: Point::<Secp256k1>,
-    secret_share: FE,
+    secret_share: Scalar::<Secp256k1>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -95,7 +95,7 @@ pub struct Signature {
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Party1Private {
-    x1: FE,
+    x1: Scalar::<Secp256k1>,
     paillier_priv: DecryptionKey,
     c_key_randomness: BigInt,
 }
@@ -119,7 +119,7 @@ pub struct PDLSecondMessage {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct EphEcKeyPair {
     pub public_share: Point::<Secp256k1>,
-    secret_share: FE,
+    secret_share: Scalar::<Secp256k1>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -138,7 +138,7 @@ impl KeyGenFirstMsg {
     pub fn create_commitments() -> (KeyGenFirstMsg, CommWitness, EcKeyPair) {
         let base: Point::<Secp256k1> = ECPoint::generator();
 
-        let mut secret_share: FE = ECScalar::new_random();
+        let mut secret_share: Scalar::<Secp256k1> = ECScalar::new_random();
 
         let public_share = base.scalar_mul(&secret_share.get_element());
 
@@ -178,7 +178,7 @@ impl KeyGenFirstMsg {
     }
 
     pub fn create_commitments_with_fixed_secret_share(
-        mut secret_share: FE,
+        mut secret_share: Scalar::<Secp256k1>,
     ) -> (KeyGenFirstMsg, CommWitness, EcKeyPair) {
         let base: Point::<Secp256k1> = ECPoint::generator();
         let public_share = base.scalar_mul(&secret_share.get_element());
@@ -256,7 +256,7 @@ impl Party1Private {
     ) {
         let (ek_new, dk_new) = Paillier::keypair().keys();
         let randomness = Randomness::sample(&ek_new);
-        let factor_fe: FE = ECScalar::from(&factor);
+        let factor_fe: Scalar::<Secp256k1> = ECScalar::from(&factor);
         let x1_new = party_one_private.x1 * factor_fe;
         let c_key_new = Paillier::encrypt_with_chosen_randomness(
             &ek_new,
@@ -306,7 +306,7 @@ impl Party1Private {
     }
 
     // used to transform lindell master key to gg18 master key
-    pub fn to_mta_message_b(&self, message_b: MessageB) -> Result<(FE, BigInt), Error> {
+    pub fn to_mta_message_b(&self, message_b: MessageB) -> Result<(Scalar::<Secp256k1>, BigInt), Error> {
         message_b.verify_proofs_get_alpha(&self.paillier_priv, &self.x1)
     }
 }
@@ -399,7 +399,7 @@ impl PaillierKeyPair {
 impl EphKeyGenFirstMsg {
     pub fn create() -> (EphKeyGenFirstMsg, EphEcKeyPair) {
         let base: Point::<Secp256k1> = ECPoint::generator();
-        let mut secret_share: FE = ECScalar::new_random();
+        let mut secret_share: Scalar::<Secp256k1> = ECScalar::new_random();
         let public_share = &base * &secret_share;
         let h: Point::<Secp256k1> = Point::<Secp256k1>::base_point2();
 
@@ -491,7 +491,7 @@ impl Signature {
         let r = ephemeral_other_public_share
             .scalar_mul(&ephemeral_local_share.secret_share.get_element());
 
-        let rx = r.x_coor().unwrap().mod_floor(&FE::q());
+        let rx = r.x_coor().unwrap().mod_floor(&Scalar::<Secp256k1>::q());
 
         let mut k1_inv = ephemeral_local_share.secret_share.invert();
 
@@ -500,13 +500,13 @@ impl Signature {
             &RawCiphertext::from(partial_sig_c3),
         )
         .0;
-        let mut s_tag_fe: FE = ECScalar::from(&s_tag);
+        let mut s_tag_fe: Scalar::<Secp256k1> = ECScalar::from(&s_tag);
         let s_tag_tag = s_tag_fe * k1_inv;
         k1_inv.zeroize();
         s_tag_fe.zeroize();
         let s_tag_tag_bn = s_tag_tag.to_big_int();
 
-        let s = cmp::min(s_tag_tag_bn.clone(), FE::q().clone() - s_tag_tag_bn.clone());
+        let s = cmp::min(s_tag_tag_bn.clone(), Scalar::<Secp256k1>::q().clone() - s_tag_tag_bn.clone());
 
         Signature { s, r: rx }
     }
@@ -521,8 +521,8 @@ impl Signature {
         let r = ephemeral_other_public_share
             .scalar_mul(&ephemeral_local_share.secret_share.get_element());
 
-        let rx = r.x_coor().unwrap().mod_floor(&FE::q());
-        let ry = r.y_coor().unwrap().mod_floor(&FE::q());
+        let rx = r.x_coor().unwrap().mod_floor(&Scalar::<Secp256k1>::q());
+        let ry = r.y_coor().unwrap().mod_floor(&Scalar::<Secp256k1>::q());
         let mut k1_inv = ephemeral_local_share.secret_share.invert();
 
         let s_tag = Paillier::decrypt(
@@ -530,12 +530,12 @@ impl Signature {
             &RawCiphertext::from(partial_sig_c3),
         )
         .0;
-        let mut s_tag_fe: FE = ECScalar::from(&s_tag);
+        let mut s_tag_fe: Scalar::<Secp256k1> = ECScalar::from(&s_tag);
         let s_tag_tag = s_tag_fe * k1_inv;
         k1_inv.zeroize();
         s_tag_fe.zeroize();
         let s_tag_tag_bn = s_tag_tag.to_big_int();
-        let s = cmp::min(s_tag_tag_bn.clone(), FE::q() - &s_tag_tag_bn);
+        let s = cmp::min(s_tag_tag_bn.clone(), Scalar::<Secp256k1>::q() - &s_tag_tag_bn);
 
         /*
          Calculate recovery id - it is not possible to compute the public key out of the signature
@@ -545,7 +545,7 @@ impl Signature {
         */
         let is_ry_odd = ry.test_bit(0);
         let mut recid = if is_ry_odd { 1 } else { 0 };
-        if s_tag_tag_bn.clone() > FE::q() - s_tag_tag_bn.clone() {
+        if s_tag_tag_bn.clone() > Scalar::<Secp256k1>::q() - s_tag_tag_bn.clone() {
             recid = recid ^ 1;
         }
 
@@ -554,11 +554,11 @@ impl Signature {
 }
 
 pub fn verify(signature: &Signature, pubkey: &Point::<Secp256k1>, message: &BigInt) -> Result<(), Error> {
-    let s_fe: FE = ECScalar::from(&signature.s);
-    let rx_fe: FE = ECScalar::from(&signature.r);
+    let s_fe: Scalar::<Secp256k1> = ECScalar::from(&signature.s);
+    let rx_fe: Scalar::<Secp256k1> = ECScalar::from(&signature.r);
 
     let s_inv_fe = s_fe.invert();
-    let e_fe: FE = ECScalar::from(&message.mod_floor(&FE::q()));
+    let e_fe: Scalar::<Secp256k1> = ECScalar::from(&message.mod_floor(&Scalar::<Secp256k1>::q()));
     let u1 = Point::<Secp256k1>::generator() * e_fe * s_inv_fe;
     let u2 = *pubkey * rx_fe * s_inv_fe;
 
@@ -567,7 +567,7 @@ pub fn verify(signature: &Signature, pubkey: &Point::<Secp256k1>, message: &BigI
     let u1_plus_u2_bytes = &BigInt::to_bytes(&(u1 + u2).x_coor().unwrap())[..];
 
     if rx_bytes.ct_eq(&u1_plus_u2_bytes).unwrap_u8() == 1
-        && signature.s < FE::q() - signature.s.clone()
+        && signature.s < Scalar::<Secp256k1>::q() - signature.s.clone()
     {
         Ok(())
     } else {

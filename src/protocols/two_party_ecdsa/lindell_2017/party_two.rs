@@ -48,7 +48,7 @@ const PAILLIER_KEY_SIZE: usize = 2048;
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct EcKeyPair {
     pub public_share: Point::<Secp256k1>,
-    secret_share: FE,
+    secret_share: Scalar::<Secp256k1>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -73,7 +73,7 @@ pub struct PartialSig {
 
 #[derive(Serialize, Deserialize)]
 pub struct Party2Private {
-    x2: FE,
+    x2: Scalar::<Secp256k1>,
 }
 #[derive(Debug)]
 pub struct PDLchallenge {
@@ -105,7 +105,7 @@ pub struct PDLSecondMessage {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct EphEcKeyPair {
     pub public_share: Point::<Secp256k1>,
-    secret_share: FE,
+    secret_share: Scalar::<Secp256k1>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -133,7 +133,7 @@ pub struct EphKeyGenSecondMsg {
 impl KeyGenFirstMsg {
     pub fn create() -> (KeyGenFirstMsg, EcKeyPair) {
         let base: Point::<Secp256k1> = ECPoint::generator();
-        let mut secret_share: FE = ECScalar::new_random();
+        let mut secret_share: Scalar::<Secp256k1> = ECScalar::new_random();
         let public_share = base * secret_share;
         let d_log_proof = DLogProof::prove(&secret_share);
         let ec_key_pair = EcKeyPair {
@@ -150,7 +150,7 @@ impl KeyGenFirstMsg {
         )
     }
 
-    pub fn create_with_fixed_secret_share(mut secret_share: FE) -> (KeyGenFirstMsg, EcKeyPair) {
+    pub fn create_with_fixed_secret_share(mut secret_share: Scalar::<Secp256k1>) -> (KeyGenFirstMsg, EcKeyPair) {
         let base: Point::<Secp256k1> = ECPoint::generator();
         let public_share = base * secret_share;
         let d_log_proof = DLogProof::prove(&secret_share);
@@ -226,7 +226,7 @@ impl Party2Private {
     }
 
     pub fn update_private_key(party_two_private: &Party2Private, factor: &BigInt) -> Party2Private {
-        let factor_fe: FE = ECScalar::from(factor);
+        let factor_fe: Scalar::<Secp256k1> = ECScalar::from(factor);
         Party2Private {
             x2: party_two_private.x2.mul(&factor_fe.get_element()),
         }
@@ -244,7 +244,7 @@ impl Party2Private {
     }
 
     // used to transform lindell master key to gg18 master key
-    pub fn to_mta_message_b(&self, ek: &EncryptionKey, ciphertext: &BigInt) -> (MessageB, FE) {
+    pub fn to_mta_message_b(&self, ek: &EncryptionKey, ciphertext: &BigInt) -> (MessageB, Scalar::<Secp256k1>) {
         let message_a = MessageA {
             c: ciphertext.clone(),
         };
@@ -297,7 +297,7 @@ impl EphKeyGenFirstMsg {
     pub fn create_commitments() -> (EphKeyGenFirstMsg, EphCommWitness, EphEcKeyPair) {
         let base: Point::<Secp256k1> = ECPoint::generator();
 
-        let mut secret_share: FE = ECScalar::new_random();
+        let mut secret_share: Scalar::<Secp256k1> = ECScalar::new_random();
 
         let public_share = base.scalar_mul(&secret_share.get_element());
 
@@ -375,7 +375,7 @@ impl PartialSig {
         ephemeral_other_public_share: &Point::<Secp256k1>,
         message: &BigInt,
     ) -> PartialSig {
-        let q = FE::q();
+        let q = Scalar::<Secp256k1>::q();
         //compute r = k2* R1
         let r = ephemeral_other_public_share
             .scalar_mul(&ephemeral_local_share.secret_share.get_element());

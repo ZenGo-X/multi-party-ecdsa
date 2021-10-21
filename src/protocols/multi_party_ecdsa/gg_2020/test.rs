@@ -218,9 +218,9 @@ fn keygen_t_n_parties(
                     let vec_j = &secret_shares_vec[j];
                     vec_j[i]
                 })
-                .collect::<Vec<FE>>()
+                .collect::<Vec<Scalar::<Secp256k1>>>()
         })
-        .collect::<Vec<Vec<FE>>>();
+        .collect::<Vec<Vec<Scalar::<Secp256k1>>>>();
 
     let mut shared_keys_vec = Vec::new();
     let mut dlog_proof_vec = Vec::new();
@@ -253,11 +253,11 @@ fn keygen_t_n_parties(
         return Err(dlog_verification.err().unwrap());
     }
     //test
-    let xi_vec = (0..=t).map(|i| shared_keys_vec[i].x_i).collect::<Vec<FE>>();
+    let xi_vec = (0..=t).map(|i| shared_keys_vec[i].x_i).collect::<Vec<Scalar::<Secp256k1>>>();
     let x = vss_scheme_for_test[0]
         .clone()
         .reconstruct(&index_vec[0..=t], &xi_vec);
-    let sum_u_i = party_keys_vec.iter().fold(FE::zero(), |acc, x| acc + x.u_i);
+    let sum_u_i = party_keys_vec.iter().fold(Scalar::<Secp256k1>::zero(), |acc, x| acc + x.u_i);
     assert_eq!(x, sum_u_i);
 
     Ok((
@@ -421,7 +421,7 @@ fn sign(
 
                 beta
             })
-            .collect::<Vec<FE>>();
+            .collect::<Vec<Scalar::<Secp256k1>>>();
 
         // prepare ni_vec of party_i:
         let ni_vec = (0..ttag - 1)
@@ -430,7 +430,7 @@ fn sign(
                 let ind2 = if j < i { i - 1 } else { i };
                 ni_vec_all[ind1][ind2].clone()
             })
-            .collect::<Vec<FE>>();
+            .collect::<Vec<Scalar::<Secp256k1>>>();
 
         let mut delta = sign_keys_vec[i].phase2_delta_i(&alpha_vec_all[i], &beta_vec);
 
@@ -689,7 +689,7 @@ fn sign(
     return Ok(sig);
 }
 
-pub fn check_sig(r: &FE, s: &FE, msg: &BigInt, pk: &Point::<Secp256k1>) {
+pub fn check_sig(r: &Scalar::<Secp256k1>, s: &Scalar::<Secp256k1>, msg: &BigInt, pk: &Point::<Secp256k1>) {
     use secp256k1::{verify, Message, PublicKey, PublicKeyFormat, Signature};
 
     let raw_msg = BigInt::to_bytes(&msg);

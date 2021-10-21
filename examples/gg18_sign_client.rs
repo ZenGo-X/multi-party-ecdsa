@@ -148,9 +148,9 @@ fn main() {
 
     //////////////////////////////////////////////////////////////////////////////
     let mut m_b_gamma_send_vec: Vec<MessageB> = Vec::new();
-    let mut beta_vec: Vec<FE> = Vec::new();
+    let mut beta_vec: Vec<Scalar::<Secp256k1>> = Vec::new();
     let mut m_b_w_send_vec: Vec<MessageB> = Vec::new();
-    let mut ni_vec: Vec<FE> = Vec::new();
+    let mut ni_vec: Vec<Scalar::<Secp256k1>> = Vec::new();
     let mut j = 0;
     for i in 1..THRESHOLD + 2 {
         if i != party_num_int {
@@ -210,8 +210,8 @@ fn main() {
         //     }
     }
 
-    let mut alpha_vec: Vec<FE> = Vec::new();
-    let mut miu_vec: Vec<FE> = Vec::new();
+    let mut alpha_vec: Vec<Scalar::<Secp256k1>> = Vec::new();
+    let mut miu_vec: Vec<Scalar::<Secp256k1>> = Vec::new();
 
     let mut j = 0;
     for i in 1..THRESHOLD + 2 {
@@ -257,7 +257,7 @@ fn main() {
         "round3",
         uuid.clone(),
     );
-    let mut delta_vec: Vec<FE> = Vec::new();
+    let mut delta_vec: Vec<Scalar::<Secp256k1>> = Vec::new();
     format_vec_from_reads(
         &round3_ans_vec,
         party_num_int as usize,
@@ -484,7 +484,7 @@ fn main() {
         uuid.clone(),
     );
 
-    let mut s_i_vec: Vec<FE> = Vec::new();
+    let mut s_i_vec: Vec<Scalar::<Secp256k1>> = Vec::new();
     format_vec_from_reads(&round9_ans_vec, party_num_int as usize, s_i, &mut s_i_vec);
 
     s_i_vec.remove((party_num_int - 1) as usize);

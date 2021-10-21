@@ -45,7 +45,7 @@ pub struct Parameters {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Keys {
-    pub u_i: FE,
+    pub u_i: Scalar::<Secp256k1>,
     pub y_i: Point::<Secp256k1>,
     pub dk: DecryptionKey,
     pub ek: EncryptionKey,
@@ -54,8 +54,8 @@ pub struct Keys {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct PartyPrivate {
-    u_i: FE,
-    x_i: FE,
+    u_i: Scalar::<Secp256k1>,
+    x_i: Scalar::<Secp256k1>,
     dk: DecryptionKey,
 }
 
@@ -75,15 +75,15 @@ pub struct KeyGenDecommitMessage1 {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SharedKeys {
     pub y: Point::<Secp256k1>,
-    pub x_i: FE,
+    pub x_i: Scalar::<Secp256k1>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SignKeys {
-    pub w_i: FE,
+    pub w_i: Scalar::<Secp256k1>,
     pub g_w_i: Point::<Secp256k1>,
-    pub k_i: FE,
-    pub gamma_i: FE,
+    pub k_i: Scalar::<Secp256k1>,
+    pub gamma_i: Scalar::<Secp256k1>,
     pub g_gamma_i: Point::<Secp256k1>,
 }
 
@@ -100,10 +100,10 @@ pub struct SignDecommitPhase1 {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct LocalSignature {
-    pub l_i: FE,
-    pub rho_i: FE,
+    pub l_i: Scalar::<Secp256k1>,
+    pub rho_i: Scalar::<Secp256k1>,
     pub R: Point::<Secp256k1>,
-    pub s_i: FE,
+    pub s_i: Scalar::<Secp256k1>,
     pub m: BigInt,
     pub y: Point::<Secp256k1>,
 }
@@ -135,14 +135,14 @@ pub struct Phase5DDecom2 {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SignatureRecid {
-    pub r: FE,
-    pub s: FE,
+    pub r: Scalar::<Secp256k1>,
+    pub s: Scalar::<Secp256k1>,
     pub recid: u8,
 }
 
 impl Keys {
     pub fn create(index: usize) -> Self {
-        let u = FE::new_random();
+        let u = Scalar::<Secp256k1>::new_random();
         let y = Point::<Secp256k1>::generator() * u;
         let (ek, dk) = Paillier::keypair().keys();
 
@@ -157,7 +157,7 @@ impl Keys {
 
     // we recommend using safe primes if the code is used in production
     pub fn create_safe_prime(index: usize) -> Keys {
-        let u: FE = ECScalar::new_random();
+        let u: Scalar::<Secp256k1> = ECScalar::new_random();
         let y = &ECPoint::generator() * &u;
 
         let (ek, dk) = Paillier::keypair_safe_primes().keys();
@@ -170,7 +170,7 @@ impl Keys {
             party_index: index.clone(),
         }
     }
-    pub fn create_from(u: FE, index: usize) -> Keys {
+    pub fn create_from(u: Scalar::<Secp256k1>, index: usize) -> Keys {
         let y = &ECPoint::generator() * &u;
         let (ek, dk) = Paillier::keypair().keys();
 
@@ -209,7 +209,7 @@ impl Keys {
         params: &Parameters,
         decom_vec: &[KeyGenDecommitMessage1],
         bc1_vec: &[KeyGenBroadcastMessage1],
-    ) -> Result<(VerifiableSS<Point::<Secp256k1>>, Vec<FE>, usize), Error> {
+    ) -> Result<(VerifiableSS<Point::<Secp256k1>>, Vec<Scalar::<Secp256k1>>, usize), Error> {
         // test length:
         assert_eq!(decom_vec.len() as u16, params.share_count);
         assert_eq!(bc1_vec.len() as u16, params.share_count);
@@ -243,7 +243,7 @@ impl Keys {
         &self,
         params: &Parameters,
         y_vec: &[Point::<Secp256k1>],
-        secret_shares_vec: &[FE],
+        secret_shares_vec: &[Scalar::<Secp256k1>],
         vss_scheme_vec: &[VerifiableSS<Point::<Secp256k1>>],
         index: usize,
     ) -> Result<(SharedKeys, DLogProof<Point::<Secp256k1>>), Error> {
@@ -264,7 +264,7 @@ impl Keys {
             let (head, tail) = y_vec.split_at(1);
             let y = tail.iter().fold(head[0], |acc, x| acc + x);
 
-            let x_i = secret_shares_vec.iter().fold(FE::zero(), |acc, x| acc + x);
+            let x_i = secret_shares_vec.iter().fold(Scalar::<Secp256k1>::zero(), |acc, x| acc + x);
             let dlog_proof = DLogProof::prove(&x_i);
             Ok((SharedKeys { y, x_i }, dlog_proof))
         } else {
@@ -336,8 +336,8 @@ impl PartyPrivate {
         Paillier::decrypt(&self.dk, &RawCiphertext::from(ciphertext))
     }
 
-    pub fn refresh_private_key(&self, factor: &FE, index: usize) -> Keys {
-        let u: FE = self.u_i + factor;
+    pub fn refresh_private_key(&self, factor: &Scalar::<Secp256k1>, index: usize) -> Keys {
+        let u: Scalar::<Secp256k1> = self.u_i + factor;
         let y = Point::<Secp256k1>::generator() * u;
         let (ek, dk) = Paillier::keypair().keys();
 
@@ -351,8 +351,8 @@ impl PartyPrivate {
     }
 
     // we recommend using safe primes if the code is used in production
-    pub fn refresh_private_key_safe_prime(&self, factor: &FE, index: usize) -> Keys {
-        let u: FE = self.u_i + factor;
+    pub fn refresh_private_key_safe_prime(&self, factor: &Scalar::<Secp256k1>, index: usize) -> Keys {
+        let u: Scalar::<Secp256k1> = self.u_i + factor;
         let y = &ECPoint::generator() * &u;
         let (ek, dk) = Paillier::keypair_safe_primes().keys();
 
@@ -376,7 +376,7 @@ impl PartyPrivate {
         Msegmentation::to_encrypted_segments(&self.u_i, &segment_size, num_of_segments, pub_ke_y, g)
     }
 
-    pub fn update_private_key(&self, factor_u_i: &FE, factor_x_i: &FE) -> Self {
+    pub fn update_private_key(&self, factor_u_i: &Scalar::<Secp256k1>, factor_x_i: &Scalar::<Secp256k1>) -> Self {
         PartyPrivate {
             u_i: self.u_i + factor_u_i,
             x_i: self.x_i + factor_x_i,
@@ -396,7 +396,7 @@ impl SignKeys {
         let w_i = li * private.x_i;
         let g: Point::<Secp256k1> = ECPoint::generator();
         let g_w_i = g * w_i;
-        let gamma_i: FE = ECScalar::new_random();
+        let gamma_i: Scalar::<Secp256k1> = ECScalar::new_random();
         let g_gamma_i = g * gamma_i;
 
         Self {
@@ -426,7 +426,7 @@ impl SignKeys {
         )
     }
 
-    pub fn phase2_delta_i(&self, alpha_vec: &[FE], beta_vec: &[FE]) -> FE {
+    pub fn phase2_delta_i(&self, alpha_vec: &[Scalar::<Secp256k1>], beta_vec: &[Scalar::<Secp256k1>]) -> Scalar::<Secp256k1> {
         let vec_len = alpha_vec.len();
         assert_eq!(alpha_vec.len(), beta_vec.len());
         // assert_eq!(alpha_vec.len(), self.s.len() - 1);
@@ -436,7 +436,7 @@ impl SignKeys {
             .fold(ki_gamma_i, |acc, x| acc + x)
     }
 
-    pub fn phase2_sigma_i(&self, miu_vec: &[FE], ni_vec: &[FE]) -> FE {
+    pub fn phase2_sigma_i(&self, miu_vec: &[Scalar::<Secp256k1>], ni_vec: &[Scalar::<Secp256k1>]) -> Scalar::<Secp256k1> {
         let vec_len = miu_vec.len();
         assert_eq!(miu_vec.len(), ni_vec.len());
         //assert_eq!(miu_vec.len(), self.s.len() - 1);
@@ -446,13 +446,13 @@ impl SignKeys {
             .fold(ki_w_i, |acc, x| acc + x)
     }
 
-    pub fn phase3_reconstruct_delta(delta_vec: &[FE]) -> FE {
-        let sum = delta_vec.iter().fold(FE::zero(), |acc, x| acc + x);
+    pub fn phase3_reconstruct_delta(delta_vec: &[Scalar::<Secp256k1>]) -> Scalar::<Secp256k1> {
+        let sum = delta_vec.iter().fold(Scalar::<Secp256k1>::zero(), |acc, x| acc + x);
         sum.invert()
     }
 
     pub fn phase4(
-        delta_inv: &FE,
+        delta_inv: &Scalar::<Secp256k1>,
         b_proof_vec: &[&DLogProof<Point::<Secp256k1>>],
         phase1_decommit_vec: Vec<SignDecommitPhase1>,
         bc1_vec: &[SignBroadcastPhase1],
@@ -488,12 +488,12 @@ impl SignKeys {
 }
 
 impl LocalSignature {
-    pub fn phase5_local_sig(k_i: &FE, message: &BigInt, R: &Point::<Secp256k1>, sigma_i: &FE, pubkey: &Point::<Secp256k1>) -> Self {
-        let m_fe: FE = ECScalar::from(message);
-        let r: FE = ECScalar::from(&R.x_coor().unwrap().mod_floor(&FE::q()));
+    pub fn phase5_local_sig(k_i: &Scalar::<Secp256k1>, message: &BigInt, R: &Point::<Secp256k1>, sigma_i: &Scalar::<Secp256k1>, pubkey: &Point::<Secp256k1>) -> Self {
+        let m_fe: Scalar::<Secp256k1> = ECScalar::from(message);
+        let r: Scalar::<Secp256k1> = ECScalar::from(&R.x_coor().unwrap().mod_floor(&Scalar::<Secp256k1>::q()));
         let s_i = m_fe * k_i + r * sigma_i;
-        let l_i: FE = ECScalar::new_random();
-        let rho_i: FE = ECScalar::new_random();
+        let l_i: Scalar::<Secp256k1> = ECScalar::new_random();
+        let rho_i: Scalar::<Secp256k1> = ECScalar::new_random();
         Self {
             l_i,
             rho_i,
@@ -601,10 +601,10 @@ impl LocalSignature {
         let tail = a_i_iter;
         let a = tail.fold((*head).clone(), |acc, x| acc.add_point(&(*x).get_element()));
 
-        let r: FE = ECScalar::from(&self.R.x_coor().unwrap().mod_floor(&FE::q()));
+        let r: Scalar::<Secp256k1> = ECScalar::from(&self.R.x_coor().unwrap().mod_floor(&Scalar::<Secp256k1>::q()));
         let yr = self.y * r;
         let g: Point::<Secp256k1> = ECPoint::generator();
-        let m_fe: FE = ECScalar::from(&self.m);
+        let m_fe: Scalar::<Secp256k1> = ECScalar::from(&self.m);
         let gm = g * m_fe;
         let v = v.sub_point(&gm.get_element()).sub_point(&yr.get_element());
         let u_i = v * self.rho_i;
@@ -637,7 +637,7 @@ impl LocalSignature {
         decom_vec2: &[Phase5DDecom2],
         com_vec2: &[Phase5Com2],
         decom_vec1: &[Phase5ADecom1],
-    ) -> Result<FE, Error> {
+    ) -> Result<Scalar::<Secp256k1>, Error> {
         assert_eq!(decom_vec2.len(), decom_vec1.len());
         assert_eq!(decom_vec2.len(), com_vec2.len());
 
@@ -676,12 +676,12 @@ impl LocalSignature {
             Err(InvalidCom)
         }
     }
-    pub fn output_signature(&self, s_vec: &[FE]) -> Result<SignatureRecid, Error> {
+    pub fn output_signature(&self, s_vec: &[Scalar::<Secp256k1>]) -> Result<SignatureRecid, Error> {
         let mut s = s_vec.iter().fold(self.s_i, |acc, x| acc + x);
         let s_bn = s.to_big_int();
 
-        let r: FE = ECScalar::from(&self.R.x_coor().unwrap().mod_floor(&FE::q()));
-        let ry: BigInt = self.R.y_coor().unwrap().mod_floor(&FE::q());
+        let r: Scalar::<Secp256k1> = ECScalar::from(&self.R.x_coor().unwrap().mod_floor(&Scalar::<Secp256k1>::q()));
+        let ry: BigInt = self.R.y_coor().unwrap().mod_floor(&Scalar::<Secp256k1>::q());
 
         /*
          Calculate recovery id - it is not possible to compute the public key out of the signature
@@ -691,7 +691,7 @@ impl LocalSignature {
         */
         let is_ry_odd = ry.test_bit(0);
         let mut recid = if is_ry_odd { 1 } else { 0 };
-        let s_tag_bn = FE::q() - &s_bn;
+        let s_tag_bn = Scalar::<Secp256k1>::q() - &s_bn;
         if s_bn > s_tag_bn {
             s = ECScalar::from(&s_tag_bn);
             recid = recid ^ 1;
@@ -708,7 +708,7 @@ impl LocalSignature {
 
 pub fn verify(sig: &SignatureRecid, y: &Point::<Secp256k1>, message: &BigInt) -> Result<(), Error> {
     let b = sig.s.invert();
-    let a: FE = ECScalar::from(message);
+    let a: Scalar::<Secp256k1> = ECScalar::from(message);
     let u1 = a * b;
     let u2 = sig.r * b;
 
@@ -717,7 +717,7 @@ pub fn verify(sig: &SignatureRecid, y: &Point::<Secp256k1>, message: &BigInt) ->
     let yu2 = y * &u2;
     // can be faster using shamir trick
 
-    if sig.r == ECScalar::from(&(gu1 + yu2).x_coor().unwrap().mod_floor(&FE::q())) {
+    if sig.r == ECScalar::from(&(gu1 + yu2).x_coor().unwrap().mod_floor(&Scalar::<Secp256k1>::q())) {
         Ok(())
     } else {
         Err(InvalidSig)

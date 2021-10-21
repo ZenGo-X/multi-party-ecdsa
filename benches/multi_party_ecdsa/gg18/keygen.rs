@@ -66,9 +66,9 @@ mod bench {
                         let vec_j = &secret_shares_vec[j];
                         vec_j[i]
                     })
-                    .collect::<Vec<FE>>()
+                    .collect::<Vec<Scalar::<Secp256k1>>>()
             })
-            .collect::<Vec<Vec<FE>>>();
+            .collect::<Vec<Vec<Scalar::<Secp256k1>>>>();
 
         let mut shared_keys_vec = Vec::new();
         let mut dlog_proof_vec = Vec::new();
@@ -92,11 +92,11 @@ mod bench {
         Keys::verify_dlog_proofs(&parames, &dlog_proof_vec, &y_vec).expect("bad dlog proof");
 
         //test
-        let xi_vec = (0..=t).map(|i| shared_keys_vec[i].x_i).collect::<Vec<FE>>();
+        let xi_vec = (0..=t).map(|i| shared_keys_vec[i].x_i).collect::<Vec<Scalar::<Secp256k1>>>();
         let x = vss_scheme_for_test[0]
             .clone()
             .reconstruct(&index_vec[0..=t], &xi_vec);
-        let sum_u_i = party_keys_vec.iter().fold(FE::zero(), |acc, x| acc + x.u_i);
+        let sum_u_i = party_keys_vec.iter().fold(Scalar::<Secp256k1>::zero(), |acc, x| acc + x.u_i);
         assert_eq!(x, sum_u_i);
 
         (

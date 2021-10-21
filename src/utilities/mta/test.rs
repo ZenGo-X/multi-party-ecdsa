@@ -1,13 +1,12 @@
 use crate::utilities::mta::*;
-use curv::elliptic::curves::secp256_k1::FE;
-use curv::elliptic::curves::traits::ECScalar;
+use curv::elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar};
 use paillier::traits::KeyGeneration;
 
 #[test]
 fn test_mta() {
-    let alice_input: FE = ECScalar::new_random();
+    let alice_input: Scalar::<Secp256k1> = ECScalar::new_random();
     let (ek_alice, dk_alice) = Paillier::keypair().keys();
-    let bob_input: FE = ECScalar::new_random();
+    let bob_input: Scalar::<Secp256k1> = ECScalar::new_random();
     let (m_a, _r) = MessageA::a(&alice_input, &ek_alice);
     let (m_b, beta, _, _) = MessageB::b(&bob_input, &ek_alice, m_a);
     let alpha = m_b

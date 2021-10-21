@@ -34,7 +34,7 @@ pub struct GammaI(pub MessageB);
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct WI(pub MessageB);
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct DeltaI(FE);
+pub struct DeltaI(Scalar::<Secp256k1>);
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct TI(pub Point::<Secp256k1>);
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -205,8 +205,8 @@ pub struct Round2 {
     local_key: LocalKey,
     sign_keys: SignKeys,
     m_a: (MessageA, BigInt),
-    beta_vec: Vec<FE>,
-    ni_vec: Vec<FE>,
+    beta_vec: Vec<Scalar::<Secp256k1>>,
+    ni_vec: Vec<Scalar::<Secp256k1>>,
     bc_vec: Vec<SignBroadcastPhase1>,
     m_a_vec: Vec<MessageA>,
     phase1_decom: SignDecommitPhase1,
@@ -302,10 +302,10 @@ pub struct Round3 {
     mb_gamma_s: Vec<MessageB>,
     bc_vec: Vec<SignBroadcastPhase1>,
     m_a_vec: Vec<MessageA>,
-    delta_i: FE,
+    delta_i: Scalar::<Secp256k1>,
     t_i: Point::<Secp256k1>,
-    l_i: FE,
-    sigma_i: FE,
+    l_i: Scalar::<Secp256k1>,
+    sigma_i: Scalar::<Secp256k1>,
     t_i_proof: PedersenProof<Point::<Secp256k1>>,
 
     phase1_decom: SignDecommitPhase1,
@@ -375,9 +375,9 @@ pub struct Round4 {
     bc_vec: Vec<SignBroadcastPhase1>,
     m_a_vec: Vec<MessageA>,
     t_i: Point::<Secp256k1>,
-    l_i: FE,
-    sigma_i: FE,
-    delta_inv: FE,
+    l_i: Scalar::<Secp256k1>,
+    sigma_i: Scalar::<Secp256k1>,
+    delta_inv: Scalar::<Secp256k1>,
     t_vec: Vec<Point::<Secp256k1>>,
     phase1_decom: SignDecommitPhase1,
 }
@@ -468,8 +468,8 @@ pub struct Round5 {
     t_vec: Vec<Point::<Secp256k1>>,
     m_a_vec: Vec<MessageA>,
     t_i: Point::<Secp256k1>,
-    l_i: FE,
-    sigma_i: FE,
+    l_i: Scalar::<Secp256k1>,
+    sigma_i: Scalar::<Secp256k1>,
     R: Point::<Secp256k1>,
     R_dash: Point::<Secp256k1>,
     phase5_proofs_vec: Vec<PDLwSlackProof>,
@@ -600,7 +600,7 @@ pub struct CompletedOfflineStage {
     sign_keys: SignKeys,
     t_vec: Vec<Point::<Secp256k1>>,
     R: Point::<Secp256k1>,
-    sigma_i: FE,
+    sigma_i: Scalar::<Secp256k1>,
 }
 
 impl CompletedOfflineStage {
@@ -610,7 +610,7 @@ impl CompletedOfflineStage {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct PartialSignature(FE);
+pub struct PartialSignature(Scalar::<Secp256k1>);
 
 pub struct Round7 {
     local_signature: LocalSignature,

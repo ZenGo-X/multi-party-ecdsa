@@ -32,7 +32,7 @@ pub struct Keygen {
 
     msgs1: Option<Store<BroadcastMsgs<gg_2020::party_i::KeyGenBroadcastMessage1>>>,
     msgs2: Option<Store<BroadcastMsgs<gg_2020::party_i::KeyGenDecommitMessage1>>>,
-    msgs3: Option<Store<P2PMsgs<(VerifiableSS<Point::<Secp256k1>>, FE)>>>,
+    msgs3: Option<Store<P2PMsgs<(VerifiableSS<Point::<Secp256k1>>, Scalar::<Secp256k1>)>>>,
     msgs4: Option<Store<BroadcastMsgs<DLogProof<Point::<Secp256k1>>>>>,
 
     msgs_queue: Vec<Msg<ProtocolMessage>>,
@@ -400,7 +400,7 @@ pub struct ProtocolMessage(M);
 enum M {
     Round1(gg_2020::party_i::KeyGenBroadcastMessage1),
     Round2(gg_2020::party_i::KeyGenDecommitMessage1),
-    Round3((VerifiableSS<Point::<Secp256k1>>, FE)),
+    Round3((VerifiableSS<Point::<Secp256k1>>, Scalar::<Secp256k1>)),
     Round4(DLogProof<Point::<Secp256k1>>),
 }
 

@@ -30,9 +30,9 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct LocalStatePhase5 {
-    pub k: FE,
+    pub k: Scalar::<Secp256k1>,
     pub k_randomness: BigInt,
-    pub gamma: FE,
+    pub gamma: Scalar::<Secp256k1>,
     pub beta_randomness: Vec<BigInt>,
     pub beta_tag: Vec<BigInt>,
     pub encryption_key: EncryptionKey,
@@ -40,14 +40,14 @@ pub struct LocalStatePhase5 {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct GlobalStatePhase5 {
-    pub k_vec: Vec<FE>,
+    pub k_vec: Vec<Scalar::<Secp256k1>>,
     pub k_randomness_vec: Vec<BigInt>,
-    pub gamma_vec: Vec<FE>,
+    pub gamma_vec: Vec<Scalar::<Secp256k1>>,
     pub beta_randomness_vec: Vec<Vec<BigInt>>,
     pub beta_tag_vec: Vec<Vec<BigInt>>,
     pub encryption_key_vec: Vec<EncryptionKey>,
     // stuff to check against
-    pub delta_vec: Vec<FE>,
+    pub delta_vec: Vec<Scalar::<Secp256k1>>,
     pub g_gamma_vec: Vec<Point::<Secp256k1>>,
     pub m_a_vec: Vec<MessageA>,
     pub m_b_mat: Vec<Vec<MessageB>>,
@@ -58,7 +58,7 @@ pub struct GlobalStatePhase5 {
 impl GlobalStatePhase5 {
     pub fn local_state_to_global_state(
         encryption_key_vec: &[EncryptionKey],
-        delta_vec: &[FE],            //to test against delta_vec
+        delta_vec: &[Scalar::<Secp256k1>],            //to test against delta_vec
         g_gamma_vec: &[Point::<Secp256k1>],          // to test against the opened commitment for g_gamma
         m_a_vec: &[MessageA],        // to test against broadcast message A
         m_b_mat: Vec<Vec<MessageB>>, // to test against broadcast message B
@@ -67,13 +67,13 @@ impl GlobalStatePhase5 {
         let len = local_state_vec.len();
         let k_vec = (0..len)
             .map(|i| local_state_vec[i].k.clone())
-            .collect::<Vec<FE>>();
+            .collect::<Vec<Scalar::<Secp256k1>>>();
         let k_randomness_vec = (0..len)
             .map(|i| local_state_vec[i].k_randomness.clone())
             .collect::<Vec<BigInt>>();
         let gamma_vec = (0..len)
             .map(|i| local_state_vec[i].gamma.clone())
-            .collect::<Vec<FE>>();
+            .collect::<Vec<Scalar::<Secp256k1>>>();
         let beta_randomness_vec = (0..len)
             .map(|i| {
                 (0..len - 1)
@@ -156,11 +156,11 @@ impl GlobalStatePhase5 {
 
                         (alpha, beta)
                     })
-                    .collect::<Vec<(FE, FE)>>();
+                    .collect::<Vec<(Scalar::<Secp256k1>, Scalar::<Secp256k1>)>>();
 
                 alpha_beta_vector
             })
-            .collect::<Vec<Vec<(FE, FE)>>>();
+            .collect::<Vec<Vec<(Scalar::<Secp256k1>, Scalar::<Secp256k1>)>>>();
 
         // The matrix we got:
         // [P2, P1, P1, P1  ...]
@@ -181,20 +181,20 @@ impl GlobalStatePhase5 {
 
                     let alpha_sum = alpha_beta_matrix[i]
                         .iter()
-                        .fold(FE::zero(), |acc, x| acc + &x.0);
+                        .fold(Scalar::<Secp256k1>::zero(), |acc, x| acc + &x.0);
                     let beta_vec = (0..len - 1)
                         .map(|j| {
                             let ind1 = if j < i { j } else { j + 1 };
                             let ind2 = if j < i { i - 1 } else { i };
                             alpha_beta_matrix[ind1][ind2].1
                         })
-                        .collect::<Vec<FE>>();
+                        .collect::<Vec<Scalar::<Secp256k1>>>();
 
-                    let beta_sum = beta_vec.iter().fold(FE::zero(), |acc, x| acc + x);
+                    let beta_sum = beta_vec.iter().fold(Scalar::<Secp256k1>::zero(), |acc, x| acc + x);
 
                     k_i_gamma_i + alpha_sum + beta_sum
                 })
-                .collect::<Vec<FE>>();
+                .collect::<Vec<Scalar::<Secp256k1>>>();
 
             // compare delta vec to reconstructed delta vec
 
@@ -217,7 +217,7 @@ impl GlobalStatePhase5 {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct LocalStatePhase6 {
-    pub k: FE,
+    pub k: Scalar::<Secp256k1>,
     pub k_randomness: BigInt,
     pub miu: Vec<BigInt>, // we need the value before reduction
     pub miu_randomness: Vec<BigInt>,
@@ -227,7 +227,7 @@ pub struct LocalStatePhase6 {
 // It is assumed the second message of MtAwc (ciphertext from b to a) is broadcasted in the original protocol
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct GlobalStatePhase6 {
-    pub k_vec: Vec<FE>,
+    pub k_vec: Vec<Scalar::<Secp256k1>>,
     pub k_randomness_vec: Vec<BigInt>,
     pub miu_vec: Vec<Vec<BigInt>>,
     pub miu_randomness_vec: Vec<Vec<BigInt>>,
@@ -246,7 +246,7 @@ impl GlobalStatePhase6 {
         randomness.0
     }
 
-    pub fn ecddh_proof(sigma_i: &FE, R: &Point::<Secp256k1>, S: &Point::<Secp256k1>) -> ECDDHProof<Point::<Secp256k1>> {
+    pub fn ecddh_proof(sigma_i: &Scalar::<Secp256k1>, R: &Point::<Secp256k1>, S: &Point::<Secp256k1>) -> ECDDHProof<Point::<Secp256k1>> {
         let delta = ECDDHStatement {
             g1: Point::<Secp256k1>::generator(),
             g2: R.clone(),
@@ -271,7 +271,7 @@ impl GlobalStatePhase6 {
         let len = local_state_vec.len();
         let k_vec = (0..len)
             .map(|i| local_state_vec[i].k.clone())
-            .collect::<Vec<FE>>();
+            .collect::<Vec<Scalar::<Secp256k1>>>();
         let k_randomness_vec = (0..len)
             .map(|i| local_state_vec[i].k_randomness.clone())
             .collect::<Vec<BigInt>>();
@@ -348,7 +348,7 @@ impl GlobalStatePhase6 {
                             let k_i = &self.k_vec[i];
                             let g_w_j = &self.g_w_vec[ind];
                             let g_w_j_ki = g_w_j * k_i;
-                            let miu: FE = ECScalar::from(&self.miu_vec[i][j]);
+                            let miu: Scalar::<Secp256k1> = ECScalar::from(&self.miu_vec[i][j]);
                             let g_miu = Point::<Secp256k1>::generator() * &miu;
                             let g_ni = g_w_j_ki.sub_point(&g_miu.get_element());
                             g_ni
@@ -405,8 +405,8 @@ impl GlobalStatePhase6 {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct GlobalStatePhase7 {
-    pub s_vec: Vec<FE>,
-    pub r: FE,
+    pub s_vec: Vec<Scalar::<Secp256k1>>,
+    pub r: Scalar::<Secp256k1>,
     pub R_dash_vec: Vec<Point::<Secp256k1>>,
     pub m: BigInt,
     pub R: Point::<Secp256k1>,

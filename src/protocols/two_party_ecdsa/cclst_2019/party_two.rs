@@ -40,7 +40,7 @@ use super::SECURITY_BITS;
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct EcKeyPair {
     pub public_share: Point::<Secp256k1>,
-    secret_share: FE,
+    secret_share: Scalar::<Secp256k1>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -66,7 +66,7 @@ pub struct PartialSig {
 
 #[derive(Serialize, Deserialize)]
 pub struct Party2Private {
-    x2: FE,
+    x2: Scalar::<Secp256k1>,
 }
 #[derive(Debug)]
 pub struct PDLchallenge {
@@ -98,7 +98,7 @@ pub struct PDLSecondMessage {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct EphEcKeyPair {
     pub public_share: Point::<Secp256k1>,
-    secret_share: FE,
+    secret_share: Scalar::<Secp256k1>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -126,7 +126,7 @@ pub struct EphKeyGenSecondMsg {
 impl KeyGenFirstMsg {
     pub fn create() -> (KeyGenFirstMsg, EcKeyPair) {
         let base: Point::<Secp256k1> = ECPoint::generator();
-        let secret_share: FE = ECScalar::new_random();
+        let secret_share: Scalar::<Secp256k1> = ECScalar::new_random();
         let public_share = base * &secret_share;
         let d_log_proof = DLogProof::prove(&secret_share);
         let ec_key_pair = EcKeyPair {
@@ -142,7 +142,7 @@ impl KeyGenFirstMsg {
         )
     }
 
-    pub fn create_with_fixed_secret_share(secret_share: FE) -> (KeyGenFirstMsg, EcKeyPair) {
+    pub fn create_with_fixed_secret_share(secret_share: Scalar::<Secp256k1>) -> (KeyGenFirstMsg, EcKeyPair) {
         let base: Point::<Secp256k1> = ECPoint::generator();
         let public_share = base * &secret_share;
         let d_log_proof = DLogProof::prove(&secret_share);
@@ -242,7 +242,7 @@ impl EphKeyGenFirstMsg {
     pub fn create_commitments() -> (EphKeyGenFirstMsg, EphCommWitness, EphEcKeyPair) {
         let base: Point::<Secp256k1> = ECPoint::generator();
 
-        let secret_share: FE = ECScalar::new_random();
+        let secret_share: Scalar::<Secp256k1> = ECScalar::new_random();
 
         let public_share = base.scalar_mul(&secret_share.get_element());
 
@@ -317,7 +317,7 @@ impl PartialSig {
         ephemeral_other_public_share: &Point::<Secp256k1>,
         message: &BigInt,
     ) -> PartialSig {
-        let q = FE::q();
+        let q = Scalar::<Secp256k1>::q();
         //compute r = k2* R1
         let mut r: Point::<Secp256k1> = ephemeral_other_public_share.clone();
         r = r.scalar_mul(&ephemeral_local_share.secret_share.get_element());
@@ -329,7 +329,7 @@ impl PartialSig {
             .invert(&q)
             .unwrap();
         let k2_inv_m = BigInt::mod_mul(&k2_inv, message, &q);
-        let k2_inv_m_fe: FE = ECScalar::from(&k2_inv_m);
+        let k2_inv_m_fe: Scalar::<Secp256k1> = ECScalar::from(&k2_inv_m);
         let c1 = encrypt(&party_two_public.group, &party_two_public.ek, &k2_inv_m_fe);
         let v = BigInt::mod_mul(&k2_inv, &local_share.x2.to_big_int(), &q);
         let v = BigInt::mod_mul(&v, &rx, &q);

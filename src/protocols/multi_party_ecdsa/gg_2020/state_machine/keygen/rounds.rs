@@ -109,7 +109,7 @@ impl Round2 {
         mut output: O,
     ) -> Result<Round3>
     where
-        O: Push<Msg<(VerifiableSS<Point::<Secp256k1>>, FE)>>,
+        O: Push<Msg<(VerifiableSS<Point::<Secp256k1>>, Scalar::<Secp256k1>)>>,
     {
         let params = gg_2020::party_i::Parameters {
             threshold: self.t.into(),
@@ -167,7 +167,7 @@ pub struct Round3 {
     bc_vec: Vec<gg_2020::party_i::KeyGenBroadcastMessage1>,
 
     own_vss: VerifiableSS<Point::<Secp256k1>>,
-    own_share: FE,
+    own_share: Scalar::<Secp256k1>,
 
     party_i: u16,
     t: u16,
@@ -175,7 +175,7 @@ pub struct Round3 {
 }
 
 impl Round3 {
-    pub fn proceed<O>(self, input: P2PMsgs<(VerifiableSS<Point::<Secp256k1>>, FE)>, mut output: O) -> Result<Round4>
+    pub fn proceed<O>(self, input: P2PMsgs<(VerifiableSS<Point::<Secp256k1>>, Scalar::<Secp256k1>)>, mut output: O) -> Result<Round4>
     where
         O: Push<Msg<DLogProof<Point::<Secp256k1>>>>,
     {
@@ -221,7 +221,7 @@ impl Round3 {
     pub fn is_expensive(&self) -> bool {
         true
     }
-    pub fn expects_messages(i: u16, n: u16) -> Store<P2PMsgs<(VerifiableSS<Point::<Secp256k1>>, FE)>> {
+    pub fn expects_messages(i: u16, n: u16) -> Store<P2PMsgs<(VerifiableSS<Point::<Secp256k1>>, Scalar::<Secp256k1>)>> {
         containers::P2PMsgsStore::new(i, n)
     }
 }

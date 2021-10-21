@@ -160,7 +160,7 @@ fn main() {
     );
 
     let mut j = 0;
-    let mut party_shares: Vec<FE> = Vec::new();
+    let mut party_shares: Vec<Scalar::<Secp256k1>> = Vec::new();
     for i in 1..=PARTIES {
         if i == party_num_int {
             party_shares.push(secret_shares[(i - 1) as usize]);

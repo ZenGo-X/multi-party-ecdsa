@@ -43,7 +43,7 @@ pub struct PDLStatement {
 }
 #[derive(Clone)]
 pub struct PDLWitness {
-    pub x: FE,
+    pub x: Scalar::<Secp256k1>,
     pub r: BigInt,
     pub dk: DecryptionKey,
 }
@@ -100,12 +100,12 @@ pub struct Verifier {}
 
 impl Verifier {
     pub fn message1(statement: &PDLStatement) -> (PDLVerifierFirstMessage, PDLVerifierState) {
-        let a_fe: FE = ECScalar::new_random();
+        let a_fe: Scalar::<Secp256k1> = ECScalar::new_random();
         let a = a_fe.to_big_int();
-        let q = FE::q();
+        let q = Scalar::<Secp256k1>::q();
         let q_sq = q.pow(2);
         let b = BigInt::sample_below(&q_sq);
-        let b_fe: FE = ECScalar::from(&b);
+        let b_fe: Scalar::<Secp256k1> = ECScalar::from(&b);
         let b_enc = Paillier::encrypt(&statement.ek, RawPlaintext::from(b.clone()));
         let ac = Paillier::mul(
             &statement.ek,
@@ -187,9 +187,9 @@ impl Prover {
     ) -> (PDLProverFirstMessage, PDLProverState) {
         let c_tag = verifier_first_message.c_tag.clone();
         let alpha = Paillier::decrypt(&witness.dk, &RawCiphertext::from(c_tag.clone()));
-        let alpha_fe: FE = ECScalar::from(&alpha.0);
+        let alpha_fe: Scalar::<Secp256k1> = ECScalar::from(&alpha.0);
         let q_hat = statement.G * alpha_fe;
-        let blindness = BigInt::sample_below(&FE::q());
+        let blindness = BigInt::sample_below(&Scalar::<Secp256k1>::q());
         let c_hat = HashCommitment::create_commitment_with_user_defined_randomness(
             &q_hat.bytes_compressed_to_big_int(),
             &blindness,
@@ -235,7 +235,7 @@ impl Prover {
 fn generate_range_proof(statement: &PDLStatement, witness: &PDLWitness) -> RangeProofNi {
     RangeProofNi::prove(
         &statement.ek,
-        &FE::q(),
+        &Scalar::<Secp256k1>::q(),
         &statement.ciphertext,
         &witness.x.to_big_int(),
         &witness.r,
