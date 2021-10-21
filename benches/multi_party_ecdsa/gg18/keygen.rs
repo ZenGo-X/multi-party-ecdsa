@@ -3,8 +3,7 @@ use criterion::criterion_main;
 mod bench {
     use criterion::{criterion_group, Criterion};
     use curv::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS;
-    use curv::elliptic::curves::secp256_k1::{FE, GE};
-    use curv::elliptic::curves::traits::*;
+    use curv::elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar},
     use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2018::party_i::*;
     pub fn bench_full_keygen_party_one_two(c: &mut Criterion) {
         c.bench_function("keygen t=1 n=2", move |b| {
@@ -23,7 +22,7 @@ mod bench {
     pub fn keygen_t_n_parties(
         t: u16,
         n: u16,
-    ) -> (Vec<Keys>, Vec<SharedKeys>, Vec<GE>, GE, VerifiableSS<GE>) {
+    ) -> (Vec<Keys>, Vec<SharedKeys>, Vec<Point::<Secp256k1>>, Point::<Secp256k1>, VerifiableSS<Point::<Secp256k1>>) {
         let parames = Parameters {
             threshold: t,
             share_count: n,
@@ -40,7 +39,7 @@ mod bench {
             decom_vec.push(decom1);
         }
 
-        let y_vec = (0..n).map(|i| decom_vec[i].y_i).collect::<Vec<GE>>();
+        let y_vec = (0..n).map(|i| decom_vec[i].y_i).collect::<Vec<Point::<Secp256k1>>>();
         let mut y_vec_iter = y_vec.iter();
         let head = y_vec_iter.next().unwrap();
         let tail = y_vec_iter;
@@ -87,7 +86,7 @@ mod bench {
             dlog_proof_vec.push(dlog_proof);
         }
 
-        let pk_vec = (0..n).map(|i| dlog_proof_vec[i].pk).collect::<Vec<GE>>();
+        let pk_vec = (0..n).map(|i| dlog_proof_vec[i].pk).collect::<Vec<Point::<Secp256k1>>>();
 
         //both parties run:
         Keys::verify_dlog_proofs(&parames, &dlog_proof_vec, &y_vec).expect("bad dlog proof");

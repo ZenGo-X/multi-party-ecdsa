@@ -1,6 +1,6 @@
 #![allow(non_snake_case)]
 use crate::utilities::zk_pdl_with_slack::*;
-use curv::elliptic::curves::secp256_k1::{FE, GE};
+use curv::elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar};
 use curv::BigInt;
 use paillier::core::Randomness;
 use paillier::traits::{EncryptWithChosenRandomness, KeyGeneration};
@@ -36,7 +36,7 @@ fn test_zk_pdl_with_slack() {
     let randomness = Randomness::sample(&ek);
     let x: FE = ECScalar::new_random();
 
-    let Q = GE::generator() * &x;
+    let Q = Point::<Secp256k1>::generator() * &x;
 
     let c = Paillier::encrypt_with_chosen_randomness(
         &ek,
@@ -51,7 +51,7 @@ fn test_zk_pdl_with_slack() {
         ciphertext: c,
         ek,
         Q,
-        G: GE::generator(),
+        G: Point::<Secp256k1>::generator(),
         h1,
         h2,
         N_tilde: ek_tilde.n,
@@ -96,7 +96,7 @@ fn test_zk_pdl_with_slack_soundness() {
     let randomness = Randomness::sample(&ek);
     let x: FE = ECScalar::new_random();
 
-    let Q = GE::generator() * &x;
+    let Q = Point::<Secp256k1>::generator() * &x;
 
     // here we encrypt x + 1 instead of x:
     let c = Paillier::encrypt_with_chosen_randomness(
@@ -112,7 +112,7 @@ fn test_zk_pdl_with_slack_soundness() {
         ciphertext: c,
         ek,
         Q,
-        G: GE::generator(),
+        G: Point::<Secp256k1>::generator(),
         h1,
         h2,
         N_tilde: ek_tilde.n,

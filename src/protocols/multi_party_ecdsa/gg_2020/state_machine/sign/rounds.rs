@@ -6,7 +6,7 @@ use std::iter;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use curv::elliptic::curves::secp256_k1::{FE, GE};
+use curv::elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar};
 use curv::BigInt;
 
 use round_based::containers::push::Push;
@@ -28,7 +28,7 @@ use gg20::ErrorType;
 type Result<T, E = Error> = std::result::Result<T, E>;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct GWI(pub GE);
+pub struct GWI(pub Point::<Secp256k1>);
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct GammaI(pub MessageB);
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -36,15 +36,15 @@ pub struct WI(pub MessageB);
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct DeltaI(FE);
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct TI(pub GE);
+pub struct TI(pub Point::<Secp256k1>);
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct TIProof(pub PedersenProof<GE>);
+pub struct TIProof(pub PedersenProof<Point::<Secp256k1>>);
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct RDash(GE);
+pub struct RDash(Point::<Secp256k1>);
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct SI(pub GE);
+pub struct SI(pub Point::<Secp256k1>);
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct HEGProof(pub HomoELGamalProof<GE>);
+pub struct HEGProof(pub HomoELGamalProof<Point::<Secp256k1>>);
 
 pub struct Round0 {
     /// Index of this party
@@ -303,10 +303,10 @@ pub struct Round3 {
     bc_vec: Vec<SignBroadcastPhase1>,
     m_a_vec: Vec<MessageA>,
     delta_i: FE,
-    t_i: GE,
+    t_i: Point::<Secp256k1>,
     l_i: FE,
     sigma_i: FE,
-    t_i_proof: PedersenProof<GE>,
+    t_i_proof: PedersenProof<Point::<Secp256k1>>,
 
     phase1_decom: SignDecommitPhase1,
 }
@@ -374,11 +374,11 @@ pub struct Round4 {
     mb_gamma_s: Vec<MessageB>,
     bc_vec: Vec<SignBroadcastPhase1>,
     m_a_vec: Vec<MessageA>,
-    t_i: GE,
+    t_i: Point::<Secp256k1>,
     l_i: FE,
     sigma_i: FE,
     delta_inv: FE,
-    t_vec: Vec<GE>,
+    t_vec: Vec<Point::<Secp256k1>>,
     phase1_decom: SignDecommitPhase1,
 }
 
@@ -465,13 +465,13 @@ pub struct Round5 {
     s_l: Vec<u16>,
     local_key: LocalKey,
     sign_keys: SignKeys,
-    t_vec: Vec<GE>,
+    t_vec: Vec<Point::<Secp256k1>>,
     m_a_vec: Vec<MessageA>,
-    t_i: GE,
+    t_i: Point::<Secp256k1>,
     l_i: FE,
     sigma_i: FE,
-    R: GE,
-    R_dash: GE,
+    R: Point::<Secp256k1>,
+    R_dash: Point::<Secp256k1>,
     phase5_proofs_vec: Vec<PDLwSlackProof>,
 }
 
@@ -550,8 +550,8 @@ impl Round5 {
 }
 
 pub struct Round6 {
-    S_i: GE,
-    homo_elgamal_proof: HomoELGamalProof<GE>,
+    S_i: Point::<Secp256k1>,
+    homo_elgamal_proof: HomoELGamalProof<Point::<Secp256k1>>,
     s_l: Vec<u16>,
     /// Round 6 guards protocol output until final checks are taken the place
     protocol_output: CompletedOfflineStage,
@@ -598,13 +598,13 @@ pub struct CompletedOfflineStage {
     i: u16,
     local_key: LocalKey,
     sign_keys: SignKeys,
-    t_vec: Vec<GE>,
-    R: GE,
+    t_vec: Vec<Point::<Secp256k1>>,
+    R: Point::<Secp256k1>,
     sigma_i: FE,
 }
 
 impl CompletedOfflineStage {
-    pub fn public_key(&self) -> &GE {
+    pub fn public_key(&self) -> &Point::<Secp256k1> {
         &self.local_key.y_sum_s
     }
 }

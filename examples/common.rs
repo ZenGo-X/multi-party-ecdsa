@@ -7,8 +7,7 @@ use crypto::{
 };
 use curv::{
     arithmetic::traits::Converter,
-    elliptic::curves::secp256_k1::{FE, GE},
-    elliptic::curves::traits::{ECPoint, ECScalar},
+    elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar},
     BigInt,
 };
 use reqwest::Client;
@@ -190,7 +189,7 @@ pub fn poll_for_p2p(
 }
 
 #[allow(dead_code)]
-pub fn check_sig(r: &FE, s: &FE, msg: &BigInt, pk: &GE) {
+pub fn check_sig(r: &FE, s: &FE, msg: &BigInt, pk: &Point::<Secp256k1>) {
     use secp256k1::{verify, Message, PublicKey, PublicKeyFormat, Signature};
 
     let raw_msg = BigInt::to_bytes(&msg);

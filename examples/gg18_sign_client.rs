@@ -6,8 +6,7 @@ use curv::{
         proofs::sigma_correct_homomorphic_elgamal_enc::HomoELGamalProof,
         proofs::sigma_dlog::DLogProof, secret_sharing::feldman_vss::VerifiableSS,
     },
-    elliptic::curves::secp256_k1::{FE, GE},
-    elliptic::curves::traits::ECScalar,
+    elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar},
     BigInt,
 };
 use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2018::party_i::{
@@ -49,9 +48,9 @@ fn main() {
         Keys,
         SharedKeys,
         u16,
-        Vec<VerifiableSS<GE>>,
+        Vec<VerifiableSS<Point::<Secp256k1>>>,
         Vec<EncryptionKey>,
-        GE,
+        Point::<Secp256k1>,
     ) = serde_json::from_str(&data).unwrap();
 
     //read parameters:
@@ -297,7 +296,7 @@ fn main() {
     bc1_vec.remove((party_num_int - 1) as usize);
     let b_proof_vec = (0..m_b_gamma_rec_vec.len())
         .map(|i| &m_b_gamma_rec_vec[i].b_proof)
-        .collect::<Vec<&DLogProof<GE>>>();
+        .collect::<Vec<&DLogProof<Point::<Secp256k1>>>>();
     let R = SignKeys::phase4(&delta_inv, &b_proof_vec, decommit_vec, &bc1_vec)
         .expect("bad gamma_i decommit");
 
@@ -363,8 +362,8 @@ fn main() {
 
     let mut decommit5a_and_elgamal_and_dlog_vec: Vec<(
         Phase5ADecom1,
-        HomoELGamalProof<GE>,
-        DLogProof<GE>,
+        HomoELGamalProof<Point::<Secp256k1>>,
+        DLogProof<Point::<Secp256k1>>,
     )> = Vec::new();
     format_vec_from_reads(
         &round6_ans_vec,
@@ -385,10 +384,10 @@ fn main() {
         .collect::<Vec<Phase5ADecom1>>();
     let phase_5a_elgamal_vec = (0..THRESHOLD)
         .map(|i| decommit5a_and_elgamal_and_dlog_vec[i as usize].1.clone())
-        .collect::<Vec<HomoELGamalProof<GE>>>();
+        .collect::<Vec<HomoELGamalProof<Point::<Secp256k1>>>>();
     let phase_5a_dlog_vec = (0..THRESHOLD)
         .map(|i| decommit5a_and_elgamal_and_dlog_vec[i as usize].2.clone())
-        .collect::<Vec<DLogProof<GE>>>();
+        .collect::<Vec<DLogProof<Point::<Secp256k1>>>>();
     let (phase5_com2, phase_5d_decom2) = local_sig
         .phase5c(
             &phase_5a_decomm_vec,

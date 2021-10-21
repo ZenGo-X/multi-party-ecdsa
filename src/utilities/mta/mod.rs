@@ -17,6 +17,7 @@
 /// MtA is descrbied in https://eprint.iacr.org/2019/114.pdf section 3
 use curv::arithmetic::traits::Samplable;
 use curv::cryptographic_primitives::proofs::sigma_dlog::DLogProof;
+use curv::elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar};
 use curv::BigInt;
 use paillier::traits::EncryptWithChosenRandomness;
 use paillier::{Add, Decrypt, Mul};
@@ -34,8 +35,8 @@ pub struct MessageA {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct MessageB {
     pub c: BigInt, // paillier encryption
-    pub b_proof: DLogProof<GE>,
-    pub beta_tag_proof: DLogProof<GE>,
+    pub b_proof: DLogProof<Point::<Secp256k1>>,
+    pub beta_tag_proof: DLogProof<Point::<Secp256k1>>,
 }
 
 impl MessageA {
@@ -146,7 +147,7 @@ impl MessageB {
         a: &FE,
     ) -> Result<(FE, BigInt), Error> {
         let alice_share = Paillier::decrypt(dk, &RawCiphertext::from(self.c.clone()));
-        let g: GE = ECPoint::generator();
+        let g: Point::<Secp256k1> = ECPoint::generator();
         let alpha: FE = ECScalar::from(&alice_share.0);
         let g_alpha = g * alpha;
         let ba_btag = self.b_proof.pk * a + self.beta_tag_proof.pk;
@@ -169,7 +170,7 @@ impl MessageB {
         a: &FE,
     ) -> Result<FE, Error> {
         let alice_share = private.decrypt(self.c.clone());
-        let g: GE = ECPoint::generator();
+        let g: Point::<Secp256k1> = ECPoint::generator();
         let alpha: FE = ECScalar::from(&alice_share.0);
         let g_alpha = g * alpha;
         let ba_btag = self.b_proof.pk * a + self.beta_tag_proof.pk;
@@ -184,7 +185,7 @@ impl MessageB {
         }
     }
 
-    pub fn verify_b_against_public(public_gb: &GE, mta_gb: &GE) -> bool {
+    pub fn verify_b_against_public(public_gb: &Point::<Secp256k1>, mta_gb: &Point::<Secp256k1>) -> bool {
         public_gb.get_element() == mta_gb.get_element()
     }
 }

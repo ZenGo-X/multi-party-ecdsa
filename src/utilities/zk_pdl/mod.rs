@@ -25,6 +25,7 @@ use std::ops::Shl;
 use curv::arithmetic::traits::*;
 use curv::cryptographic_primitives::commitments::hash_commitment::HashCommitment;
 use curv::cryptographic_primitives::commitments::traits::Commitment;
+use curv::elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar};
 use curv::BigInt;
 use paillier::Paillier;
 use paillier::{Add, Decrypt, Encrypt, Mul};
@@ -37,8 +38,8 @@ use zk_paillier::zkproofs::RangeProofNi;
 pub struct PDLStatement {
     pub ciphertext: BigInt,
     pub ek: EncryptionKey,
-    pub Q: GE,
-    pub G: GE,
+    pub Q: Point::<Secp256k1>,
+    pub G: Point::<Secp256k1>,
 }
 #[derive(Clone)]
 pub struct PDLWitness {
@@ -54,7 +55,7 @@ pub struct PDLVerifierState {
     a: BigInt,
     b: BigInt,
     blindness: BigInt,
-    q_tag: GE,
+    q_tag: Point::<Secp256k1>,
     c_hat: BigInt,
 }
 
@@ -85,7 +86,7 @@ pub struct PDLVerifierSecondMessage {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PDLProverDecommit {
-    pub q_hat: GE,
+    pub q_hat: Point::<Secp256k1>,
     pub blindness: BigInt,
 }
 

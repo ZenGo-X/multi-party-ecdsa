@@ -23,6 +23,7 @@
 //! note that because of the range proof, the proof has a slack in the range: x in [-q^3, q^3]
 
 use curv::arithmetic::traits::*;
+use curv::elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar};
 use curv::BigInt;
 use paillier::EncryptionKey;
 use serde::{Deserialize, Serialize};
@@ -31,8 +32,8 @@ use serde::{Deserialize, Serialize};
 pub struct PDLwSlackStatement {
     pub ciphertext: BigInt,
     pub ek: EncryptionKey,
-    pub Q: GE,
-    pub G: GE,
+    pub Q: Point::<Secp256k1>,
+    pub G: Point::<Secp256k1>,
     pub h1: BigInt,
     pub h2: BigInt,
     pub N_tilde: BigInt,
@@ -46,7 +47,7 @@ pub struct PDLwSlackWitness {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PDLwSlackProof {
     z: BigInt,
-    u1: GE,
+    u1: Point::<Secp256k1>,
     u2: BigInt,
     u3: BigInt,
     s1: BigInt,

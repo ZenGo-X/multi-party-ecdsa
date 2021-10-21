@@ -27,8 +27,7 @@ use curv::cryptographic_primitives::hashing::hash_sha256::HSha256;
 use curv::cryptographic_primitives::hashing::traits::Hash;
 use curv::cryptographic_primitives::proofs::sigma_dlog::DLogProof;
 use curv::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS;
-use curv::elliptic::curves::secp256_k1::{FE, GE};
-use curv::elliptic::curves::traits::*;
+use curv::elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar};
 use paillier::*;
 
 #[test]
@@ -58,7 +57,7 @@ fn test_sign_n8_t4_ttag6() {
 fn keygen_t_n_parties(
     t: u16,
     n: u16,
-) -> (Vec<Keys>, Vec<SharedKeys>, Vec<GE>, GE, VerifiableSS<GE>) {
+) -> (Vec<Keys>, Vec<SharedKeys>, Vec<Point::<Secp256k1>>, Point::<Secp256k1>, VerifiableSS<Point::<Secp256k1>>) {
     let parames = Parameters {
         threshold: t,
         share_count: n,
@@ -71,7 +70,7 @@ fn keygen_t_n_parties(
         .map(|k| k.phase1_broadcast_phase3_proof_of_correct_key())
         .unzip();
 
-    let y_vec = (0..n).map(|i| decom_vec[i].y_i).collect::<Vec<GE>>();
+    let y_vec = (0..n).map(|i| decom_vec[i].y_i).collect::<Vec<Point::<Secp256k1>>>();
     let mut y_vec_iter = y_vec.iter();
     let head = y_vec_iter.next().unwrap();
     let tail = y_vec_iter;
@@ -126,7 +125,7 @@ fn keygen_t_n_parties(
         dlog_proof_vec.push(dlog_proof);
     }
 
-    let pk_vec = (0..n).map(|i| dlog_proof_vec[i].pk).collect::<Vec<GE>>();
+    let pk_vec = (0..n).map(|i| dlog_proof_vec[i].pk).collect::<Vec<Point::<Secp256k1>>>();
 
     //both parties run:
     Keys::verify_dlog_proofs(&parames, &dlog_proof_vec, &y_vec).expect("bad dlog proof");
@@ -283,7 +282,7 @@ fn sign(t: u16, n: u16, ttag: u16, s: Vec<usize>) {
 
     let _g_gamma_i_vec = (0..ttag)
         .map(|i| sign_keys_vec[i].g_gamma_i)
-        .collect::<Vec<GE>>();
+        .collect::<Vec<Point::<Secp256k1>>>();
 
     let R_vec = (0..ttag)
         .map(|_| {
@@ -293,11 +292,11 @@ fn sign(t: u16, n: u16, ttag: u16, s: Vec<usize>) {
                     let b_gamma_vec = &m_b_gamma_vec_all[j];
                     &b_gamma_vec[0].b_proof
                 })
-                .collect::<Vec<&DLogProof<GE>>>();
+                .collect::<Vec<&DLogProof<Point::<Secp256k1>>>>();
             SignKeys::phase4(&delta_inv, &b_proof_vec, decommit_vec1.clone(), &bc1_vec)
                 .expect("bad gamma_i decommit")
         })
-        .collect::<Vec<GE>>();
+        .collect::<Vec<Point::<Secp256k1>>>();
 
     let message: [u8; 4] = [79, 77, 69, 82];
     let message_bn = HSha256::create_hash(&[&BigInt::from_bytes(&message[..])]);
@@ -375,7 +374,7 @@ fn sign(t: u16, n: u16, ttag: u16, s: Vec<usize>) {
     check_sig(&sig.r, &sig.s, &local_sig_vec[0].m, &y);
 }
 
-fn check_sig(r: &FE, s: &FE, msg: &BigInt, pk: &GE) {
+fn check_sig(r: &FE, s: &FE, msg: &BigInt, pk: &Point::<Secp256k1>) {
     use secp256k1::{verify, Message, PublicKey, PublicKeyFormat, Signature};
 
     let raw_msg = BigInt::to_bytes(&msg);

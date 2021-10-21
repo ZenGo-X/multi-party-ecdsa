@@ -19,9 +19,7 @@ use crate::utilities::mta::{MessageA, MessageB};
 use curv::cryptographic_primitives::proofs::sigma_ec_ddh::ECDDHProof;
 use curv::cryptographic_primitives::proofs::sigma_ec_ddh::ECDDHStatement;
 use curv::cryptographic_primitives::proofs::sigma_ec_ddh::ECDDHWitness;
-use curv::elliptic::curves::secp256_k1::{FE, GE};
-use curv::elliptic::curves::traits::ECPoint;
-use curv::elliptic::curves::traits::ECScalar;
+use curv::elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar};
 use curv::BigInt;
 use paillier::traits::EncryptWithChosenRandomness;
 use paillier::traits::Open;
@@ -50,7 +48,7 @@ pub struct GlobalStatePhase5 {
     pub encryption_key_vec: Vec<EncryptionKey>,
     // stuff to check against
     pub delta_vec: Vec<FE>,
-    pub g_gamma_vec: Vec<GE>,
+    pub g_gamma_vec: Vec<Point::<Secp256k1>>,
     pub m_a_vec: Vec<MessageA>,
     pub m_b_mat: Vec<Vec<MessageB>>,
 }
@@ -61,7 +59,7 @@ impl GlobalStatePhase5 {
     pub fn local_state_to_global_state(
         encryption_key_vec: &[EncryptionKey],
         delta_vec: &[FE],            //to test against delta_vec
-        g_gamma_vec: &[GE],          // to test against the opened commitment for g_gamma
+        g_gamma_vec: &[Point::<Secp256k1>],          // to test against the opened commitment for g_gamma
         m_a_vec: &[MessageA],        // to test against broadcast message A
         m_b_mat: Vec<Vec<MessageB>>, // to test against broadcast message B
         local_state_vec: &[LocalStatePhase5],
@@ -120,7 +118,7 @@ impl GlobalStatePhase5 {
 
         // check commitment to g_gamma
         for i in 0..len {
-            if self.g_gamma_vec[i] != GE::generator() * self.gamma_vec[i] {
+            if self.g_gamma_vec[i] != Point::<Secp256k1>::generator() * self.gamma_vec[i] {
                 bad_signers_vec.push(i)
             }
         }
@@ -223,7 +221,7 @@ pub struct LocalStatePhase6 {
     pub k_randomness: BigInt,
     pub miu: Vec<BigInt>, // we need the value before reduction
     pub miu_randomness: Vec<BigInt>,
-    pub proof_of_eq_dlog: ECDDHProof<GE>,
+    pub proof_of_eq_dlog: ECDDHProof<Point::<Secp256k1>>,
 }
 
 // It is assumed the second message of MtAwc (ciphertext from b to a) is broadcasted in the original protocol
@@ -233,10 +231,10 @@ pub struct GlobalStatePhase6 {
     pub k_randomness_vec: Vec<BigInt>,
     pub miu_vec: Vec<Vec<BigInt>>,
     pub miu_randomness_vec: Vec<Vec<BigInt>>,
-    pub g_w_vec: Vec<GE>,
+    pub g_w_vec: Vec<Point::<Secp256k1>>,
     pub encryption_key_vec: Vec<EncryptionKey>,
-    pub proof_vec: Vec<ECDDHProof<GE>>,
-    pub S_vec: Vec<GE>,
+    pub proof_vec: Vec<ECDDHProof<Point::<Secp256k1>>>,
+    pub S_vec: Vec<Point::<Secp256k1>>,
     pub m_a_vec: Vec<MessageA>,
     pub m_b_mat: Vec<Vec<MessageB>>,
 }
@@ -248,11 +246,11 @@ impl GlobalStatePhase6 {
         randomness.0
     }
 
-    pub fn ecddh_proof(sigma_i: &FE, R: &GE, S: &GE) -> ECDDHProof<GE> {
+    pub fn ecddh_proof(sigma_i: &FE, R: &Point::<Secp256k1>, S: &Point::<Secp256k1>) -> ECDDHProof<Point::<Secp256k1>> {
         let delta = ECDDHStatement {
-            g1: GE::generator(),
+            g1: Point::<Secp256k1>::generator(),
             g2: R.clone(),
-            h1: GE::generator() * sigma_i,
+            h1: Point::<Secp256k1>::generator() * sigma_i,
             h2: S.clone(),
         };
         let w = ECDDHWitness { x: sigma_i.clone() };
@@ -264,8 +262,8 @@ impl GlobalStatePhase6 {
     // TODO: if not - abort gracefully with list of parties that did not produce inputs
     pub fn local_state_to_global_state(
         encryption_key_vec: &[EncryptionKey],
-        S_vec: &[GE],
-        g_w_vec: &[GE],
+        S_vec: &[Point::<Secp256k1>],
+        g_w_vec: &[Point::<Secp256k1>],
         m_a_vec: &[MessageA],        // to test against broadcast message A
         m_b_mat: Vec<Vec<MessageB>>, // to test against broadcast message B
         local_state_vec: &[LocalStatePhase6],
@@ -279,7 +277,7 @@ impl GlobalStatePhase6 {
             .collect::<Vec<BigInt>>();
         let proof_vec = (0..len)
             .map(|i| local_state_vec[i].proof_of_eq_dlog.clone())
-            .collect::<Vec<ECDDHProof<GE>>>();
+            .collect::<Vec<ECDDHProof<Point::<Secp256k1>>>>();
         let miu_randomness_vec = (0..len)
             .map(|i| {
                 (0..len - 1)
@@ -309,7 +307,7 @@ impl GlobalStatePhase6 {
         }
     }
 
-    pub fn phase6_blame(&self, R: &GE) -> Result<(), ErrorType> {
+    pub fn phase6_blame(&self, R: &Point::<Secp256k1>) -> Result<(), ErrorType> {
         let len = self.k_vec.len();
         let mut bad_signers_vec = Vec::new();
 
@@ -351,13 +349,13 @@ impl GlobalStatePhase6 {
                             let g_w_j = &self.g_w_vec[ind];
                             let g_w_j_ki = g_w_j * k_i;
                             let miu: FE = ECScalar::from(&self.miu_vec[i][j]);
-                            let g_miu = GE::generator() * &miu;
+                            let g_miu = Point::<Secp256k1>::generator() * &miu;
                             let g_ni = g_w_j_ki.sub_point(&g_miu.get_element());
                             g_ni
                         })
-                        .collect::<Vec<GE>>()
+                        .collect::<Vec<Point::<Secp256k1>>>()
                 })
-                .collect::<Vec<Vec<GE>>>();
+                .collect::<Vec<Vec<Point::<Secp256k1>>>>();
 
             // compute g_sigma_i
 
@@ -365,11 +363,11 @@ impl GlobalStatePhase6 {
                 .map(|i| {
                     let g_wi_ki = self.g_w_vec[i] * &self.k_vec[i];
                     let sum = self.miu_vec[i].iter().fold(g_wi_ki, |acc, x| {
-                        acc + (GE::generator() * &ECScalar::from(&x))
+                        acc + (Point::<Secp256k1>::generator() * &ECScalar::from(&x))
                     });
                     sum
                 })
-                .collect::<Vec<GE>>();
+                .collect::<Vec<Point::<Secp256k1>>>();
 
             for i in 0..len {
                 for j in 0..len - 1 {
@@ -382,7 +380,7 @@ impl GlobalStatePhase6 {
             // check zero knowledge proof
             for i in 0..len {
                 let statement = ECDDHStatement {
-                    g1: GE::generator(),
+                    g1: Point::<Secp256k1>::generator(),
                     g2: R.clone(),
                     h1: g_sigma_i_vec[i],
                     h2: self.S_vec[i],
@@ -409,10 +407,10 @@ impl GlobalStatePhase6 {
 pub struct GlobalStatePhase7 {
     pub s_vec: Vec<FE>,
     pub r: FE,
-    pub R_dash_vec: Vec<GE>,
+    pub R_dash_vec: Vec<Point::<Secp256k1>>,
     pub m: BigInt,
-    pub R: GE,
-    pub S_vec: Vec<GE>,
+    pub R: Point::<Secp256k1>,
+    pub S_vec: Vec<Point::<Secp256k1>>,
 }
 
 impl GlobalStatePhase7 {
