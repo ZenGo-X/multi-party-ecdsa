@@ -36,7 +36,7 @@ use paillier::{
 };
 
 use serde::{Deserialize, Serialize};
-use zk_paillier::zkproofs::NICorrectKeyProof;
+use zk_paillier::zkproofs::NiCorrectKeyProof;
 use zk_paillier::zkproofs::{CompositeDLogProof, DLogStatement};
 
 use crate::protocols::multi_party_ecdsa::gg_2020::ErrorType;
@@ -83,7 +83,7 @@ pub struct KeyGenBroadcastMessage1 {
     pub dlog_statement_base_h1: DLogStatement,
     pub dlog_statement_base_h2: DLogStatement,
     pub com: BigInt,
-    pub correct_key_proof: NICorrectKeyProof,
+    pub correct_key_proof: NiCorrectKeyProof,
     pub composite_dlog_proof_base_h1: CompositeDLogProof,
     pub composite_dlog_proof_base_h2: CompositeDLogProof,
 }
@@ -225,7 +225,7 @@ impl Keys {
         &self,
     ) -> (KeyGenBroadcastMessage1, KeyGenDecommitMessage1) {
         let blind_factor = BigInt::sample(SECURITY);
-        let correct_key_proof = NICorrectKeyProof::proof(&self.dk, None);
+        let correct_key_proof = NiCorrectKeyProof::proof(&self.dk, None);
 
         let dlog_statement_base_h1 = DLogStatement {
             N: self.N_tilde.clone(),

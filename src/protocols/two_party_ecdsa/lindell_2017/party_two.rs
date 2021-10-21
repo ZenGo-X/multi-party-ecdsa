@@ -29,7 +29,7 @@ use paillier::Paillier;
 use paillier::{Add, Encrypt, Mul};
 use paillier::{EncryptionKey, RawCiphertext, RawPlaintext};
 use serde::{Deserialize, Serialize};
-use zk_paillier::zkproofs::{CorrectKeyProofError, NICorrectKeyProof};
+use zk_paillier::zkproofs::{CorrectKeyProofError, NiCorrectKeyProof};
 
 use super::party_one::EphKeyGenFirstMsg as Party1EphKeyGenFirstMsg;
 use super::party_one::KeyGenFirstMsg as Party1KeyGenFirstMessage;
@@ -282,7 +282,7 @@ impl PaillierPublic {
     }
 
     pub fn verify_ni_proof_correct_key(
-        proof: NICorrectKeyProof,
+        proof: NiCorrectKeyProof,
         ek: &EncryptionKey,
     ) -> Result<(), CorrectKeyProofError> {
         //

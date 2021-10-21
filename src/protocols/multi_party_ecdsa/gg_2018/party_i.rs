@@ -30,7 +30,7 @@ use paillier::{
     Decrypt, DecryptionKey, EncryptionKey, KeyGeneration, Paillier, RawCiphertext, RawPlaintext,
 };
 use serde::{Deserialize, Serialize};
-use zk_paillier::zkproofs::NICorrectKeyProof;
+use zk_paillier::zkproofs::NiCorrectKeyProof;
 
 use crate::Error::{self, InvalidCom, InvalidKey, InvalidSS, InvalidSig};
 
@@ -62,7 +62,7 @@ pub struct PartyPrivate {
 pub struct KeyGenBroadcastMessage1 {
     pub e: EncryptionKey,
     pub com: BigInt,
-    pub correct_key_proof: NICorrectKeyProof,
+    pub correct_key_proof: NiCorrectKeyProof,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -186,7 +186,7 @@ impl Keys {
         &self,
     ) -> (KeyGenBroadcastMessage1, KeyGenDecommitMessage1) {
         let blind_factor = BigInt::sample(SECURITY);
-        let correct_key_proof = NICorrectKeyProof::proof(&self.dk, None);
+        let correct_key_proof = NiCorrectKeyProof::proof(&self.dk, None);
         let com = HashCommitment::create_commitment_with_user_defined_randomness(
             &self.y_i.bytes_compressed_to_big_int(),
             &blind_factor,

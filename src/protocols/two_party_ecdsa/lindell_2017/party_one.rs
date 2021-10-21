@@ -32,7 +32,7 @@ use paillier::{DecryptionKey, EncryptionKey, Randomness, RawCiphertext, RawPlain
 use serde::{Deserialize, Serialize};
 use subtle::ConstantTimeEq;
 use zeroize::Zeroize;
-use zk_paillier::zkproofs::NICorrectKeyProof;
+use zk_paillier::zkproofs::NiCorrectKeyProof;
 
 use super::party_two::EphKeyGenFirstMsg as Party2EphKeyGenFirstMessage;
 use super::party_two::EphKeyGenSecondMsg as Party2EphKeyGenSecondMessage;
@@ -249,7 +249,7 @@ impl Party1Private {
         EncryptionKey,
         BigInt,
         Party1Private,
-        NICorrectKeyProof,
+        NiCorrectKeyProof,
         PDLwSlackStatement,
         PDLwSlackProof,
         CompositeDLogProof,
@@ -265,7 +265,7 @@ impl Party1Private {
         )
         .0
         .into_owned();
-        let correct_key_proof_new = NICorrectKeyProof::proof(&dk_new, None);
+        let correct_key_proof_new = NiCorrectKeyProof::proof(&dk_new, None);
 
         let paillier_key_pair = PaillierKeyPair {
             ek: ek_new.clone(),
@@ -355,8 +355,8 @@ impl PaillierKeyPair {
         }
     }
 
-    pub fn generate_ni_proof_correct_key(paillier_context: &PaillierKeyPair) -> NICorrectKeyProof {
-        NICorrectKeyProof::proof(&paillier_context.dk, None)
+    pub fn generate_ni_proof_correct_key(paillier_context: &PaillierKeyPair) -> NiCorrectKeyProof {
+        NiCorrectKeyProof::proof(&paillier_context.dk, None)
     }
 
     pub fn pdl_proof(
