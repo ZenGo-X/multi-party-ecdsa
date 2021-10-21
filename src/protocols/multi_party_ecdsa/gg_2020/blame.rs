@@ -21,6 +21,7 @@ use curv::cryptographic_primitives::proofs::sigma_ec_ddh::ECDDHStatement;
 use curv::cryptographic_primitives::proofs::sigma_ec_ddh::ECDDHWitness;
 use curv::elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar};
 use curv::BigInt;
+use sha2::Sha256;
 use paillier::traits::EncryptWithChosenRandomness;
 use paillier::traits::Open;
 use paillier::DecryptionKey;
@@ -221,7 +222,7 @@ pub struct LocalStatePhase6 {
     pub k_randomness: BigInt,
     pub miu: Vec<BigInt>, // we need the value before reduction
     pub miu_randomness: Vec<BigInt>,
-    pub proof_of_eq_dlog: ECDDHProof<Point::<Secp256k1>>,
+    pub proof_of_eq_dlog: ECDDHProof<Point::<Secp256k1>, Sha256>,
 }
 
 // It is assumed the second message of MtAwc (ciphertext from b to a) is broadcasted in the original protocol
@@ -233,7 +234,7 @@ pub struct GlobalStatePhase6 {
     pub miu_randomness_vec: Vec<Vec<BigInt>>,
     pub g_w_vec: Vec<Point::<Secp256k1>>,
     pub encryption_key_vec: Vec<EncryptionKey>,
-    pub proof_vec: Vec<ECDDHProof<Point::<Secp256k1>>>,
+    pub proof_vec: Vec<ECDDHProof<Point::<Secp256k1>, Sha256>>,
     pub S_vec: Vec<Point::<Secp256k1>>,
     pub m_a_vec: Vec<MessageA>,
     pub m_b_mat: Vec<Vec<MessageB>>,
@@ -246,7 +247,7 @@ impl GlobalStatePhase6 {
         randomness.0
     }
 
-    pub fn ecddh_proof(sigma_i: &Scalar::<Secp256k1>, R: &Point::<Secp256k1>, S: &Point::<Secp256k1>) -> ECDDHProof<Point::<Secp256k1>> {
+    pub fn ecddh_proof(sigma_i: &Scalar::<Secp256k1>, R: &Point::<Secp256k1>, S: &Point::<Secp256k1>) -> ECDDHProof<Point::<Secp256k1>, Sha256> {
         let delta = ECDDHStatement {
             g1: Point::<Secp256k1>::generator(),
             g2: R.clone(),

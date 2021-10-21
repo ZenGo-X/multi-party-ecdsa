@@ -19,6 +19,7 @@ use curv::arithmetic::traits::Samplable;
 use curv::cryptographic_primitives::proofs::sigma_dlog::DLogProof;
 use curv::elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar};
 use curv::BigInt;
+use sha2::Sha256;
 use paillier::traits::EncryptWithChosenRandomness;
 use paillier::{Add, Decrypt, Mul};
 use paillier::{DecryptionKey, EncryptionKey, Paillier, Randomness, RawCiphertext, RawPlaintext};
@@ -35,8 +36,8 @@ pub struct MessageA {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct MessageB {
     pub c: BigInt, // paillier encryption
-    pub b_proof: DLogProof<Point::<Secp256k1>>,
-    pub beta_tag_proof: DLogProof<Point::<Secp256k1>>,
+    pub b_proof: DLogProof<Point::<Secp256k1>, Sha256>,
+    pub beta_tag_proof: DLogProof<Point::<Secp256k1>, Sha256>,
 }
 
 impl MessageA {

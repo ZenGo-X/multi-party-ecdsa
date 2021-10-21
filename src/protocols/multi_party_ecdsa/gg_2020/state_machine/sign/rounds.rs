@@ -8,6 +8,7 @@ use thiserror::Error;
 
 use curv::elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar};
 use curv::BigInt;
+use sha2::Sha256;
 
 use round_based::containers::push::Push;
 use round_based::containers::{self, BroadcastMsgs, P2PMsgs, Store};
@@ -38,13 +39,13 @@ pub struct DeltaI(Scalar::<Secp256k1>);
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct TI(pub Point::<Secp256k1>);
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct TIProof(pub PedersenProof<Point::<Secp256k1>>);
+pub struct TIProof(pub PedersenProof<Point::<Secp256k1>, Sha256>);
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct RDash(Point::<Secp256k1>);
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SI(pub Point::<Secp256k1>);
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct HEGProof(pub HomoELGamalProof<Point::<Secp256k1>>);
+pub struct HEGProof(pub HomoELGamalProof<Point::<Secp256k1>, Sha256>);
 
 pub struct Round0 {
     /// Index of this party
@@ -306,7 +307,7 @@ pub struct Round3 {
     t_i: Point::<Secp256k1>,
     l_i: Scalar::<Secp256k1>,
     sigma_i: Scalar::<Secp256k1>,
-    t_i_proof: PedersenProof<Point::<Secp256k1>>,
+    t_i_proof: PedersenProof<Point::<Secp256k1>, Sha256>,
 
     phase1_decom: SignDecommitPhase1,
 }
@@ -551,7 +552,7 @@ impl Round5 {
 
 pub struct Round6 {
     S_i: Point::<Secp256k1>,
-    homo_elgamal_proof: HomoELGamalProof<Point::<Secp256k1>>,
+    homo_elgamal_proof: HomoELGamalProof<Point::<Secp256k1>, Sha256>,
     s_l: Vec<u16>,
     /// Round 6 guards protocol output until final checks are taken the place
     protocol_output: CompletedOfflineStage,

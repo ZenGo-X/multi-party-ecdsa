@@ -30,6 +30,7 @@ use curv::cryptographic_primitives::proofs::sigma_dlog::DLogProof;
 use curv::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS;
 use curv::elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar, ECPoint};
 use curv::BigInt;
+use sha2::Sha256;
 
 use crate::Error::{self, InvalidSig, Phase5BadSum, Phase6Error};
 use paillier::{
@@ -326,7 +327,7 @@ impl Keys {
         secret_shares_vec: &[Scalar::<Secp256k1>],
         vss_scheme_vec: &[VerifiableSS<Point::<Secp256k1>>],
         index: usize,
-    ) -> Result<(SharedKeys, DLogProof<Point::<Secp256k1>>), ErrorType> {
+    ) -> Result<(SharedKeys, DLogProof<Point::<Secp256k1>, Sha256>), ErrorType> {
         let mut bad_actors_vec = Vec::new();
         assert_eq!(y_vec.len() as u16, params.share_count);
         assert_eq!(secret_shares_vec.len() as u16, params.share_count);
@@ -396,7 +397,7 @@ impl Keys {
 
     pub fn verify_dlog_proofs_check_against_vss(
         params: &Parameters,
-        dlog_proofs_vec: &[DLogProof<Point::<Secp256k1>>],
+        dlog_proofs_vec: &[DLogProof<Point::<Secp256k1>, Sha256>],
         y_vec: &[Point::<Secp256k1>],
         vss_vec: &[VerifiableSS<Point::<Secp256k1>>],
     ) -> Result<(), ErrorType> {
@@ -584,7 +585,7 @@ impl SignKeys {
             .fold(ki_w_i, |acc, x| acc + x)
     }
 
-    pub fn phase3_compute_t_i(sigma_i: &Scalar::<Secp256k1>) -> (Point::<Secp256k1>, Scalar::<Secp256k1>, PedersenProof<Point::<Secp256k1>>) {
+    pub fn phase3_compute_t_i(sigma_i: &Scalar::<Secp256k1>) -> (Point::<Secp256k1>, Scalar::<Secp256k1>, PedersenProof<Point::<Secp256k1>, Sha256>) {
         let g_sigma_i = Point::<Secp256k1>::generator() * sigma_i;
         let l: Scalar::<Secp256k1> = Scalar::<Secp256k1>::random();
         let h_l = Point::<Secp256k1>::base_point2() * &l;
@@ -600,7 +601,7 @@ impl SignKeys {
 
     pub fn phase4(
         delta_inv: &Scalar::<Secp256k1>,
-        b_proof_vec: &[&DLogProof<Point::<Secp256k1>>],
+        b_proof_vec: &[&DLogProof<Point::<Secp256k1>, Sha256>],
         phase1_decommit_vec: Vec<SignDecommitPhase1>,
         bc1_vec: &[SignBroadcastPhase1],
         index: usize,
@@ -735,7 +736,7 @@ impl LocalSignature {
         T: &Point::<Secp256k1>,
         sigma: &Scalar::<Secp256k1>,
         l: &Scalar::<Secp256k1>,
-    ) -> (Point::<Secp256k1>, HomoELGamalProof<Point::<Secp256k1>>) {
+    ) -> (Point::<Secp256k1>, HomoELGamalProof<Point::<Secp256k1>, Sha256>) {
         let S = R * sigma;
         let delta = HomoElGamalStatement {
             G: R.clone(),
@@ -755,7 +756,7 @@ impl LocalSignature {
 
     pub fn phase6_verify_proof(
         S_vec: &[Point::<Secp256k1>],
-        proof_vec: &[HomoELGamalProof<Point::<Secp256k1>>],
+        proof_vec: &[HomoELGamalProof<Point::<Secp256k1>, Sha256>],
         R_vec: &[Point::<Secp256k1>],
         T_vec: &[Point::<Secp256k1>],
     ) -> Result<(), ErrorType> {

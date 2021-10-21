@@ -58,7 +58,7 @@ pub struct CommWitness {
     pub pk_commitment_blind_factor: BigInt,
     pub zk_pok_blind_factor: BigInt,
     pub public_share: Point::<Secp256k1>,
-    pub d_log_proof: DLogProof<Point::<Secp256k1>>,
+    pub d_log_proof: DLogProof<Point::<Secp256k1>, Sha256>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -124,7 +124,7 @@ pub struct EphEcKeyPair {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct EphKeyGenFirstMsg {
-    pub d_log_proof: ECDDHProof<Point::<Secp256k1>>,
+    pub d_log_proof: ECDDHProof<Point::<Secp256k1>, Sha256>,
     pub public_share: Point::<Secp256k1>,
     pub c: Point::<Secp256k1>, //c = secret_share * base_point2
 }
@@ -223,7 +223,7 @@ impl KeyGenFirstMsg {
 impl KeyGenSecondMsg {
     pub fn verify_and_decommit(
         comm_witness: CommWitness,
-        proof: &DLogProof<Point::<Secp256k1>>,
+        proof: &DLogProof<Point::<Secp256k1>, Sha256>,
     ) -> Result<KeyGenSecondMsg, ProofError> {
         DLogProof::verify(proof)?;
         Ok(KeyGenSecondMsg { comm_witness })
