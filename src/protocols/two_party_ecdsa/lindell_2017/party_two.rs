@@ -28,7 +28,7 @@ use paillier::Paillier;
 use paillier::{Add, Encrypt, Mul};
 use paillier::{EncryptionKey, RawCiphertext, RawPlaintext};
 use serde::{Deserialize, Serialize};
-use zk_paillier::zkproofs::{CorrectKeyProofError, NiCorrectKeyProof};
+use zk_paillier::zkproofs::{IncorrectProof, NiCorrectKeyProof};
 use sha2::Sha256;
 
 use super::party_one::EphKeyGenFirstMsg as Party1EphKeyGenFirstMsg;
@@ -284,10 +284,10 @@ impl PaillierPublic {
     pub fn verify_ni_proof_correct_key(
         proof: NiCorrectKeyProof,
         ek: &EncryptionKey,
-    ) -> Result<(), CorrectKeyProofError> {
+    ) -> Result<(), IncorrectProof> {
         //
         if ek.n.bit_length() < PAILLIER_KEY_SIZE - 1 {
-            return Err(CorrectKeyProofError);
+            return Err(IncorrectProof);
         };
         proof.verify(&ek, zk_paillier::zkproofs::SALT_STRING)
     }

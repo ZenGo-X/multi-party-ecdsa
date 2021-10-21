@@ -31,7 +31,7 @@ use paillier::Paillier;
 use paillier::{Add, Decrypt, Encrypt, Mul};
 use paillier::{DecryptionKey, EncryptionKey, RawCiphertext, RawPlaintext};
 use serde::{Deserialize, Serialize};
-use zk_paillier::zkproofs::RangeProofError;
+use zk_paillier::zkproofs::IncorrectProof;
 use zk_paillier::zkproofs::RangeProofNi;
 
 #[derive(Clone)]
@@ -245,7 +245,7 @@ fn generate_range_proof(statement: &PDLStatement, witness: &PDLWitness) -> Range
 fn verify_range_proof(
     statement: &PDLStatement,
     range_proof: &RangeProofNi,
-) -> Result<(), RangeProofError> {
+) -> Result<(), IncorrectProof> {
     range_proof.verify(&statement.ek, &statement.ciphertext)
 }
 
