@@ -38,6 +38,7 @@ curv = { package = "curv-kzen", version = "0.9", default-features = false }
 round-based = { version = "0.1.4", features = [] }
 thiserror = "1.0.23"
 derivative = "2"
+sha2 = "0.9"
 
 [dependencies.centipede]
 version = "0.3"

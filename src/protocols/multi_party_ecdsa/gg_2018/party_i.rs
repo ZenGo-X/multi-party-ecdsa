@@ -20,12 +20,11 @@ use centipede::juggling::segmentation::Msegmentation;
 use curv::arithmetic::traits::*;
 use curv::cryptographic_primitives::commitments::hash_commitment::HashCommitment;
 use curv::cryptographic_primitives::commitments::traits::Commitment;
-use curv::cryptographic_primitives::hashing::hash_sha256::HSha256;
-use curv::cryptographic_primitives::hashing::traits::Hash;
 use curv::cryptographic_primitives::proofs::sigma_correct_homomorphic_elgamal_enc::*;
 use curv::cryptographic_primitives::proofs::sigma_dlog::DLogProof;
 use curv::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS;
 use curv::BigInt;
+use sha2::Sha256;
 
 use paillier::{
     Decrypt, DecryptionKey, EncryptionKey, KeyGeneration, Paillier, RawCiphertext, RawPlaintext,
@@ -518,7 +517,7 @@ impl LocalSignature {
         let l_i_rho_i = self.l_i.mul(&self.rho_i.get_element());
         let B_i = g * l_i_rho_i;
         let V_i = self.R * self.s_i + g * self.l_i;
-        let input_hash = HSha256::create_hash_from_ge(&[&V_i, &A_i, &B_i]).to_big_int();
+        let input_hash = Sha256::new().chain_points([&V_i, &A_i, &B_i]).result_bigint();
         let com = HashCommitment::create_commitment_with_user_defined_randomness(
             &input_hash,
             &blind_factor,
@@ -571,12 +570,12 @@ impl LocalSignature {
                     D: decom_vec[i].V_i,
                     E: decom_vec[i].B_i,
                 };
-                let input_hash = HSha256::create_hash_from_ge(&[
+
+                let input_hash = Sha256::new().chain_points([
                     &decom_vec[i].V_i,
                     &decom_vec[i].A_i,
                     &decom_vec[i].B_i,
-                ])
-                .to_big_int();
+                ]).result_bigint();
 
                 HashCommitment::create_commitment_with_user_defined_randomness(
                     &input_hash,
@@ -609,7 +608,7 @@ impl LocalSignature {
         let v = v.sub_point(&gm.get_element()).sub_point(&yr.get_element());
         let u_i = v * self.rho_i;
         let t_i = a * self.l_i;
-        let input_hash = HSha256::create_hash_from_ge(&[&u_i, &t_i]).to_big_int();
+        let input_hash = Sha256::new().chain_points([&u_i, &t_i]).result_bigint();
         let blind_factor = BigInt::sample(SECURITY);
         let com = HashCommitment::create_commitment_with_user_defined_randomness(
             &input_hash,
@@ -643,9 +642,7 @@ impl LocalSignature {
 
         let test_com = (0..com_vec2.len())
             .map(|i| {
-                let input_hash =
-                    HSha256::create_hash_from_ge(&[&decom_vec2[i].u_i, &decom_vec2[i].t_i])
-                        .to_big_int();
+                let input_hash = Sha256::new().chain_points([&decom_vec2[i].u_i, &decom_vec2[i].t_i]).result_bigint();
                 HashCommitment::create_commitment_with_user_defined_randomness(
                     &input_hash,
                     &decom_vec2[i].blind_factor,
