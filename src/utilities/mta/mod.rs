@@ -36,8 +36,8 @@ pub struct MessageA {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct MessageB {
     pub c: BigInt, // paillier encryption
-    pub b_proof: DLogProof<Point::<Secp256k1>, Sha256>,
-    pub beta_tag_proof: DLogProof<Point::<Secp256k1>, Sha256>,
+    pub b_proof: DLogProof<Secp256k1, Sha256>,
+    pub beta_tag_proof: DLogProof<Secp256k1, Sha256>,
 }
 
 impl MessageA {

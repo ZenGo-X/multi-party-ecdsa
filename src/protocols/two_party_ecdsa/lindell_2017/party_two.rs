@@ -53,7 +53,7 @@ pub struct EcKeyPair {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct KeyGenFirstMsg {
-    pub d_log_proof: DLogProof<Point::<Secp256k1>, Sha256>,
+    pub d_log_proof: DLogProof<Secp256k1, Sha256>,
     pub public_share: Point::<Secp256k1>,
 }
 
@@ -113,7 +113,7 @@ pub struct EphCommWitness {
     pub pk_commitment_blind_factor: BigInt,
     pub zk_pok_blind_factor: BigInt,
     pub public_share: Point::<Secp256k1>,
-    pub d_log_proof: ECDDHProof<Point::<Secp256k1>, Sha256>,
+    pub d_log_proof: ECDDHProof<Secp256k1, Sha256>,
     pub c: Point::<Secp256k1>, //c = secret_share * base_point2
 }
 

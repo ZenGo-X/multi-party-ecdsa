@@ -402,7 +402,7 @@ enum M {
     Round1(gg_2020::party_i::KeyGenBroadcastMessage1),
     Round2(gg_2020::party_i::KeyGenDecommitMessage1),
     Round3((VerifiableSS<Secp256k1>, Scalar::<Secp256k1>)),
-    Round4(DLogProof<Point::<Secp256k1>, Sha256>),
+    Round4(DLogProof<Secp256k1, Sha256>),
 }
 
 // Error
