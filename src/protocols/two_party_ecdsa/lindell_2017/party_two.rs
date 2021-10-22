@@ -187,7 +187,7 @@ impl KeyGenSecondMsg {
         let mut flag = true;
         if party_one_pk_commitment
             == &HashCommitment::create_commitment_with_user_defined_randomness(
-                &party_one_public_share.bytes_compressed_to_big_int(),
+                &BigInt::from_bytes(&party_one_public_share.to_bytes(true).as_ref()),
                 &party_one_pk_commitment_blind_factor,
             )
         {
@@ -197,9 +197,8 @@ impl KeyGenSecondMsg {
         };
         if party_one_zk_pok_commitment
             == &HashCommitment::create_commitment_with_user_defined_randomness(
-                &party_one_d_log_proof
-                    .pk_t_rand_commitment
-                    .bytes_compressed_to_big_int(),
+                &BigInt::from_bytes(&party_one_d_log_proof
+                    .pk_t_rand_commitment.to_bytes(true).as_ref()),
                 &party_one_zk_pok_blind_factor,
             )
         {
@@ -317,7 +316,7 @@ impl EphKeyGenFirstMsg {
         // we use hash based commitment
         let pk_commitment_blind_factor = BigInt::sample(SECURITY_BITS);
         let pk_commitment = HashCommitment::create_commitment_with_user_defined_randomness(
-            &public_share.bytes_compressed_to_big_int(),
+            &BigInt::from_bytes(&public_share.to_bytes(true).as_ref()),
             &pk_commitment_blind_factor,
         );
 

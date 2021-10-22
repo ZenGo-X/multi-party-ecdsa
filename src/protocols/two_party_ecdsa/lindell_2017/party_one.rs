@@ -146,15 +146,14 @@ impl KeyGenFirstMsg {
         // we use hash based commitment
         let pk_commitment_blind_factor = BigInt::sample(SECURITY_BITS);
         let pk_commitment = HashCommitment::create_commitment_with_user_defined_randomness(
-            &public_share.bytes_compressed_to_big_int(),
+            &BigInt::from_bytes(&public_share.to_bytes(true).as_ref()),
             &pk_commitment_blind_factor,
         );
 
         let zk_pok_blind_factor = BigInt::sample(SECURITY_BITS);
         let zk_pok_commitment = HashCommitment::create_commitment_with_user_defined_randomness(
-            &d_log_proof
-                .pk_t_rand_commitment
-                .bytes_compressed_to_big_int(),
+            &BigInt::from_bytes(&d_log_proof
+                .pk_t_rand_commitment.to_bytes(true).as_ref()),
             &zk_pok_blind_factor,
         );
         let ec_key_pair = EcKeyPair {
@@ -187,15 +186,14 @@ impl KeyGenFirstMsg {
 
         let pk_commitment_blind_factor = BigInt::sample(SECURITY_BITS);
         let pk_commitment = HashCommitment::create_commitment_with_user_defined_randomness(
-            &public_share.bytes_compressed_to_big_int(),
+            &BigInt::from_bytes(&public_share.to_bytes(true).as_ref()),
             &pk_commitment_blind_factor,
         );
 
         let zk_pok_blind_factor = BigInt::sample(SECURITY_BITS);
         let zk_pok_commitment = HashCommitment::create_commitment_with_user_defined_randomness(
-            &d_log_proof
-                .pk_t_rand_commitment
-                .bytes_compressed_to_big_int(),
+            &BigInt::from_bytes(&d_log_proof
+                .pk_t_rand_commitment.to_bytes(true).as_ref()),
             &zk_pok_blind_factor,
         );
 
@@ -447,7 +445,7 @@ impl EphKeyGenSecondMsg {
         let mut flag = true;
         if party_two_pk_commitment
             == &HashCommitment::create_commitment_with_user_defined_randomness(
-                &party_two_public_share.bytes_compressed_to_big_int(),
+                &BigInt::from_bytes(&party_two_public_share.to_bytes(true).as_ref()),
                 &party_two_pk_commitment_blind_factor,
             )
         {

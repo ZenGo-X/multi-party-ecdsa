@@ -246,7 +246,7 @@ impl Keys {
             CompositeDLogProof::prove(&dlog_statement_base_h2, &self.xhi_inv);
 
         let com = HashCommitment::create_commitment_with_user_defined_randomness(
-            &self.y_i.bytes_compressed_to_big_int(),
+            &BigInt::from_bytes(&self.y_i.to_bytes(true).as_ref()),
             &blind_factor,
         );
         let bcm1 = KeyGenBroadcastMessage1 {
@@ -279,7 +279,7 @@ impl Keys {
         let correct_key_correct_decom_all = (0..bc1_vec.len())
             .map(|i| {
                 let test_res = HashCommitment::create_commitment_with_user_defined_randomness(
-                    &decom_vec[i].y_i.bytes_compressed_to_big_int(),
+                    &BigInt::from_bytes(&decom_vec[i].y_i.to_bytes(true).as_ref()),
                     &decom_vec[i].blind_factor,
                 ) == bc1_vec[i].com
                     && bc1_vec[i]
@@ -551,7 +551,7 @@ impl SignKeys {
         let g = Point::<Secp256k1>::generator();
         let g_gamma_i = g * self.gamma_i;
         let com = HashCommitment::create_commitment_with_user_defined_randomness(
-            &g_gamma_i.bytes_compressed_to_big_int(),
+            &BigInt::from_bytes(&g_gamma_i.to_bytes(true).as_ref()),
             &blind_factor,
         );
 
@@ -613,9 +613,7 @@ impl SignKeys {
                 let res = b_proof_vec[j].pk.get_element()
                     == phase1_decommit_vec[ind].g_gamma_i.get_element()
                     && HashCommitment::create_commitment_with_user_defined_randomness(
-                        &phase1_decommit_vec[ind]
-                            .g_gamma_i
-                            .bytes_compressed_to_big_int(),
+                        &BigInt::from_bytes(&phase1_decommit_vec[ind].g_gamma_i.to_bytes(true).as_ref()),
                         &phase1_decommit_vec[ind].blind_factor,
                     ) == bc1_vec[ind].com;
                 if res == false {

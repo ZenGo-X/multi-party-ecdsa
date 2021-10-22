@@ -162,10 +162,9 @@ impl Verifier {
         state: &PDLVerifierState,
     ) -> Result<(), ()> {
         let c_hat_test = HashCommitment::create_commitment_with_user_defined_randomness(
-            &prover_second_message
+            &BigInt::from_bytes(&prover_second_message
                 .decommit
-                .q_hat
-                .bytes_compressed_to_big_int(),
+                .q_hat.to_bytes(true).as_ref()),
             &prover_second_message.decommit.blindness,
         );
 
@@ -191,7 +190,7 @@ impl Prover {
         let q_hat = statement.G * alpha_fe;
         let blindness = BigInt::sample_below(&Scalar::<Secp256k1>::q());
         let c_hat = HashCommitment::create_commitment_with_user_defined_randomness(
-            &q_hat.bytes_compressed_to_big_int(),
+            &BigInt::from_bytes(&q_hat.to_bytes(true).as_ref()),
             &blindness,
         );
         // in parallel generate range proof:
