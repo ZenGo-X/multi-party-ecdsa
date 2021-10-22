@@ -25,6 +25,7 @@
 use curv::arithmetic::traits::*;
 use curv::elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar};
 use curv::BigInt;
+use sha2::Sha256;
 use paillier::EncryptionKey;
 use serde::{Deserialize, Serialize};
 
@@ -90,15 +91,15 @@ impl PDLwSlackProof {
             &gamma,
         );
 
-        let e = HSha256::create_hash(&[
-            &statement.G.bytes_compressed_to_big_int(),
-            &statement.Q.bytes_compressed_to_big_int(),
-            &statement.ciphertext,
-            &z,
-            &u1.bytes_compressed_to_big_int(),
-            &u2,
-            &u3,
-        ]);
+        let e = Sha256::new()
+            .chain_bigint(&BigInt::from_bytes(&statement.G.to_bytes(true).as_ref()))
+            .chain_bigint(&BigInt::from_bytes(&statement.Q.to_bytes(true).as_ref()))
+            .chain_bigint(&statement.ciphertext)
+            .chain_bigint(&z)
+            .chain_bigint(&BigInt::from_bytes(&u1.to_bytes(true).as_ref()))
+            .chain_bigint(&u2)
+            .chain_bigint(&u3)
+            .result_bigint();
 
         let s1 = &e * witness.x.to_big_int() + alpha;
         let s2 = commitment_unknown_order(&witness.r, &beta, &statement.ek.n, &e, &BigInt::one());
@@ -116,15 +117,16 @@ impl PDLwSlackProof {
     }
 
     pub fn verify(&self, statement: &PDLwSlackStatement) -> Result<(), ()> {
-        let e = HSha256::create_hash(&[
-            &statement.G.bytes_compressed_to_big_int(),
-            &statement.Q.bytes_compressed_to_big_int(),
-            &statement.ciphertext,
-            &self.z,
-            &self.u1.bytes_compressed_to_big_int(),
-            &self.u2,
-            &self.u3,
-        ]);
+        let e = Sha256::new()
+            .chain_bigint(&BigInt::from_bytes(&statement.G.to_bytes(true).as_ref()))
+            .chain_bigint(&BigInt::from_bytes(&statement.Q.to_bytes(true).as_ref()))
+            .chain_bigint(&statement.ciphertext)
+            .chain_bigint(&self.z)
+            .chain_bigint(&BigInt::from_bytes(&self.u1.to_bytes(true).as_ref()))
+            .chain_bigint(&self.u2)
+            .chain_bigint(&self.u3)
+            .result_bigint();
+
         let g_s1 = statement.G.clone() * &Scalar::<Secp256k1>::from(&self.s1);
         let e_fe_neg: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(&(Scalar::<Secp256k1>::q() - &e));
         let y_minus_e = &statement.Q * &e_fe_neg;
