@@ -140,7 +140,7 @@ impl KeyGenFirstMsg {
         let secret_share: Scalar::<Secp256k1> = Scalar::<Secp256k1>::random();
         //in Lindell's protocol range proof works only for x1<q/3
         let secret_share: Scalar::<Secp256k1> =
-            Scalar::<Secp256k1>::from(&secret_share.to_big_int().div_floor(&BigInt::from(3)));
+            Scalar::<Secp256k1>::from(&secret_share.to_bigint().div_floor(&BigInt::from(3)));
 
         let public_share = base.scalar_mul(&secret_share.get_element());
 
@@ -333,7 +333,7 @@ impl EphKeyGenSecondMsg {
                     &party_two_d_log_proof.a1,
                     &party_two_d_log_proof.a2,
                 ])
-                .to_big_int(),
+                .to_bigint(),
                 &party_two_zk_pok_blind_factor,
             ) {
             false => flag = false,
@@ -366,7 +366,7 @@ impl Signature {
         let rx = r.x_coor().unwrap().mod_floor(&Scalar::<Secp256k1>::q());
         let k1_inv = &ephemeral_local_share
             .secret_share
-            .to_big_int()
+            .to_bigint()
             .invert(&Scalar::<Secp256k1>::q())
             .unwrap();
         let s_tag = decrypt(
@@ -374,7 +374,7 @@ impl Signature {
             &party_one_private.hsmcl_priv,
             &partial_sig_c3,
         );
-        let s_tag_tag = BigInt::mod_mul(&k1_inv, &s_tag.to_big_int(), &Scalar::<Secp256k1>::q());
+        let s_tag_tag = BigInt::mod_mul(&k1_inv, &s_tag.to_bigint(), &Scalar::<Secp256k1>::q());
         let s = cmp::min(s_tag_tag.clone(), Scalar::<Secp256k1>::q().clone() - s_tag_tag.clone());
         Signature { s, r: rx }
     }

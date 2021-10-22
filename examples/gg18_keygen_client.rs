@@ -135,7 +135,7 @@ fn main() {
         if i != party_num_int {
             // prepare encrypted ss for party i:
             let key_i = &enc_keys[j];
-            let plaintext = BigInt::to_bytes(&secret_shares[k].to_big_int());
+            let plaintext = BigInt::to_bytes(&secret_shares[k].to_bigint());
             let aead_pack_i = aes_encrypt(key_i, &plaintext);
             assert!(sendp2p(
                 &client,

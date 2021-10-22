@@ -40,7 +40,7 @@ fn test_zk_pdl_with_slack() {
 
     let c = Paillier::encrypt_with_chosen_randomness(
         &ek,
-        RawPlaintext::from(x.to_big_int().clone()),
+        RawPlaintext::from(x.to_bigint().clone()),
         &randomness,
     )
     .0
@@ -101,7 +101,7 @@ fn test_zk_pdl_with_slack_soundness() {
     // here we encrypt x + 1 instead of x:
     let c = Paillier::encrypt_with_chosen_randomness(
         &ek,
-        RawPlaintext::from(x.to_big_int().clone() + BigInt::one()),
+        RawPlaintext::from(x.to_bigint().clone() + BigInt::one()),
         &randomness,
     )
     .0

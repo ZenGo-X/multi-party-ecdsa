@@ -811,7 +811,7 @@ impl LocalSignature {
 
     pub fn output_signature(&self, s_vec: &[Scalar::<Secp256k1>]) -> Result<SignatureRecid, Error> {
         let mut s = s_vec.iter().fold(self.s_i, |acc, x| acc + x);
-        let s_bn = s.to_big_int();
+        let s_bn = s.to_bigint();
 
         let r: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(&self.R.x_coor().unwrap().mod_floor(&Scalar::<Secp256k1>::q()));
         let ry: BigInt = self.R.y_coor().unwrap().mod_floor(&Scalar::<Secp256k1>::q());

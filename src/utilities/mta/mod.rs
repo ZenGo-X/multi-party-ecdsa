@@ -45,7 +45,7 @@ impl MessageA {
         let randomness = BigInt::sample_below(&alice_ek.n);
         let c_a = Paillier::encrypt_with_chosen_randomness(
             alice_ek,
-            RawPlaintext::from(a.to_big_int()),
+            RawPlaintext::from(a.to_bigint()),
             &Randomness::from(randomness.clone()),
         );
         (
@@ -63,7 +63,7 @@ impl MessageA {
     ) -> Self {
         let c_a = Paillier::encrypt_with_chosen_randomness(
             alice_ek,
-            RawPlaintext::from(a.to_big_int()),
+            RawPlaintext::from(a.to_bigint()),
             &Randomness::from(randomness.clone()),
         );
 
@@ -84,7 +84,7 @@ impl MessageB {
             &Randomness::from(randomness.clone()),
         );
 
-        let b_bn = b.to_big_int();
+        let b_bn = b.to_bigint();
         let b_c_a = Paillier::mul(
             alice_ek,
             RawCiphertext::from(c_a.c),
@@ -121,7 +121,7 @@ impl MessageB {
             &Randomness::from(randomness.clone()),
         );
 
-        let b_bn = b.to_big_int();
+        let b_bn = b.to_bigint();
         let b_c_a = Paillier::mul(
             alice_ek,
             RawCiphertext::from(c_a.c),

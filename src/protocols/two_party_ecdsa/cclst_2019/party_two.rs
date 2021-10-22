@@ -267,7 +267,7 @@ impl EphKeyGenFirstMsg {
 
         let zk_pok_blind_factor = BigInt::sample(SECURITY_BITS);
         let zk_pok_commitment = HashCommitment::create_commitment_with_user_defined_randomness(
-            &HSha256::create_hash_from_ge(&[&d_log_proof.a1, &d_log_proof.a2]).to_big_int(),
+            &HSha256::create_hash_from_ge(&[&d_log_proof.a1, &d_log_proof.a2]).to_bigint(),
             &zk_pok_blind_factor,
         );
 
@@ -324,13 +324,13 @@ impl PartialSig {
         let rx = r.x_coor().unwrap().mod_floor(&q);
         let k2_inv = &ephemeral_local_share
             .secret_share
-            .to_big_int()
+            .to_bigint()
             .invert(&q)
             .unwrap();
         let k2_inv_m = BigInt::mod_mul(&k2_inv, message, &q);
         let k2_inv_m_fe: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(&k2_inv_m);
         let c1 = encrypt(&party_two_public.group, &party_two_public.ek, &k2_inv_m_fe);
-        let v = BigInt::mod_mul(&k2_inv, &local_share.x2.to_big_int(), &q);
+        let v = BigInt::mod_mul(&k2_inv, &local_share.x2.to_bigint(), &q);
         let v = BigInt::mod_mul(&v, &rx, &q);
 
         let c2 = eval_scal(&party_two_public.encrypted_secret_share, &v);

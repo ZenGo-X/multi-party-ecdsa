@@ -259,7 +259,7 @@ impl Party1Private {
         let x1_new = party_one_private.x1 * factor_fe;
         let c_key_new = Paillier::encrypt_with_chosen_randomness(
             &ek_new,
-            RawPlaintext::from(x1_new.to_big_int().clone()),
+            RawPlaintext::from(x1_new.to_bigint().clone()),
             &randomness,
         )
         .0
@@ -317,7 +317,7 @@ impl PaillierKeyPair {
 
         let encrypted_share = Paillier::encrypt_with_chosen_randomness(
             &ek,
-            RawPlaintext::from(keygen.secret_share.to_big_int()),
+            RawPlaintext::from(keygen.secret_share.to_bigint()),
             &randomness,
         )
         .0
@@ -340,7 +340,7 @@ impl PaillierKeyPair {
 
         let encrypted_share = Paillier::encrypt_with_chosen_randomness(
             ek,
-            RawPlaintext::from(keygen.secret_share.to_big_int()),
+            RawPlaintext::from(keygen.secret_share.to_bigint()),
             &randomness,
         )
         .0
@@ -503,7 +503,7 @@ impl Signature {
         let s_tag_tag = s_tag_fe * k1_inv;
         k1_inv.zeroize();
         s_tag_fe.zeroize();
-        let s_tag_tag_bn = s_tag_tag.to_big_int();
+        let s_tag_tag_bn = s_tag_tag.to_bigint();
 
         let s = cmp::min(s_tag_tag_bn.clone(), Scalar::<Secp256k1>::q().clone() - s_tag_tag_bn.clone());
 
@@ -533,7 +533,7 @@ impl Signature {
         let s_tag_tag = s_tag_fe * k1_inv;
         k1_inv.zeroize();
         s_tag_fe.zeroize();
-        let s_tag_tag_bn = s_tag_tag.to_big_int();
+        let s_tag_tag_bn = s_tag_tag.to_bigint();
         let s = cmp::min(s_tag_tag_bn.clone(), Scalar::<Secp256k1>::q() - &s_tag_tag_bn);
 
         /*

@@ -72,7 +72,7 @@ impl PDLwSlackProof {
             &statement.h1,
             &statement.h2,
             &statement.N_tilde,
-            &witness.x.to_big_int(),
+            &witness.x.to_bigint(),
             &rho,
         );
         let u1 = &statement.G * &Scalar::<Secp256k1>::from(&alpha);
@@ -101,7 +101,7 @@ impl PDLwSlackProof {
             .chain_bigint(&u3)
             .result_bigint();
 
-        let s1 = &e * witness.x.to_big_int() + alpha;
+        let s1 = &e * witness.x.to_bigint() + alpha;
         let s2 = commitment_unknown_order(&witness.r, &beta, &statement.ek.n, &e, &BigInt::one());
         let s3 = &e * rho + gamma;
 

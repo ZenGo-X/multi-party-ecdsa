@@ -102,7 +102,7 @@ pub struct Verifier {}
 impl Verifier {
     pub fn message1(statement: &PDLStatement) -> (PDLVerifierFirstMessage, PDLVerifierState) {
         let a_fe: Scalar::<Secp256k1> = Scalar::<Secp256k1>::random();
-        let a = a_fe.to_big_int();
+        let a = a_fe.to_bigint();
         let q = Scalar::<Secp256k1>::q();
         let q_sq = q.pow(2);
         let b = BigInt::sample_below(&q_sq);
@@ -220,7 +220,7 @@ impl Prover {
             &ab_concat,
             &verifier_second_message.blindness,
         );
-        let ax1 = &verifier_second_message.a * witness.x.to_big_int();
+        let ax1 = &verifier_second_message.a * witness.x.to_bigint();
         let alpha_test = ax1 + &verifier_second_message.b;
         if &alpha_test == &state.alpha && verifier_first_message.c_tag_tag == c_tag_tag_test {
             Ok(PDLProverSecondMessage {
@@ -237,7 +237,7 @@ fn generate_range_proof(statement: &PDLStatement, witness: &PDLWitness) -> Range
         &statement.ek,
         &Scalar::<Secp256k1>::q(),
         &statement.ciphertext,
-        &witness.x.to_big_int(),
+        &witness.x.to_bigint(),
         &witness.r,
     )
 }

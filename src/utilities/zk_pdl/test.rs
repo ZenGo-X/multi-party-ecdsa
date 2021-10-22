@@ -17,13 +17,13 @@ fn test_zk_pdl() {
     let (ek, dk) = Paillier::keypair().keys();
     let randomness = Randomness::sample(&ek);
     let x: Scalar::<Secp256k1> = Scalar::<Secp256k1>::random();
-    let x: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(&x.to_big_int().div_floor(&BigInt::from(3)));
+    let x: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(&x.to_bigint().div_floor(&BigInt::from(3)));
 
     let Q = Point::<Secp256k1>::generator() * &x;
 
     let c = Paillier::encrypt_with_chosen_randomness(
         &ek,
-        RawPlaintext::from(x.to_big_int().clone()),
+        RawPlaintext::from(x.to_bigint().clone()),
         &randomness,
     )
     .0
