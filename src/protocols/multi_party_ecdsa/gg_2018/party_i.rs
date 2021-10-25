@@ -159,7 +159,7 @@ impl Keys {
     // we recommend using safe primes if the code is used in production
     pub fn create_safe_prime(index: usize) -> Keys {
         let u: Scalar::<Secp256k1> = Scalar::<Secp256k1>::random();
-        let y = &Point::<Secp256k1>::generator() * &u;
+        let y = &*Point::<Secp256k1>::generator() * &u;
 
         let (ek, dk) = Paillier::keypair_safe_primes().keys();
 
@@ -172,7 +172,7 @@ impl Keys {
         }
     }
     pub fn create_from(u: Scalar::<Secp256k1>, index: usize) -> Keys {
-        let y = &Point::<Secp256k1>::generator() * &u;
+        let y = &*Point::<Secp256k1>::generator() * &u;
         let (ek, dk) = Paillier::keypair().keys();
 
         Self {
@@ -189,7 +189,7 @@ impl Keys {
     ) -> (KeyGenBroadcastMessage1, KeyGenDecommitMessage1) {
         let blind_factor = BigInt::sample(SECURITY);
         let correct_key_proof = NiCorrectKeyProof::proof(&self.dk, None);
-        let com = HashCommitment::create_commitment_with_user_defined_randomness(
+        let com = HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
             &BigInt::from_bytes(&self.y_i.to_bytes(true).as_ref()),
             &blind_factor,
         );
