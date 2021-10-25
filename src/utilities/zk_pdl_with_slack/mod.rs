@@ -59,8 +59,8 @@ pub struct PDLwSlackProof {
 
 impl PDLwSlackProof {
     pub fn prove(witness: &PDLwSlackWitness, statement: &PDLwSlackStatement) -> Self {
-        let q3 = Scalar::<Secp256k1>::q().pow(3);
-        let q_N_tilde = Scalar::<Secp256k1>::q() * &statement.N_tilde;
+        let q3 = Scalar::<Secp256k1>::group_order().pow(3);
+        let q_N_tilde = Scalar::<Secp256k1>::group_order() * &statement.N_tilde;
         let q3_N_tilde = &q3 * &statement.N_tilde;
 
         let alpha = BigInt::sample_below(&q3);
@@ -129,7 +129,7 @@ impl PDLwSlackProof {
             .result_bigint();
 
         let g_s1 = statement.G.clone() * &Scalar::<Secp256k1>::from(&self.s1);
-        let e_fe_neg: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(&(Scalar::<Secp256k1>::q() - &e));
+        let e_fe_neg: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(&(Scalar::<Secp256k1>::group_order() - &e));
         let y_minus_e = &statement.Q * &e_fe_neg;
         let u1_test = g_s1 + y_minus_e;
 

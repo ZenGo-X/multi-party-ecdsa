@@ -375,7 +375,7 @@ impl PartialSig {
         ephemeral_other_public_share: &Point::<Secp256k1>,
         message: &BigInt,
     ) -> PartialSig {
-        let q = Scalar::<Secp256k1>::q();
+        let q = Scalar::<Secp256k1>::group_order();
         //compute r = k2* R1
         let r = ephemeral_other_public_share
             .scalar_mul(&ephemeral_local_share.secret_share.get_element());

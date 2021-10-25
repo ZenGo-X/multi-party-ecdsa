@@ -490,7 +490,7 @@ impl Signature {
         let r = ephemeral_other_public_share
             .scalar_mul(&ephemeral_local_share.secret_share.get_element());
 
-        let rx = r.x_coor().unwrap().mod_floor(&Scalar::<Secp256k1>::q());
+        let rx = r.x_coor().unwrap().mod_floor(&Scalar::<Secp256k1>::group_order());
 
         let mut k1_inv = ephemeral_local_share.secret_share.invert();
 
@@ -505,7 +505,7 @@ impl Signature {
         s_tag_fe.zeroize();
         let s_tag_tag_bn = s_tag_tag.to_bigint();
 
-        let s = cmp::min(s_tag_tag_bn.clone(), Scalar::<Secp256k1>::q().clone() - s_tag_tag_bn.clone());
+        let s = cmp::min(s_tag_tag_bn.clone(), Scalar::<Secp256k1>::group_order().clone() - s_tag_tag_bn.clone());
 
         Signature { s, r: rx }
     }
@@ -520,8 +520,8 @@ impl Signature {
         let r = ephemeral_other_public_share
             .scalar_mul(&ephemeral_local_share.secret_share.get_element());
 
-        let rx = r.x_coor().unwrap().mod_floor(&Scalar::<Secp256k1>::q());
-        let ry = r.y_coor().unwrap().mod_floor(&Scalar::<Secp256k1>::q());
+        let rx = r.x_coor().unwrap().mod_floor(&Scalar::<Secp256k1>::group_order());
+        let ry = r.y_coor().unwrap().mod_floor(&Scalar::<Secp256k1>::group_order());
         let mut k1_inv = ephemeral_local_share.secret_share.invert();
 
         let s_tag = Paillier::decrypt(
@@ -534,7 +534,7 @@ impl Signature {
         k1_inv.zeroize();
         s_tag_fe.zeroize();
         let s_tag_tag_bn = s_tag_tag.to_bigint();
-        let s = cmp::min(s_tag_tag_bn.clone(), Scalar::<Secp256k1>::q() - &s_tag_tag_bn);
+        let s = cmp::min(s_tag_tag_bn.clone(), Scalar::<Secp256k1>::group_order() - &s_tag_tag_bn);
 
         /*
          Calculate recovery id - it is not possible to compute the public key out of the signature
@@ -544,7 +544,7 @@ impl Signature {
         */
         let is_ry_odd = ry.test_bit(0);
         let mut recid = if is_ry_odd { 1 } else { 0 };
-        if s_tag_tag_bn.clone() > Scalar::<Secp256k1>::q() - s_tag_tag_bn.clone() {
+        if s_tag_tag_bn.clone() > Scalar::<Secp256k1>::group_order() - s_tag_tag_bn.clone() {
             recid = recid ^ 1;
         }
 
@@ -557,7 +557,7 @@ pub fn verify(signature: &Signature, pubkey: &Point::<Secp256k1>, message: &BigI
     let rx_fe: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(&signature.r);
 
     let s_inv_fe = s_fe.invert();
-    let e_fe: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(&message.mod_floor(&Scalar::<Secp256k1>::q()));
+    let e_fe: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(&message.mod_floor(&Scalar::<Secp256k1>::group_order()));
     let u1 = Point::<Secp256k1>::generator() * e_fe * s_inv_fe;
     let u2 = *pubkey * rx_fe * s_inv_fe;
 
@@ -566,7 +566,7 @@ pub fn verify(signature: &Signature, pubkey: &Point::<Secp256k1>, message: &BigI
     let u1_plus_u2_bytes = &BigInt::to_bytes(&(u1 + u2).x_coor().unwrap())[..];
 
     if rx_bytes.ct_eq(&u1_plus_u2_bytes).unwrap_u8() == 1
-        && signature.s < Scalar::<Secp256k1>::q() - signature.s.clone()
+        && signature.s < Scalar::<Secp256k1>::group_order() - signature.s.clone()
     {
         Ok(())
     } else {

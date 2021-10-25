@@ -103,7 +103,7 @@ impl Verifier {
     pub fn message1(statement: &PDLStatement) -> (PDLVerifierFirstMessage, PDLVerifierState) {
         let a_fe: Scalar::<Secp256k1> = Scalar::<Secp256k1>::random();
         let a = a_fe.to_bigint();
-        let q = Scalar::<Secp256k1>::q();
+        let q = Scalar::<Secp256k1>::group_order();
         let q_sq = q.pow(2);
         let b = BigInt::sample_below(&q_sq);
         let b_fe: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(&b);
@@ -189,7 +189,7 @@ impl Prover {
         let alpha = Paillier::decrypt(&witness.dk, &RawCiphertext::from(c_tag.clone()));
         let alpha_fe: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(&alpha.0);
         let q_hat = statement.G * alpha_fe;
-        let blindness = BigInt::sample_below(&Scalar::<Secp256k1>::q());
+        let blindness = BigInt::sample_below(&Scalar::<Secp256k1>::group_order());
         let c_hat = HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
             &BigInt::from_bytes(&q_hat.to_bytes(true).as_ref()),
             &blindness,
@@ -235,7 +235,7 @@ impl Prover {
 fn generate_range_proof(statement: &PDLStatement, witness: &PDLWitness) -> RangeProofNi {
     RangeProofNi::prove(
         &statement.ek,
-        &Scalar::<Secp256k1>::q(),
+        &Scalar::<Secp256k1>::group_order(),
         &statement.ciphertext,
         &witness.x.to_bigint(),
         &witness.r,

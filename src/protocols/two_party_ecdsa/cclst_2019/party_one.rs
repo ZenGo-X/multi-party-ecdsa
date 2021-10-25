@@ -363,19 +363,19 @@ impl Signature {
         let mut r = ephemeral_other_public_share.clone();
         r = r.scalar_mul(&ephemeral_local_share.secret_share.get_element());
 
-        let rx = r.x_coor().unwrap().mod_floor(&Scalar::<Secp256k1>::q());
+        let rx = r.x_coor().unwrap().mod_floor(&Scalar::<Secp256k1>::group_order());
         let k1_inv = &ephemeral_local_share
             .secret_share
             .to_bigint()
-            .invert(&Scalar::<Secp256k1>::q())
+            .invert(&Scalar::<Secp256k1>::group_order())
             .unwrap();
         let s_tag = decrypt(
             &hsmcl.cl_group,
             &party_one_private.hsmcl_priv,
             &partial_sig_c3,
         );
-        let s_tag_tag = BigInt::mod_mul(&k1_inv, &s_tag.to_bigint(), &Scalar::<Secp256k1>::q());
-        let s = cmp::min(s_tag_tag.clone(), Scalar::<Secp256k1>::q().clone() - s_tag_tag.clone());
+        let s_tag_tag = BigInt::mod_mul(&k1_inv, &s_tag.to_bigint(), &Scalar::<Secp256k1>::group_order());
+        let s = cmp::min(s_tag_tag.clone(), Scalar::<Secp256k1>::group_order().clone() - s_tag_tag.clone());
         Signature { s, r: rx }
     }
 }
@@ -385,7 +385,7 @@ pub fn verify(signature: &Signature, pubkey: &Point::<Secp256k1>, message: &BigI
     let rx_fe: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(&signature.r);
 
     let s_inv_fe = s_fe.invert();
-    let e_fe: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(&message.mod_floor(&Scalar::<Secp256k1>::q()));
+    let e_fe: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(&message.mod_floor(&Scalar::<Secp256k1>::group_order()));
     let u1 = Point::<Secp256k1>::generator() * e_fe * s_inv_fe;
     let u2 = *pubkey * rx_fe * s_inv_fe;
 
@@ -394,7 +394,7 @@ pub fn verify(signature: &Signature, pubkey: &Point::<Secp256k1>, message: &BigI
     let u1_plus_u2_bytes = &BigInt::to_bytes(&(u1 + u2).x_coor().unwrap())[..];
 
     if rx_bytes.ct_eq(&u1_plus_u2_bytes).unwrap_u8() == 1
-        && signature.s < Scalar::<Secp256k1>::q() - signature.s.clone()
+        && signature.s < Scalar::<Secp256k1>::group_order() - signature.s.clone()
     {
         Ok(())
     } else {
