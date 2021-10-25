@@ -18,8 +18,6 @@
 
 use std::fmt::Debug;
 
-use derivative::Derivative;
-
 use centipede::juggling::proof_system::{Helgamalsegmented, Witness};
 use centipede::juggling::segmentation::Msegmentation;
 use curv::arithmetic::traits::*;
@@ -28,7 +26,7 @@ use curv::cryptographic_primitives::commitments::traits::Commitment;
 use curv::cryptographic_primitives::proofs::sigma_correct_homomorphic_elgamal_enc::*;
 use curv::cryptographic_primitives::proofs::sigma_dlog::DLogProof;
 use curv::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS;
-use curv::elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar, Curve, ECPoint};
+use curv::elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar, ECPoint};
 use curv::BigInt;
 use sha2::Sha256;
 

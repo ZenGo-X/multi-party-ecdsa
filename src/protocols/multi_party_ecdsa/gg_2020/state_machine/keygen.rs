@@ -6,7 +6,7 @@ use std::time::Duration;
 
 use curv::cryptographic_primitives::proofs::sigma_dlog::DLogProof;
 use curv::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS;
-use curv::elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar};
+use curv::elliptic::curves::{secp256_k1::Secp256k1, Scalar};
 use sha2::Sha256;
 use round_based::containers::{
     push::{Push, PushExt},
