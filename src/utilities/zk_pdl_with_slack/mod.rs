@@ -23,6 +23,7 @@
 //! note that because of the range proof, the proof has a slack in the range: x in [-q^3, q^3]
 
 use curv::arithmetic::traits::*;
+use curv::cryptographic_primitives::hashing::{Digest, DigestExt};
 use curv::elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar};
 use curv::BigInt;
 use sha2::Sha256;

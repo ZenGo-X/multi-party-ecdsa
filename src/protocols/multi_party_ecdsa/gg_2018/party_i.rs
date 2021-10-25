@@ -217,7 +217,7 @@ impl Keys {
         // test paillier correct key and test decommitments
         let correct_key_correct_decom_all = (0..bc1_vec.len())
             .map(|i| {
-                HashCommitment::create_commitment_with_user_defined_randomness(
+                HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
                     &BigInt::from_bytes(&decom_vec[i].y_i.to_bytes(true).as_ref()),
                     &decom_vec[i].blind_factor,
                 ) == bc1_vec[i].com
@@ -413,7 +413,7 @@ impl SignKeys {
         let blind_factor = BigInt::sample(SECURITY);
         let g = Point::<Secp256k1>::generator();
         let g_gamma_i = g * self.gamma_i;
-        let com = HashCommitment::create_commitment_with_user_defined_randomness(
+        let com = HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
             &BigInt::from_bytes(&g_gamma_i.to_bytes(true).as_ref()),
             &blind_factor,
         );
@@ -464,7 +464,7 @@ impl SignKeys {
         let test_b_vec_and_com = (0..b_proof_vec.len())
             .map(|i| {
                 b_proof_vec[i].pk.get_element() == phase1_decommit_vec[i].g_gamma_i.get_element()
-                    && HashCommitment::create_commitment_with_user_defined_randomness(
+                    && HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
                         &BigInt::from_bytes(&phase1_decommit_vec[i].g_gamma_i.to_bytes(true).as_ref()),
                         &phase1_decommit_vec[i].blind_factor,
                     ) == bc1_vec[i].com
@@ -518,7 +518,7 @@ impl LocalSignature {
         let B_i = g * l_i_rho_i;
         let V_i = self.R * self.s_i + g * self.l_i;
         let input_hash = Sha256::new().chain_points([&V_i, &A_i, &B_i]).result_bigint();
-        let com = HashCommitment::create_commitment_with_user_defined_randomness(
+        let com = HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
             &input_hash,
             &blind_factor,
         );
@@ -577,7 +577,7 @@ impl LocalSignature {
                     &decom_vec[i].B_i,
                 ]).result_bigint();
 
-                HashCommitment::create_commitment_with_user_defined_randomness(
+                HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
                     &input_hash,
                     &decom_vec[i].blind_factor,
                 ) == com_vec[i].com
@@ -610,7 +610,7 @@ impl LocalSignature {
         let t_i = a * self.l_i;
         let input_hash = Sha256::new().chain_points([&u_i, &t_i]).result_bigint();
         let blind_factor = BigInt::sample(SECURITY);
-        let com = HashCommitment::create_commitment_with_user_defined_randomness(
+        let com = HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
             &input_hash,
             &blind_factor,
         );
@@ -643,7 +643,7 @@ impl LocalSignature {
         let test_com = (0..com_vec2.len())
             .map(|i| {
                 let input_hash = Sha256::new().chain_points([&decom_vec2[i].u_i, &decom_vec2[i].t_i]).result_bigint();
-                HashCommitment::create_commitment_with_user_defined_randomness(
+                HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
                     &input_hash,
                     &decom_vec2[i].blind_factor,
                 ) == com_vec2[i].com

@@ -25,12 +25,12 @@ use curv::cryptographic_primitives::proofs::ProofError;
 use curv::cryptographic_primitives::hashing::{Digest, DigestExt};
 use curv::elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar};
 use curv::BigInt;
+use sha2::Sha256;
 use paillier::Paillier;
 use paillier::{Add, Encrypt, Mul};
 use paillier::{EncryptionKey, RawCiphertext, RawPlaintext};
 use serde::{Deserialize, Serialize};
 use zk_paillier::zkproofs::{IncorrectProof, NiCorrectKeyProof};
-use sha2::Sha256;
 
 use super::party_one::EphKeyGenFirstMsg as Party1EphKeyGenFirstMsg;
 use super::party_one::KeyGenFirstMsg as Party1KeyGenFirstMessage;
@@ -187,7 +187,7 @@ impl KeyGenSecondMsg {
 
         let mut flag = true;
         if party_one_pk_commitment
-            == &HashCommitment::create_commitment_with_user_defined_randomness(
+            == &HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
                 &BigInt::from_bytes(&party_one_public_share.to_bytes(true).as_ref()),
                 &party_one_pk_commitment_blind_factor,
             )
@@ -197,7 +197,7 @@ impl KeyGenSecondMsg {
             flag = false
         };
         if party_one_zk_pok_commitment
-            == &HashCommitment::create_commitment_with_user_defined_randomness(
+            == &HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
                 &BigInt::from_bytes(&party_one_d_log_proof
                     .pk_t_rand_commitment.to_bytes(true).as_ref()),
                 &party_one_zk_pok_blind_factor,
@@ -316,13 +316,13 @@ impl EphKeyGenFirstMsg {
 
         // we use hash based commitment
         let pk_commitment_blind_factor = BigInt::sample(SECURITY_BITS);
-        let pk_commitment = HashCommitment::create_commitment_with_user_defined_randomness(
+        let pk_commitment = HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
             &BigInt::from_bytes(&public_share.to_bytes(true).as_ref()),
             &pk_commitment_blind_factor,
         );
 
         let zk_pok_blind_factor = BigInt::sample(SECURITY_BITS);
-        let zk_pok_commitment = HashCommitment::create_commitment_with_user_defined_randomness(
+        let zk_pok_commitment = HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
             &Sha256::new().chain_points([&d_log_proof.a1, &d_log_proof.a2]).result_bigint(),
             &zk_pok_blind_factor,
         );

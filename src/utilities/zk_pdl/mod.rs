@@ -27,6 +27,7 @@ use curv::cryptographic_primitives::commitments::hash_commitment::HashCommitment
 use curv::cryptographic_primitives::commitments::traits::Commitment;
 use curv::elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar};
 use curv::BigInt;
+use sha2::Sha256;
 use paillier::Paillier;
 use paillier::{Add, Decrypt, Encrypt, Mul};
 use paillier::{DecryptionKey, EncryptionKey, RawCiphertext, RawPlaintext};
@@ -116,7 +117,7 @@ impl Verifier {
         let ab_concat = a.clone() + b.clone().shl(a.bit_length());
         let blindness = BigInt::sample_below(&q);
         let c_tag_tag =
-            HashCommitment::create_commitment_with_user_defined_randomness(&ab_concat, &blindness);
+            HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(&ab_concat, &blindness);
         let q_tag = &statement.Q * &a_fe + statement.G * b_fe;
 
         (
@@ -161,7 +162,7 @@ impl Verifier {
         prover_second_message: &PDLProverSecondMessage,
         state: &PDLVerifierState,
     ) -> Result<(), ()> {
-        let c_hat_test = HashCommitment::create_commitment_with_user_defined_randomness(
+        let c_hat_test = HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
             &BigInt::from_bytes(&prover_second_message
                 .decommit
                 .q_hat.to_bytes(true).as_ref()),
@@ -189,7 +190,7 @@ impl Prover {
         let alpha_fe: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(&alpha.0);
         let q_hat = statement.G * alpha_fe;
         let blindness = BigInt::sample_below(&Scalar::<Secp256k1>::q());
-        let c_hat = HashCommitment::create_commitment_with_user_defined_randomness(
+        let c_hat = HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
             &BigInt::from_bytes(&q_hat.to_bytes(true).as_ref()),
             &blindness,
         );
@@ -215,7 +216,7 @@ impl Prover {
                 .b
                 .clone()
                 .shl(verifier_second_message.a.bit_length()); // b|a (in the paper it is a|b)
-        let c_tag_tag_test = HashCommitment::create_commitment_with_user_defined_randomness(
+        let c_tag_tag_test = HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
             &ab_concat,
             &verifier_second_message.blindness,
         );

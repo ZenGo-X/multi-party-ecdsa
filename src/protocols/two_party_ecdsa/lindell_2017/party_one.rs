@@ -146,13 +146,13 @@ impl KeyGenFirstMsg {
         let d_log_proof = DLogProof::<Point::<Secp256k1>>::prove(&secret_share);
         // we use hash based commitment
         let pk_commitment_blind_factor = BigInt::sample(SECURITY_BITS);
-        let pk_commitment = HashCommitment::create_commitment_with_user_defined_randomness(
+        let pk_commitment = HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
             &BigInt::from_bytes(&public_share.to_bytes(true).as_ref()),
             &pk_commitment_blind_factor,
         );
 
         let zk_pok_blind_factor = BigInt::sample(SECURITY_BITS);
-        let zk_pok_commitment = HashCommitment::create_commitment_with_user_defined_randomness(
+        let zk_pok_commitment = HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
             &BigInt::from_bytes(&d_log_proof
                 .pk_t_rand_commitment.to_bytes(true).as_ref()),
             &zk_pok_blind_factor,
@@ -186,13 +186,13 @@ impl KeyGenFirstMsg {
         let d_log_proof = DLogProof::<Point::<Secp256k1>>::prove(&secret_share);
 
         let pk_commitment_blind_factor = BigInt::sample(SECURITY_BITS);
-        let pk_commitment = HashCommitment::create_commitment_with_user_defined_randomness(
+        let pk_commitment = HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
             &BigInt::from_bytes(&public_share.to_bytes(true).as_ref()),
             &pk_commitment_blind_factor,
         );
 
         let zk_pok_blind_factor = BigInt::sample(SECURITY_BITS);
-        let zk_pok_commitment = HashCommitment::create_commitment_with_user_defined_randomness(
+        let zk_pok_commitment = HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
             &BigInt::from_bytes(&d_log_proof
                 .pk_t_rand_commitment.to_bytes(true).as_ref()),
             &zk_pok_blind_factor,
@@ -445,7 +445,7 @@ impl EphKeyGenSecondMsg {
         let party_two_d_log_proof = &party_two_second_message.comm_witness.d_log_proof;
         let mut flag = true;
         if party_two_pk_commitment
-            == &HashCommitment::create_commitment_with_user_defined_randomness(
+            == &HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
                 &BigInt::from_bytes(&party_two_public_share.to_bytes(true).as_ref()),
                 &party_two_pk_commitment_blind_factor,
             )
@@ -455,7 +455,7 @@ impl EphKeyGenSecondMsg {
             flag = false
         };
         if party_two_zk_pok_commitment
-            == &HashCommitment::create_commitment_with_user_defined_randomness(
+            == &HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
                 &Sha256::new().chain_points([
                     &party_two_d_log_proof.a1,
                     &party_two_d_log_proof.a2,
