@@ -229,8 +229,8 @@ impl Keys {
             .all(|x| x);
 
         let (vss_scheme, secret_shares) = VerifiableSS::share(
-            params.threshold as usize,
-            params.share_count as usize,
+            params.threshold,
+            params.share_count,
             &self.u_i,
         );
         if correct_key_correct_decom_all {
@@ -255,7 +255,7 @@ impl Keys {
         let correct_ss_verify = (0..y_vec.len())
             .map(|i| {
                 vss_scheme_vec[i]
-                    .validate_share(&secret_shares_vec[i], index)
+                    .validate_share(&secret_shares_vec[i], index.try_into().unwrap())
                     .is_ok()
                     && vss_scheme_vec[i].commitments[0].get_element() == y_vec[i].get_element()
             })
