@@ -28,6 +28,8 @@ use curv::elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar};
 use curv::BigInt;
 use sha2::Sha256;
 
+use std::convert::TryInto;
+
 use paillier::{
     Decrypt, DecryptionKey, EncryptionKey, KeyGeneration, Paillier, RawCiphertext, RawPlaintext,
 };
@@ -257,7 +259,7 @@ impl Keys {
                 vss_scheme_vec[i]
                     .validate_share(&secret_shares_vec[i], index.try_into().unwrap())
                     .is_ok()
-                    && vss_scheme_vec[i].commitments[0].get_element() == y_vec[i].get_element()
+                    && vss_scheme_vec[i].commitments[0] == y_vec[i]
             })
             .all(|x| x);
 
@@ -278,7 +280,7 @@ impl Keys {
         (1..=len)
             .map(|i| {
                 let xij_points_vec = (0..len)
-                    .map(|j| vss_scheme_vec[j].get_point_commitment(i))
+                    .map(|j| vss_scheme_vec[j].get_point_commitment(i.try_into().unwrap()))
                     .collect::<Vec<Point::<Secp256k1>>>();
 
                 let mut xij_points_iter = xij_points_vec.iter();
@@ -296,7 +298,7 @@ impl Keys {
         index: usize,
         s: &[usize],
     ) -> Point::<Secp256k1> {
-        let li = VerifiableSS::<Point::<Secp256k1>>::map_share_to_new_params(&vss_scheme.parameters, index, s);
+        let li = VerifiableSS::<Secp256k1>::map_share_to_new_params(&vss_scheme.parameters, index.try_into().unwrap(), s);
         comm * &li
     }
 
@@ -354,7 +356,7 @@ impl PartyPrivate {
     // we recommend using safe primes if the code is used in production
     pub fn refresh_private_key_safe_prime(&self, factor: &Scalar::<Secp256k1>, index: usize) -> Keys {
         let u: Scalar::<Secp256k1> = self.u_i + factor;
-        let y = &Point::<Secp256k1>::generator() * &u;
+        let y = &*Point::<Secp256k1>::generator() * &u;
         let (ek, dk) = Paillier::keypair_safe_primes().keys();
 
         Keys {
@@ -393,7 +395,7 @@ impl SignKeys {
         index: usize,
         s: &[usize],
     ) -> Self {
-        let li = VerifiableSS::<Point::<Secp256k1>>::map_share_to_new_params(&vss_scheme.parameters, index, s);
+        let li = VerifiableSS::<Secp256k1>::map_share_to_new_params(&vss_scheme.parameters, index, s);
         let w_i = li * private.x_i;
         let g = Point::<Secp256k1>::generator();
         let g_w_i = g * w_i;
@@ -431,9 +433,9 @@ impl SignKeys {
         let vec_len = alpha_vec.len();
         assert_eq!(alpha_vec.len(), beta_vec.len());
         // assert_eq!(alpha_vec.len(), self.s.len() - 1);
-        let ki_gamma_i = self.k_i.mul(&self.gamma_i.get_element());
+        let ki_gamma_i = self.k_i * &self.gamma_i;
         (0..vec_len)
-            .map(|i| alpha_vec[i].add(&beta_vec[i].get_element()))
+            .map(|i| alpha_vec[i] + &beta_vec[i])
             .fold(ki_gamma_i, |acc, x| acc + x)
     }
 
@@ -441,15 +443,15 @@ impl SignKeys {
         let vec_len = miu_vec.len();
         assert_eq!(miu_vec.len(), ni_vec.len());
         //assert_eq!(miu_vec.len(), self.s.len() - 1);
-        let ki_w_i = self.k_i.mul(&self.w_i.get_element());
+        let ki_w_i = self.k_i * &self.w_i;
         (0..vec_len)
-            .map(|i| miu_vec[i].add(&ni_vec[i].get_element()))
+            .map(|i| miu_vec[i] + &ni_vec[i])
             .fold(ki_w_i, |acc, x| acc + x)
     }
 
     pub fn phase3_reconstruct_delta(delta_vec: &[Scalar::<Secp256k1>]) -> Scalar::<Secp256k1> {
         let sum = delta_vec.iter().fold(Scalar::<Secp256k1>::zero(), |acc, x| acc + x);
-        sum.invert()
+        sum.invert().unwrap()
     }
 
     pub fn phase4(
@@ -463,7 +465,7 @@ impl SignKeys {
         // Gamme_i = gamma_i * G in the verify_proofs_get_alpha()
         let test_b_vec_and_com = (0..b_proof_vec.len())
             .map(|i| {
-                b_proof_vec[i].pk.get_element() == phase1_decommit_vec[i].g_gamma_i.get_element()
+                b_proof_vec[i].pk == phase1_decommit_vec[i].g_gamma_i
                     && HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
                         &BigInt::from_bytes(&phase1_decommit_vec[i].g_gamma_i.to_bytes(true).as_ref()),
                         &phase1_decommit_vec[i].blind_factor,
@@ -489,7 +491,7 @@ impl SignKeys {
 impl LocalSignature {
     pub fn phase5_local_sig(k_i: &Scalar::<Secp256k1>, message: &BigInt, R: &Point::<Secp256k1>, sigma_i: &Scalar::<Secp256k1>, pubkey: &Point::<Secp256k1>) -> Self {
         let m_fe: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(message);
-        let r: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(&R.x_coor().unwrap().mod_floor(&Scalar::<Secp256k1>::group_order()));
+        let r: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(&R.x_coord().unwrap().mod_floor(&Scalar::<Secp256k1>::group_order()));
         let s_i = m_fe * k_i + r * sigma_i;
         let l_i: Scalar::<Secp256k1> = Scalar::<Secp256k1>::random();
         let rho_i: Scalar::<Secp256k1> = Scalar::<Secp256k1>::random();
@@ -514,7 +516,7 @@ impl LocalSignature {
         let blind_factor = BigInt::sample(SECURITY);
         let g = Point::<Secp256k1>::generator();
         let A_i = g * self.rho_i;
-        let l_i_rho_i = self.l_i.mul(&self.rho_i.get_element());
+        let l_i_rho_i = self.l_i * &self.rho_i;
         let B_i = g * l_i_rho_i;
         let V_i = self.R * self.s_i + g * self.l_i;
         let input_hash = Sha256::new().chain_points([&V_i, &A_i, &B_i]).result_bigint();
@@ -529,7 +531,7 @@ impl LocalSignature {
         let delta = HomoElGamalStatement {
             G: A_i,
             H: self.R,
-            Y: g,
+            Y: g.to_point(),
             D: V_i,
             E: B_i,
         };
@@ -566,7 +568,7 @@ impl LocalSignature {
                 let delta = HomoElGamalStatement {
                     G: decom_vec[i].A_i,
                     H: *R,
-                    Y: g,
+                    Y: g.to_point(),
                     D: decom_vec[i].V_i,
                     E: decom_vec[i].B_i,
                 };
@@ -598,14 +600,14 @@ impl LocalSignature {
         let mut a_i_iter = a_vec.iter();
         let head = a_i_iter.next().unwrap();
         let tail = a_i_iter;
-        let a = tail.fold((*head).clone(), |acc, x| acc.add_point(&(*x).get_element()));
+        let a = tail.fold((*head).clone(), |acc, x| acc + *x);
 
-        let r: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(&self.R.x_coor().unwrap().mod_floor(&Scalar::<Secp256k1>::group_order()));
+        let r: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(&self.R.x_coord().unwrap().mod_floor(&Scalar::<Secp256k1>::group_order()));
         let yr = self.y * r;
         let g = Point::<Secp256k1>::generator();
         let m_fe: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(&self.m);
         let gm = g * m_fe;
-        let v = v.sub_point(&gm.get_element()).sub_point(&yr.get_element());
+        let v = v - (&gm - &yr);
         let u_i = v * self.rho_i;
         let t_i = a * self.l_i;
         let input_hash = Sha256::new().chain_points([&u_i, &t_i]).result_bigint();
@@ -664,7 +666,7 @@ impl LocalSignature {
         let biased_sum_tb = t_vec.iter().zip(b_vec).fold(g, |acc, x| acc + *x.0 + x.1);
         let biased_sum_tb_minus_u = u_vec
             .iter()
-            .fold(biased_sum_tb, |acc, x| acc.sub_point(&x.get_element()));
+            .fold(biased_sum_tb, |acc, x| acc - *x);
         if test_com {
             if g == biased_sum_tb_minus_u {
                 Ok(self.s_i)
@@ -679,8 +681,8 @@ impl LocalSignature {
         let mut s = s_vec.iter().fold(self.s_i, |acc, x| acc + x);
         let s_bn = s.to_bigint();
 
-        let r: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(&self.R.x_coor().unwrap().mod_floor(&Scalar::<Secp256k1>::group_order()));
-        let ry: BigInt = self.R.y_coor().unwrap().mod_floor(&Scalar::<Secp256k1>::group_order());
+        let r: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(&self.R.x_coord().unwrap().mod_floor(&Scalar::<Secp256k1>::group_order()));
+        let ry: BigInt = self.R.y_coord().unwrap().mod_floor(&Scalar::<Secp256k1>::group_order());
 
         /*
          Calculate recovery id - it is not possible to compute the public key out of the signature
