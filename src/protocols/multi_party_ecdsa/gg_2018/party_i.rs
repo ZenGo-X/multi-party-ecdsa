@@ -718,7 +718,7 @@ pub fn verify(sig: &SignatureRecid, y: &Point::<Secp256k1>, message: &BigInt) ->
     let yu2 = y * &u2;
     // can be faster using shamir trick
 
-    if sig.r == Scalar::<Secp256k1>::from(&(gu1 + yu2).x_coor().unwrap().mod_floor(&Scalar::<Secp256k1>::group_order())) {
+    if sig.r == Scalar::<Secp256k1>::from(&(gu1 + yu2).x_coord().unwrap().mod_floor(&Scalar::<Secp256k1>::group_order())) {
         Ok(())
     } else {
         Err(InvalidSig)

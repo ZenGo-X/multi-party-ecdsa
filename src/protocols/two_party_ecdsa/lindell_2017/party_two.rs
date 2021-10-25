@@ -380,7 +380,7 @@ impl PartialSig {
         let r = ephemeral_other_public_share
             .scalar_mul(&ephemeral_local_share.secret_share.get_element());
 
-        let rx = r.x_coor().unwrap().mod_floor(&q);
+        let rx = r.x_coord().unwrap().mod_floor(&q);
         let rho = BigInt::sample_below(&q.pow(2));
         let mut k2_inv =
             BigInt::mod_inv(&ephemeral_local_share.secret_share.to_bigint(), &q).unwrap();

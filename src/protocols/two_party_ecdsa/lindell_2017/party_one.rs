@@ -490,7 +490,7 @@ impl Signature {
         let r = ephemeral_other_public_share
             .scalar_mul(&ephemeral_local_share.secret_share.get_element());
 
-        let rx = r.x_coor().unwrap().mod_floor(&Scalar::<Secp256k1>::group_order());
+        let rx = r.x_coord().unwrap().mod_floor(&Scalar::<Secp256k1>::group_order());
 
         let mut k1_inv = ephemeral_local_share.secret_share.invert();
 
@@ -520,8 +520,8 @@ impl Signature {
         let r = ephemeral_other_public_share
             .scalar_mul(&ephemeral_local_share.secret_share.get_element());
 
-        let rx = r.x_coor().unwrap().mod_floor(&Scalar::<Secp256k1>::group_order());
-        let ry = r.y_coor().unwrap().mod_floor(&Scalar::<Secp256k1>::group_order());
+        let rx = r.x_coord().unwrap().mod_floor(&Scalar::<Secp256k1>::group_order());
+        let ry = r.y_coord().unwrap().mod_floor(&Scalar::<Secp256k1>::group_order());
         let mut k1_inv = ephemeral_local_share.secret_share.invert();
 
         let s_tag = Paillier::decrypt(
@@ -563,7 +563,7 @@ pub fn verify(signature: &Signature, pubkey: &Point::<Secp256k1>, message: &BigI
 
     // second condition is against malleability
     let rx_bytes = &BigInt::to_bytes(&signature.r)[..];
-    let u1_plus_u2_bytes = &BigInt::to_bytes(&(u1 + u2).x_coor().unwrap())[..];
+    let u1_plus_u2_bytes = &BigInt::to_bytes(&(u1 + u2).x_coord().unwrap())[..];
 
     if rx_bytes.ct_eq(&u1_plus_u2_bytes).unwrap_u8() == 1
         && signature.s < Scalar::<Secp256k1>::group_order() - signature.s.clone()

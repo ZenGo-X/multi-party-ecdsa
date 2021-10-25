@@ -321,7 +321,7 @@ impl PartialSig {
         let mut r: Point::<Secp256k1> = ephemeral_other_public_share.clone();
         r = r.scalar_mul(&ephemeral_local_share.secret_share.get_element());
 
-        let rx = r.x_coor().unwrap().mod_floor(&q);
+        let rx = r.x_coord().unwrap().mod_floor(&q);
         let k2_inv = &ephemeral_local_share
             .secret_share
             .to_bigint()
