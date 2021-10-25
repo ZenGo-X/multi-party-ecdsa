@@ -332,7 +332,9 @@ impl GlobalStatePhase6 {
                 &self.k_vec[i],
                 &self.encryption_key_vec[i],
                 &self.k_randomness_vec[i],
-            ).c != self.m_a_vec[i].c {
+            )
+            .c != self.m_a_vec[i].c
+            {
                 bad_signers_vec.push(i)
             }
         }
