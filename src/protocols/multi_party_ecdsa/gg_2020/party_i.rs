@@ -28,7 +28,7 @@ use curv::cryptographic_primitives::commitments::traits::Commitment;
 use curv::cryptographic_primitives::proofs::sigma_correct_homomorphic_elgamal_enc::*;
 use curv::cryptographic_primitives::proofs::sigma_dlog::DLogProof;
 use curv::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS;
-use curv::elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar, ECPoint};
+use curv::elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar, Curve, ECPoint};
 use curv::BigInt;
 use sha2::Sha256;
 
@@ -53,15 +53,10 @@ pub struct Parameters {
     pub share_count: u16, //n
 }
 
-#[derive(Derivative, Serialize, Deserialize)]
-#[derivative(Clone(bound = "P: Clone, P::Scalar: Clone"))]
-#[derivative(Debug(bound = "P: Debug, P::Scalar: Debug"))]
-pub struct Keys<P = Point::<Secp256k1>>
-where
-    P: ECPoint,
-{
-    pub u_i: P::Scalar,
-    pub y_i: P,
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct Keys {
+    pub u_i: Scalar::<Secp256k1>,
+    pub y_i: Point::<Secp256k1>,
     pub dk: DecryptionKey,
     pub ek: EncryptionKey,
     pub party_index: usize,
@@ -97,12 +92,10 @@ pub struct KeyGenDecommitMessage1 {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct SharedKeys<P = Point::<Secp256k1>>
-where
-    P: ECPoint,
+pub struct SharedKeys
 {
-    pub y: P,
-    pub x_i: P::Scalar,
+    pub y: Point::<Secp256k1>,
+    pub x_i: Scalar::<Secp256k1>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -164,7 +157,7 @@ pub fn generate_h1_h2_N_tilde() -> (BigInt, BigInt, BigInt, BigInt, BigInt) {
 
 impl Keys {
     pub fn create(index: usize) -> Self {
-        let u = Scalar::<Secp256k1>::new_random();
+        let u = Scalar::<Secp256k1>::random();
         let y = Point::<Secp256k1>::generator() * u;
         let (ek, dk) = Paillier::keypair().keys();
         let (N_tilde, h1, h2, xhi, xhi_inv) = generate_h1_h2_N_tilde();

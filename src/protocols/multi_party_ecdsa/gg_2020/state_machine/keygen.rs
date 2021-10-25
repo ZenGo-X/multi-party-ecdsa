@@ -34,7 +34,7 @@ pub struct Keygen {
     msgs1: Option<Store<BroadcastMsgs<gg_2020::party_i::KeyGenBroadcastMessage1>>>,
     msgs2: Option<Store<BroadcastMsgs<gg_2020::party_i::KeyGenDecommitMessage1>>>,
     msgs3: Option<Store<P2PMsgs<(VerifiableSS<Secp256k1>, Scalar::<Secp256k1>)>>>,
-    msgs4: Option<Store<BroadcastMsgs<DLogProof<Point::<Secp256k1>, Sha256>>>>,
+    msgs4: Option<Store<BroadcastMsgs<DLogProof<Secp256k1, Sha256>>>>,
 
     msgs_queue: Vec<Msg<ProtocolMessage>>,
 

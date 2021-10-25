@@ -298,29 +298,24 @@ impl Round4 {
 }
 
 /// Local secret obtained by party after [keygen](super::Keygen) protocol is completed
-#[derive(Derivative, Serialize, Deserialize)]
-#[derivative(Clone(bound = "P: Clone, P::Scalar: Clone"))]
-#[serde(bound(serialize = "P: Serialize, P::Scalar: Serialize"))]
-#[serde(bound(deserialize = "P: Deserialize<'de>, P::Scalar: Deserialize<'de>"))]
-pub struct LocalKey<P = Point::<Secp256k1>>
-where
-    P: ECPoint,
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct LocalKey
 {
     pub paillier_dk: paillier::DecryptionKey,
-    pub pk_vec: Vec<P>,
-    pub keys_linear: gg_2020::party_i::SharedKeys<P>,
+    pub pk_vec: Vec<Point::<Secp256k1>>,
+    pub keys_linear: gg_2020::party_i::SharedKeys,
     pub paillier_key_vec: Vec<EncryptionKey>,
-    pub y_sum_s: P,
+    pub y_sum_s: Point::<Secp256k1>,
     pub h1_h2_n_tilde_vec: Vec<DLogStatement>,
-    pub vss_scheme: VerifiableSS<P>,
+    pub vss_scheme: VerifiableSS<Secp256k1>,
     pub i: u16,
     pub t: u16,
     pub n: u16,
 }
 
-impl<P: ECPoint + Clone> LocalKey<P> {
+impl LocalKey {
     /// Public key of secret shared between parties
-    pub fn public_key(&self) -> P {
+    pub fn public_key(&self) -> Point::<Secp256k1> {
         self.y_sum_s.clone()
     }
 }

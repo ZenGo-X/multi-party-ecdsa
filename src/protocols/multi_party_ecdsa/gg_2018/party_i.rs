@@ -143,7 +143,7 @@ pub struct SignatureRecid {
 
 impl Keys {
     pub fn create(index: usize) -> Self {
-        let u = Scalar::<Secp256k1>::new_random();
+        let u = Scalar::<Secp256k1>::random();
         let y = Point::<Secp256k1>::generator() * u;
         let (ek, dk) = Paillier::keypair().keys();
 
