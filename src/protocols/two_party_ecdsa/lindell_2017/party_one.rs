@@ -400,15 +400,15 @@ impl EphKeyGenFirstMsg {
         let base = Point::<Secp256k1>::generator();
         let mut secret_share: Scalar::<Secp256k1> = Scalar::<Secp256k1>::random();
         let public_share = &*base * &secret_share;
-        let h: Point::<Secp256k1> = Point::<Secp256k1>::base_point2();
+        let h = Point::<Secp256k1>::base_point2();
 
-        let c = &h * &secret_share;
+        let c = h * &secret_share;
         let mut x = secret_share;
         let w = ECDDHWitness { x };
         let delta = ECDDHStatement {
             g1: base.to_point(),
             h1: public_share,
-            g2: h,
+            g2: h.clone(),
             h2: c,
         };
         let d_log_proof = ECDDHProof::prove(&w, &delta);
@@ -516,8 +516,7 @@ impl Signature {
         ephemeral_other_public_share: &Point::<Secp256k1>,
     ) -> SignatureRecid {
         //compute r = k2* R1
-        let r = ephemeral_other_public_share
-            .scalar_mul(&ephemeral_local_share.secret_share.get_element());
+        let r = ephemeral_other_public_share * &ephemeral_local_share.secret_share;
 
         let rx = r.x_coord().unwrap().mod_floor(&Scalar::<Secp256k1>::group_order());
         let ry = r.y_coord().unwrap().mod_floor(&Scalar::<Secp256k1>::group_order());
