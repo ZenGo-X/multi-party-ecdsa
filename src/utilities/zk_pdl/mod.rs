@@ -187,7 +187,7 @@ impl Prover {
     ) -> (PDLProverFirstMessage, PDLProverState) {
         let c_tag = verifier_first_message.c_tag.clone();
         let alpha = Paillier::decrypt(&witness.dk, &RawCiphertext::from(c_tag.clone()));
-        let alpha_fe: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(&alpha.0);
+        let alpha_fe: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(alpha.0.as_ref());
         let q_hat = statement.G * alpha_fe;
         let blindness = BigInt::sample_below(&Scalar::<Secp256k1>::group_order());
         let c_hat = HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
