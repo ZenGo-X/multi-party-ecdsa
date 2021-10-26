@@ -299,10 +299,11 @@ impl Keys {
         index: usize,
         s: &[usize],
     ) -> Point<Secp256k1> {
+        let s: Vec<u16> = s.into_iter().map(|&i| i.try_into().unwrap()).collect();
         let li = VerifiableSS::<Secp256k1>::map_share_to_new_params(
             &vss_scheme.parameters,
             index.try_into().unwrap(),
-            s,
+            s.as_slice(),
         );
         comm * &li
     }
@@ -404,8 +405,9 @@ impl SignKeys {
         index: usize,
         s: &[usize],
     ) -> Self {
+        let s: Vec<u16> = s.into_iter().map(|&i| i.try_into().unwrap()).collect();
         let li =
-            VerifiableSS::<Secp256k1>::map_share_to_new_params(&vss_scheme.parameters, index, s);
+            VerifiableSS::<Secp256k1>::map_share_to_new_params(&vss_scheme.parameters, index.try_into().unwrap(), s.as_slice());
         let w_i = li * private.x_i;
         let g = Point::<Secp256k1>::generator();
         let g_w_i = g * w_i;

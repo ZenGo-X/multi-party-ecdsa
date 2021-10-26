@@ -43,6 +43,8 @@ use crate::protocols::multi_party_ecdsa::gg_2020::ErrorType;
 use crate::utilities::zk_pdl_with_slack::{PDLwSlackProof, PDLwSlackStatement, PDLwSlackWitness};
 use curv::cryptographic_primitives::proofs::sigma_valid_pedersen::PedersenProof;
 
+use std::convert::TryInto;
+
 const SECURITY: usize = 256;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -300,8 +302,8 @@ impl Keys {
         };
 
         let (vss_scheme, secret_shares) = VerifiableSS::share(
-            params.threshold as usize,
-            params.share_count as usize,
+            params.threshold,
+            params.share_count,
             &self.u_i,
         );
         if correct_key_correct_decom_all {
@@ -327,7 +329,7 @@ impl Keys {
         let correct_ss_verify = (0..y_vec.len())
             .map(|i| {
                 let res = vss_scheme_vec[i]
-                    .validate_share(&secret_shares_vec[i], index)
+                    .validate_share(&secret_shares_vec[i], index.try_into().unwrap())
                     .is_ok()
                     && vss_scheme_vec[i].commitments[0] == y_vec[i];
                 if res == false {
@@ -375,7 +377,7 @@ impl Keys {
             commitments: global_coefficients,
         };
         (1..=len)
-            .map(|i| global_vss.get_point_commitment(i))
+            .map(|i| global_vss.get_point_commitment(i.try_into().unwrap()))
             .collect::<Vec<Point<Secp256k1>>>()
     }
 
@@ -385,8 +387,9 @@ impl Keys {
         index: usize,
         s: &[usize],
     ) -> Point<Secp256k1> {
+        let s: Vec<u16> = s.into_iter().map(|&i| i.try_into().unwrap()).collect();
         let li =
-            VerifiableSS::<Secp256k1>::map_share_to_new_params(&vss_scheme.parameters, index, s);
+            VerifiableSS::<Secp256k1>::map_share_to_new_params(&vss_scheme.parameters, index.try_into().unwrap(), s.as_slice());
         comm * &li
     }
 
@@ -517,15 +520,16 @@ impl SignKeys {
         s: &[usize],
         vss_scheme: &VerifiableSS<Secp256k1>,
     ) -> Vec<Point<Secp256k1>> {
+        let s: Vec<u16> = s.into_iter().map(|&i| i.try_into().unwrap()).collect();
         // TODO: check bounds
         (0..s.len())
             .map(|i| {
                 let li = VerifiableSS::<Secp256k1>::map_share_to_new_params(
                     &vss_scheme.parameters,
-                    s[i],
-                    s,
+                    s[i].try_into().unwrap(),
+                    s.as_slice(),
                 );
-                pk_vec[s[i]] * &li
+                pk_vec[s[i] as usize] * &li
             })
             .collect::<Vec<Point<Secp256k1>>>()
     }
@@ -536,8 +540,9 @@ impl SignKeys {
         index: usize,
         s: &[usize],
     ) -> Self {
+        let s: Vec<u16> = s.into_iter().map(|&i| i.try_into().unwrap()).collect();
         let li =
-            VerifiableSS::<Secp256k1>::map_share_to_new_params(&vss_scheme.parameters, index, s);
+            VerifiableSS::<Secp256k1>::map_share_to_new_params(&vss_scheme.parameters, index.try_into().unwrap(), s.as_slice());
         let w_i = li * private_x_i;
         let g = Point::<Secp256k1>::generator();
         let g_w_i = g * w_i;
