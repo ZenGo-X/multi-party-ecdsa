@@ -236,7 +236,7 @@ impl Keys {
             &self.u_i,
         );
         if correct_key_correct_decom_all {
-            Ok((vss_scheme, secret_shares, self.party_index))
+            Ok((vss_scheme, secret_shares.to_vec(), self.party_index))
         } else {
             Err(InvalidKey)
         }
@@ -662,7 +662,7 @@ impl LocalSignature {
             .map(|i| &decom_vec1[i].B_i)
             .collect::<Vec<&Point::<Secp256k1>>>();
 
-        let g = Point::<Secp256k1>::generator();
+        let g = Point::<Secp256k1>::generator().to_point();
         let biased_sum_tb = t_vec.iter().zip(b_vec).fold(g, |acc, x| acc + *x.0 + x.1);
         let biased_sum_tb_minus_u = u_vec
             .iter()
@@ -708,7 +708,7 @@ impl LocalSignature {
 }
 
 pub fn verify(sig: &SignatureRecid, y: &Point::<Secp256k1>, message: &BigInt) -> Result<(), Error> {
-    let b = sig.s.invert();
+    let b = sig.s.invert().unwrap();
     let a: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(message);
     let u1 = a * b;
     let u2 = sig.r * b;

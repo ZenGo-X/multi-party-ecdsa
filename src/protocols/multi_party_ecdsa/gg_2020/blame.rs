@@ -153,7 +153,7 @@ impl GlobalStatePhase5 {
                         }
 
                         let k_i_gamma_j = self.k_vec[i] * self.gamma_vec[ind];
-                        let alpha = k_i_gamma_j.sub(&beta.get_element());
+                        let alpha = k_i_gamma_j - &beta;
 
                         (alpha, beta)
                     })
@@ -249,7 +249,7 @@ impl GlobalStatePhase6 {
 
     pub fn ecddh_proof(sigma_i: &Scalar::<Secp256k1>, R: &Point::<Secp256k1>, S: &Point::<Secp256k1>) -> ECDDHProof<Secp256k1, Sha256> {
         let delta = ECDDHStatement {
-            g1: Point::<Secp256k1>::generator(),
+            g1: Point::<Secp256k1>::generator().to_point(),
             g2: R.clone(),
             h1: Point::<Secp256k1>::generator() * sigma_i,
             h2: S.clone(),
@@ -278,7 +278,7 @@ impl GlobalStatePhase6 {
             .collect::<Vec<BigInt>>();
         let proof_vec = (0..len)
             .map(|i| local_state_vec[i].proof_of_eq_dlog.clone())
-            .collect::<Vec<ECDDHProof<Point::<Secp256k1>>>>();
+            .collect::<Vec<ECDDHProof<Secp256k1, Sha256>>>();
         let miu_randomness_vec = (0..len)
             .map(|i| {
                 (0..len - 1)
@@ -353,7 +353,7 @@ impl GlobalStatePhase6 {
                             let g_w_j_ki = g_w_j * k_i;
                             let miu: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(&self.miu_vec[i][j]);
                             let g_miu = Point::<Secp256k1>::generator() * &miu;
-                            let g_ni = g_w_j_ki.sub_point(&g_miu.get_element());
+                            let g_ni = g_w_j_ki - &g_miu;
                             g_ni
                         })
                         .collect::<Vec<Point::<Secp256k1>>>()
@@ -383,7 +383,7 @@ impl GlobalStatePhase6 {
             // check zero knowledge proof
             for i in 0..len {
                 let statement = ECDDHStatement {
-                    g1: Point::<Secp256k1>::generator(),
+                    g1: Point::<Secp256k1>::generator().to_point(),
                     g2: R.clone(),
                     h1: g_sigma_i_vec[i],
                     h2: self.S_vec[i],

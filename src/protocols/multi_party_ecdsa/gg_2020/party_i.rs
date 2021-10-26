@@ -177,7 +177,7 @@ impl Keys {
     // we recommend using safe primes if the code is used in production
     pub fn create_safe_prime(index: usize) -> Keys {
         let u: Scalar::<Secp256k1> = Scalar::<Secp256k1>::random();
-        let y = &Point::<Secp256k1>::generator() * &u;
+        let y = &*Point::<Secp256k1>::generator() * &u;
 
         let (ek, dk) = Paillier::keypair_safe_primes().keys();
         let (N_tilde, h1, h2, xhi, xhi_inv) = generate_h1_h2_N_tilde();
@@ -196,7 +196,7 @@ impl Keys {
         }
     }
     pub fn create_from(u: Scalar::<Secp256k1>, index: usize) -> Keys {
-        let y = &Point::<Secp256k1>::generator() * &u;
+        let y = &*Point::<Secp256k1>::generator() * &u;
         let (ek, dk) = Paillier::keypair().keys();
         let (N_tilde, h1, h2, xhi, xhi_inv) = generate_h1_h2_N_tilde();
 
@@ -236,7 +236,7 @@ impl Keys {
         let composite_dlog_proof_base_h2 =
             CompositeDLogProof::prove(&dlog_statement_base_h2, &self.xhi_inv);
 
-        let com = HashCommitment::create_commitment_with_user_defined_randomness(
+        let com = HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
             &BigInt::from_bytes(&self.y_i.to_bytes(true).as_ref()),
             &blind_factor,
         );
@@ -269,7 +269,7 @@ impl Keys {
         // test paillier correct key, h1,h2 correct generation and test decommitments
         let correct_key_correct_decom_all = (0..bc1_vec.len())
             .map(|i| {
-                let test_res = HashCommitment::create_commitment_with_user_defined_randomness(
+                let test_res = HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
                     &BigInt::from_bytes(&decom_vec[i].y_i.to_bytes(true).as_ref()),
                     &decom_vec[i].blind_factor,
                 ) == bc1_vec[i].com
@@ -541,7 +541,7 @@ impl SignKeys {
         let blind_factor = BigInt::sample(SECURITY);
         let g = Point::<Secp256k1>::generator();
         let g_gamma_i = g * self.gamma_i;
-        let com = HashCommitment::create_commitment_with_user_defined_randomness(
+        let com = HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
             &BigInt::from_bytes(&g_gamma_i.to_bytes(true).as_ref()),
             &blind_factor,
         );
@@ -603,7 +603,7 @@ impl SignKeys {
                 let ind = if j < index { j } else { j + 1 };
                 let res = b_proof_vec[j].pk.get_element()
                     == phase1_decommit_vec[ind].g_gamma_i.get_element()
-                    && HashCommitment::create_commitment_with_user_defined_randomness(
+                    && HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
                         &BigInt::from_bytes(&phase1_decommit_vec[ind].g_gamma_i.to_bytes(true).as_ref()),
                         &phase1_decommit_vec[ind].blind_factor,
                     ) == bc1_vec[ind].com;
