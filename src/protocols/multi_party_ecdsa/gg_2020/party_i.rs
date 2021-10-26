@@ -329,7 +329,7 @@ impl Keys {
                 let res = vss_scheme_vec[i]
                     .validate_share(&secret_shares_vec[i], index)
                     .is_ok()
-                    && vss_scheme_vec[i].commitments[0].get_element() == y_vec[i].get_element();
+                    && vss_scheme_vec[i].commitments[0] == y_vec[i];
                 if res == false {
                     bad_actors_vec.push(i);
                     false
@@ -363,7 +363,7 @@ impl Keys {
         for vss in tail {
             for (i, coefficient_commitment) in vss.commitments.iter().enumerate() {
                 global_coefficients[i] =
-                    global_coefficients[i].add_point(&coefficient_commitment.get_element());
+                    global_coefficients[i] + &*coefficient_commitment;
             }
         }
 
@@ -382,7 +382,7 @@ impl Keys {
         index: usize,
         s: &[usize],
     ) -> Point::<Secp256k1> {
-        let li = VerifiableSS::<Point::<Secp256k1>>::map_share_to_new_params(&vss_scheme.parameters, index, s);
+        let li = VerifiableSS::<Secp256k1>::map_share_to_new_params(&vss_scheme.parameters, index, s);
         comm * &li
     }
 
@@ -464,7 +464,7 @@ impl PartyPrivate {
     // we recommend using safe primes if the code is used in production
     pub fn refresh_private_key_safe_prime(&self, factor: &Scalar::<Secp256k1>, index: usize) -> Keys {
         let u: Scalar::<Secp256k1> = self.u_i + factor;
-        let y = &Point::<Secp256k1>::generator() * &u;
+        let y = &*Point::<Secp256k1>::generator() * &u;
         let (ek, dk) = Paillier::keypair_safe_primes().keys();
 
         let (N_tilde, h1, h2, xhi, xhi_inv) = generate_h1_h2_N_tilde();
@@ -509,7 +509,7 @@ impl SignKeys {
         (0..s.len())
             .map(|i| {
                 let li =
-                    VerifiableSS::<Point::<Secp256k1>>::map_share_to_new_params(&vss_scheme.parameters, s[i], s);
+                    VerifiableSS::<Secp256k1>::map_share_to_new_params(&vss_scheme.parameters, s[i], s);
                 pk_vec[s[i]] * &li
             })
             .collect::<Vec<Point::<Secp256k1>>>()
@@ -521,7 +521,7 @@ impl SignKeys {
         index: usize,
         s: &[usize],
     ) -> Self {
-        let li = VerifiableSS::<Point::<Secp256k1>>::map_share_to_new_params(&vss_scheme.parameters, index, s);
+        let li = VerifiableSS::<Secp256k1>::map_share_to_new_params(&vss_scheme.parameters, index, s);
         let w_i = li * private_x_i;
         let g = Point::<Secp256k1>::generator();
         let g_w_i = g * w_i;
@@ -559,10 +559,10 @@ impl SignKeys {
         let vec_len = alpha_vec.len();
         assert_eq!(alpha_vec.len(), beta_vec.len());
         // assert_eq!(alpha_vec.len(), self.s.len() - 1);
-        let ki_gamma_i = self.k_i.mul(&self.gamma_i.get_element());
+        let ki_gamma_i = self.k_i * &self.gamma_i;
 
         (0..vec_len)
-            .map(|i| alpha_vec[i].add(&beta_vec[i].get_element()))
+            .map(|i| alpha_vec[i] + &beta_vec[i])
             .fold(ki_gamma_i, |acc, x| acc + x)
     }
 
@@ -570,9 +570,9 @@ impl SignKeys {
         let vec_len = miu_vec.len();
         assert_eq!(miu_vec.len(), ni_vec.len());
         //assert_eq!(miu_vec.len(), self.s.len() - 1);
-        let ki_w_i = self.k_i.mul(&self.w_i.get_element());
+        let ki_w_i = self.k_i * &self.w_i;
         (0..vec_len)
-            .map(|i| miu_vec[i].add(&ni_vec[i].get_element()))
+            .map(|i| miu_vec[i] + &ni_vec[i])
             .fold(ki_w_i, |acc, x| acc + x)
     }
 
@@ -581,13 +581,13 @@ impl SignKeys {
         let l: Scalar::<Secp256k1> = Scalar::<Secp256k1>::random();
         let h_l = Point::<Secp256k1>::base_point2() * &l;
         let T = g_sigma_i + h_l;
-        let T_zk_proof = PedersenProof::<Point::<Secp256k1>>::prove(&sigma_i, &l);
+        let T_zk_proof = PedersenProof::<Secp256k1, Sha256>::prove(&sigma_i, &l);
 
         (T, l, T_zk_proof)
     }
     pub fn phase3_reconstruct_delta(delta_vec: &[Scalar::<Secp256k1>]) -> Scalar::<Secp256k1> {
         let sum = delta_vec.iter().fold(Scalar::<Secp256k1>::zero(), |acc, x| acc + x);
-        sum.invert()
+        sum.invert().unwrap()
     }
 
     pub fn phase4(
