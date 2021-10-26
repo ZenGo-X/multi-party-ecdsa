@@ -155,7 +155,7 @@ impl MessageB {
         if DLogProof::verify(&self.b_proof).is_ok()
             && DLogProof::verify(&self.beta_tag_proof).is_ok()
             // we prove the correctness of the ciphertext using this check and the proof of knowledge of dlog of beta_tag
-            && ba_btag.get_element() == g_alpha.get_element()
+            && ba_btag == g_alpha
         {
             Ok((alpha, alice_share.0.into_owned()))
         } else {
@@ -178,7 +178,7 @@ impl MessageB {
 
         if DLogProof::verify(&self.b_proof).is_ok()
             && DLogProof::verify(&self.beta_tag_proof).is_ok()
-            && ba_btag.get_element() == g_alpha.get_element()
+            && ba_btag == g_alpha
         {
             Ok(alpha)
         } else {
@@ -187,7 +187,7 @@ impl MessageB {
     }
 
     pub fn verify_b_against_public(public_gb: &Point::<Secp256k1>, mta_gb: &Point::<Secp256k1>) -> bool {
-        public_gb.get_element() == mta_gb.get_element()
+        public_gb == mta_gb
     }
 }
 

@@ -305,7 +305,7 @@ impl Keys {
             &self.u_i,
         );
         if correct_key_correct_decom_all {
-            Ok((vss_scheme, secret_shares, self.party_index))
+            Ok((vss_scheme, secret_shares.to_vec(), self.party_index))
         } else {
             Err(err_type)
         }
@@ -601,8 +601,8 @@ impl SignKeys {
         let test_b_vec_and_com = (0..b_proof_vec.len())
             .map(|j| {
                 let ind = if j < index { j } else { j + 1 };
-                let res = b_proof_vec[j].pk.get_element()
-                    == phase1_decommit_vec[ind].g_gamma_i.get_element()
+                let res = b_proof_vec[j].pk
+                    == phase1_decommit_vec[ind].g_gamma_i
                     && HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
                         &BigInt::from_bytes(&phase1_decommit_vec[ind].g_gamma_i.to_bytes(true).as_ref()),
                         &phase1_decommit_vec[ind].blind_factor,
@@ -713,8 +713,8 @@ impl LocalSignature {
     }
 
     pub fn phase5_check_R_dash_sum(R_dash_vec: &[Point::<Secp256k1>]) -> Result<(), Error> {
-        let sum = R_dash_vec.iter().fold(Point::<Secp256k1>::generator(), |acc, x| acc + x);
-        match sum.sub_point(&Point::<Secp256k1>::generator().get_element()) == Point::<Secp256k1>::generator() {
+        let sum = R_dash_vec.iter().fold(Point::<Secp256k1>::generator().to_point(), |acc, x| acc + x);
+        match sum - &Point::<Secp256k1>::generator().to_point() == Point::<Secp256k1>::generator().to_point() {
             true => Ok(()),
             false => Err(Phase5BadSum),
         }
@@ -729,8 +729,8 @@ impl LocalSignature {
         let S = R * sigma;
         let delta = HomoElGamalStatement {
             G: R.clone(),
-            H: Point::<Secp256k1>::base_point2(),
-            Y: Point::<Secp256k1>::generator(),
+            H: Point::<Secp256k1>::base_point2().clone(),
+            Y: Point::<Secp256k1>::generator().to_point(),
             D: T.clone(),
             E: S.clone(),
         };
@@ -754,8 +754,8 @@ impl LocalSignature {
         for i in 0..proof_vec.len() {
             let delta = HomoElGamalStatement {
                 G: R_vec[i].clone(),
-                H: Point::<Secp256k1>::base_point2(),
-                Y: Point::<Secp256k1>::generator(),
+                H: Point::<Secp256k1>::base_point2().clone(),
+                Y: Point::<Secp256k1>::generator().to_point(),
                 D: T_vec[i].clone(),
                 E: S_vec[i].clone(),
             };
@@ -778,8 +778,8 @@ impl LocalSignature {
     }
 
     pub fn phase6_check_S_i_sum(pubkey_y: &Point::<Secp256k1>, S_vec: &[Point::<Secp256k1>]) -> Result<(), Error> {
-        let sum_plus_g = S_vec.iter().fold(Point::<Secp256k1>::generator(), |acc, x| acc + x);
-        let sum = sum_plus_g.sub_point(&Point::<Secp256k1>::generator().get_element());
+        let sum_plus_g = S_vec.iter().fold(Point::<Secp256k1>::generator().to_point(), |acc, x| acc + x);
+        let sum = sum_plus_g - &Point::<Secp256k1>::generator().to_point();
 
         match &sum == pubkey_y {
             true => Ok(()),
@@ -831,7 +831,7 @@ impl LocalSignature {
 }
 
 pub fn verify(sig: &SignatureRecid, y: &Point::<Secp256k1>, message: &BigInt) -> Result<(), Error> {
-    let b = sig.s.invert();
+    let b = sig.s.invert().unwrap();
     let a: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(message);
     let u1 = a * b;
     let u2 = sig.r * b;

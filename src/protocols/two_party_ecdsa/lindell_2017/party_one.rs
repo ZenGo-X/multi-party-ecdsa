@@ -141,9 +141,9 @@ impl KeyGenFirstMsg {
 
         let mut secret_share: Scalar::<Secp256k1> = Scalar::<Secp256k1>::random();
 
-        let public_share = base.scalar_mul(&secret_share.get_element());
+        let public_share = base * &secret_share;
 
-        let d_log_proof = DLogProof::<Point::<Secp256k1>>::prove(&secret_share);
+        let d_log_proof = DLogProof::<Secp256k1, Sha256>::prove(&secret_share);
         // we use hash based commitment
         let pk_commitment_blind_factor = BigInt::sample(SECURITY_BITS);
         let pk_commitment = HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
@@ -181,9 +181,9 @@ impl KeyGenFirstMsg {
         mut secret_share: Scalar::<Secp256k1>,
     ) -> (KeyGenFirstMsg, CommWitness, EcKeyPair) {
         let base = Point::<Secp256k1>::generator();
-        let public_share = base.scalar_mul(&secret_share.get_element());
+        let public_share = base * &secret_share;
 
-        let d_log_proof = DLogProof::<Point::<Secp256k1>>::prove(&secret_share);
+        let d_log_proof = DLogProof::<Secp256k1, Sha256>::prove(&secret_share);
 
         let pk_commitment_blind_factor = BigInt::sample(SECURITY_BITS);
         let pk_commitment = HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
