@@ -255,7 +255,7 @@ impl Party1Private {
     ) {
         let (ek_new, dk_new) = Paillier::keypair().keys();
         let randomness = Randomness::sample(&ek_new);
-        let factor_fe: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(&factor);
+        let factor_fe: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(&*factor);
         let x1_new = party_one_private.x1 * factor_fe;
         let c_key_new = Paillier::encrypt_with_chosen_randomness(
             &ek_new,
@@ -375,7 +375,7 @@ impl PaillierKeyPair {
             ciphertext: paillier_key_pair.encrypted_share.clone(),
             ek: paillier_key_pair.ek.clone(),
             Q: Point::<Secp256k1>::generator() * &party1_private.x1,
-            G: Point::<Secp256k1>::generator(),
+            G: Point::<Secp256k1>::generator().to_point(),
             h1: dlog_statement.g.clone(),
             h2: dlog_statement.ni.clone(),
             N_tilde: dlog_statement.N.clone(),
@@ -399,14 +399,14 @@ impl EphKeyGenFirstMsg {
     pub fn create() -> (EphKeyGenFirstMsg, EphEcKeyPair) {
         let base = Point::<Secp256k1>::generator();
         let mut secret_share: Scalar::<Secp256k1> = Scalar::<Secp256k1>::random();
-        let public_share = &base * &secret_share;
+        let public_share = &*base * &secret_share;
         let h: Point::<Secp256k1> = Point::<Secp256k1>::base_point2();
 
         let c = &h * &secret_share;
         let mut x = secret_share;
         let w = ECDDHWitness { x };
         let delta = ECDDHStatement {
-            g1: base,
+            g1: base.to_point(),
             h1: public_share,
             g2: h,
             h2: c,
@@ -469,9 +469,9 @@ impl EphKeyGenSecondMsg {
         };
         assert!(flag);
         let delta = ECDDHStatement {
-            g1: Point::<Secp256k1>::generator(),
+            g1: Point::<Secp256k1>::generator().to_point(),
             h1: *party_two_public_share,
-            g2: Point::<Secp256k1>::base_point2(),
+            g2: Point::<Secp256k1>::base_point2().clone(),
             h2: party_two_second_message.comm_witness.c,
         };
         party_two_d_log_proof.verify(&delta)?;
@@ -487,8 +487,7 @@ impl Signature {
         ephemeral_other_public_share: &Point::<Secp256k1>,
     ) -> Signature {
         //compute r = k2* R1
-        let r = ephemeral_other_public_share
-            .scalar_mul(&ephemeral_local_share.secret_share.get_element());
+        let r = ephemeral_other_public_share * &ephemeral_local_share.secret_share;
 
         let rx = r.x_coord().unwrap().mod_floor(&Scalar::<Secp256k1>::group_order());
 
@@ -556,7 +555,7 @@ pub fn verify(signature: &Signature, pubkey: &Point::<Secp256k1>, message: &BigI
     let s_fe: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(&signature.s);
     let rx_fe: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(&signature.r);
 
-    let s_inv_fe = s_fe.invert();
+    let s_inv_fe = s_fe.invert().unwrap();
     let e_fe: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(&message.mod_floor(&Scalar::<Secp256k1>::group_order()));
     let u1 = Point::<Secp256k1>::generator() * e_fe * s_inv_fe;
     let u2 = *pubkey * rx_fe * s_inv_fe;

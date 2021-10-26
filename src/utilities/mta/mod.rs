@@ -91,7 +91,7 @@ impl MessageB {
             RawPlaintext::from(b_bn),
         );
         let c_b = Paillier::add(alice_ek, b_c_a, c_beta_tag);
-        let beta = Scalar::<Secp256k1>::zero().sub(&beta_tag_fe.get_element());
+        let beta = Scalar::<Secp256k1>::zero() - &beta_tag_fe;
         let dlog_proof_b = DLogProof::prove(b);
         let dlog_proof_beta_tag = DLogProof::prove(&beta_tag_fe);
 
@@ -128,7 +128,7 @@ impl MessageB {
             RawPlaintext::from(b_bn),
         );
         let c_b = Paillier::add(alice_ek, b_c_a, c_beta_tag);
-        let beta = Scalar::<Secp256k1>::zero().sub(&beta_tag_fe.get_element());
+        let beta = Scalar::<Secp256k1>::zero() - &beta_tag_fe;
         let dlog_proof_b = DLogProof::prove(b);
         let dlog_proof_beta_tag = DLogProof::prove(&beta_tag_fe);
 
