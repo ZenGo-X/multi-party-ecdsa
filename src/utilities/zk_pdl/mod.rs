@@ -27,11 +27,11 @@ use curv::cryptographic_primitives::commitments::hash_commitment::HashCommitment
 use curv::cryptographic_primitives::commitments::traits::Commitment;
 use curv::elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar};
 use curv::BigInt;
-use sha2::Sha256;
 use paillier::Paillier;
 use paillier::{Add, Decrypt, Encrypt, Mul};
 use paillier::{DecryptionKey, EncryptionKey, RawCiphertext, RawPlaintext};
 use serde::{Deserialize, Serialize};
+use sha2::Sha256;
 use zk_paillier::zkproofs::IncorrectProof;
 use zk_paillier::zkproofs::RangeProofNi;
 
@@ -39,12 +39,12 @@ use zk_paillier::zkproofs::RangeProofNi;
 pub struct PDLStatement {
     pub ciphertext: BigInt,
     pub ek: EncryptionKey,
-    pub Q: Point::<Secp256k1>,
-    pub G: Point::<Secp256k1>,
+    pub Q: Point<Secp256k1>,
+    pub G: Point<Secp256k1>,
 }
 #[derive(Clone)]
 pub struct PDLWitness {
-    pub x: Scalar::<Secp256k1>,
+    pub x: Scalar<Secp256k1>,
     pub r: BigInt,
     pub dk: DecryptionKey,
 }
@@ -56,7 +56,7 @@ pub struct PDLVerifierState {
     a: BigInt,
     b: BigInt,
     blindness: BigInt,
-    q_tag: Point::<Secp256k1>,
+    q_tag: Point<Secp256k1>,
     c_hat: BigInt,
 }
 
@@ -87,7 +87,7 @@ pub struct PDLVerifierSecondMessage {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PDLProverDecommit {
-    pub q_hat: Point::<Secp256k1>,
+    pub q_hat: Point<Secp256k1>,
     pub blindness: BigInt,
 }
 
@@ -101,12 +101,12 @@ pub struct Verifier {}
 
 impl Verifier {
     pub fn message1(statement: &PDLStatement) -> (PDLVerifierFirstMessage, PDLVerifierState) {
-        let a_fe: Scalar::<Secp256k1> = Scalar::<Secp256k1>::random();
+        let a_fe: Scalar<Secp256k1> = Scalar::<Secp256k1>::random();
         let a = a_fe.to_bigint();
         let q = Scalar::<Secp256k1>::group_order();
         let q_sq = q.pow(2);
         let b = BigInt::sample_below(&q_sq);
-        let b_fe: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(&b);
+        let b_fe: Scalar<Secp256k1> = Scalar::<Secp256k1>::from(&b);
         let b_enc = Paillier::encrypt(&statement.ek, RawPlaintext::from(b.clone()));
         let ac = Paillier::mul(
             &statement.ek,
@@ -116,8 +116,9 @@ impl Verifier {
         let c_tag = Paillier::add(&statement.ek, ac, b_enc).0.into_owned();
         let ab_concat = a.clone() + b.clone().shl(a.bit_length());
         let blindness = BigInt::sample_below(&q);
-        let c_tag_tag =
-            HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(&ab_concat, &blindness);
+        let c_tag_tag = HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
+            &ab_concat, &blindness,
+        );
         let q_tag = &statement.Q * &a_fe + statement.G * b_fe;
 
         (
@@ -163,9 +164,7 @@ impl Verifier {
         state: &PDLVerifierState,
     ) -> Result<(), ()> {
         let c_hat_test = HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
-            &BigInt::from_bytes(&prover_second_message
-                .decommit
-                .q_hat.to_bytes(true).as_ref()),
+            &BigInt::from_bytes(&prover_second_message.decommit.q_hat.to_bytes(true).as_ref()),
             &prover_second_message.decommit.blindness,
         );
 
@@ -187,7 +186,7 @@ impl Prover {
     ) -> (PDLProverFirstMessage, PDLProverState) {
         let c_tag = verifier_first_message.c_tag.clone();
         let alpha = Paillier::decrypt(&witness.dk, &RawCiphertext::from(c_tag.clone()));
-        let alpha_fe: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(alpha.0.as_ref());
+        let alpha_fe: Scalar<Secp256k1> = Scalar::<Secp256k1>::from(alpha.0.as_ref());
         let q_hat = statement.G * alpha_fe;
         let blindness = BigInt::sample_below(&Scalar::<Secp256k1>::group_order());
         let c_hat = HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
@@ -216,10 +215,11 @@ impl Prover {
                 .b
                 .clone()
                 .shl(verifier_second_message.a.bit_length()); // b|a (in the paper it is a|b)
-        let c_tag_tag_test = HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
-            &ab_concat,
-            &verifier_second_message.blindness,
-        );
+        let c_tag_tag_test =
+            HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
+                &ab_concat,
+                &verifier_second_message.blindness,
+            );
         let ax1 = &verifier_second_message.a * witness.x.to_bigint();
         let alpha_test = ax1 + &verifier_second_message.b;
         if &alpha_test == &state.alpha && verifier_first_message.c_tag_tag == c_tag_tag_test {

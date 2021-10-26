@@ -3,7 +3,7 @@ use criterion::criterion_main;
 mod bench {
     use criterion::{criterion_group, Criterion};
     use curv::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS;
-    use curv::elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar},
+    use curv::elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar};
     use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2018::party_i::*;
     pub fn bench_full_keygen_party_one_two(c: &mut Criterion) {
         c.bench_function("keygen t=1 n=2", move |b| {
@@ -22,7 +22,13 @@ mod bench {
     pub fn keygen_t_n_parties(
         t: u16,
         n: u16,
-    ) -> (Vec<Keys>, Vec<SharedKeys>, Vec<Point::<Secp256k1>>, Point::<Secp256k1>, VerifiableSS<Point::<Secp256k1>>) {
+    ) -> (
+        Vec<Keys>,
+        Vec<SharedKeys>,
+        Vec<Point<Secp256k1>>,
+        Point<Secp256k1>,
+        VerifiableSS<Point<Secp256k1>>,
+    ) {
         let parames = Parameters {
             threshold: t,
             share_count: n,
@@ -39,7 +45,9 @@ mod bench {
             decom_vec.push(decom1);
         }
 
-        let y_vec = (0..n).map(|i| decom_vec[i].y_i).collect::<Vec<Point::<Secp256k1>>>();
+        let y_vec = (0..n)
+            .map(|i| decom_vec[i].y_i)
+            .collect::<Vec<Point<Secp256k1>>>();
         let mut y_vec_iter = y_vec.iter();
         let head = y_vec_iter.next().unwrap();
         let tail = y_vec_iter;
@@ -66,9 +74,9 @@ mod bench {
                         let vec_j = &secret_shares_vec[j];
                         vec_j[i]
                     })
-                    .collect::<Vec<Scalar::<Secp256k1>>>()
+                    .collect::<Vec<Scalar<Secp256k1>>>()
             })
-            .collect::<Vec<Vec<Scalar::<Secp256k1>>>>();
+            .collect::<Vec<Vec<Scalar<Secp256k1>>>>();
 
         let mut shared_keys_vec = Vec::new();
         let mut dlog_proof_vec = Vec::new();
@@ -86,17 +94,23 @@ mod bench {
             dlog_proof_vec.push(dlog_proof);
         }
 
-        let pk_vec = (0..n).map(|i| dlog_proof_vec[i].pk).collect::<Vec<Point::<Secp256k1>>>();
+        let pk_vec = (0..n)
+            .map(|i| dlog_proof_vec[i].pk)
+            .collect::<Vec<Point<Secp256k1>>>();
 
         //both parties run:
         Keys::verify_dlog_proofs(&parames, &dlog_proof_vec, &y_vec).expect("bad dlog proof");
 
         //test
-        let xi_vec = (0..=t).map(|i| shared_keys_vec[i].x_i).collect::<Vec<Scalar::<Secp256k1>>>();
+        let xi_vec = (0..=t)
+            .map(|i| shared_keys_vec[i].x_i)
+            .collect::<Vec<Scalar<Secp256k1>>>();
         let x = vss_scheme_for_test[0]
             .clone()
             .reconstruct(&index_vec[0..=t], &xi_vec);
-        let sum_u_i = party_keys_vec.iter().fold(Scalar::<Secp256k1>::zero(), |acc, x| acc + x.u_i);
+        let sum_u_i = party_keys_vec
+            .iter()
+            .fold(Scalar::<Secp256k1>::zero(), |acc, x| acc + x.u_i);
         assert_eq!(x, sum_u_i);
 
         (

@@ -29,9 +29,9 @@ fn test_full_key_gen() {
             Scalar::<Secp256k1>::random(),
         );
     let (party_two_first_message, _ec_key_pair_party2) =
-        party_two::KeyGenFirstMsg::create_with_fixed_secret_share(Scalar::<Secp256k1>::from(&BigInt::from(
-            10,
-        )));
+        party_two::KeyGenFirstMsg::create_with_fixed_secret_share(Scalar::<Secp256k1>::from(
+            &BigInt::from(10),
+        ));
     let party_one_second_message = party_one::KeyGenSecondMsg::verify_and_decommit(
         comm_witness,
         &party_two_first_message.d_log_proof,

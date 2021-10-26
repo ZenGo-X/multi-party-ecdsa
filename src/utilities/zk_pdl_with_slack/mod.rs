@@ -26,30 +26,30 @@ use curv::arithmetic::traits::*;
 use curv::cryptographic_primitives::hashing::{Digest, DigestExt};
 use curv::elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar};
 use curv::BigInt;
-use sha2::Sha256;
 use paillier::EncryptionKey;
 use serde::{Deserialize, Serialize};
+use sha2::Sha256;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct PDLwSlackStatement {
     pub ciphertext: BigInt,
     pub ek: EncryptionKey,
-    pub Q: Point::<Secp256k1>,
-    pub G: Point::<Secp256k1>,
+    pub Q: Point<Secp256k1>,
+    pub G: Point<Secp256k1>,
     pub h1: BigInt,
     pub h2: BigInt,
     pub N_tilde: BigInt,
 }
 #[derive(Clone)]
 pub struct PDLwSlackWitness {
-    pub x: Scalar::<Secp256k1>,
+    pub x: Scalar<Secp256k1>,
     pub r: BigInt,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PDLwSlackProof {
     z: BigInt,
-    u1: Point::<Secp256k1>,
+    u1: Point<Secp256k1>,
     u2: BigInt,
     u3: BigInt,
     s1: BigInt,
@@ -129,7 +129,8 @@ impl PDLwSlackProof {
             .result_bigint();
 
         let g_s1 = statement.G.clone() * &Scalar::<Secp256k1>::from(&self.s1);
-        let e_fe_neg: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(&(Scalar::<Secp256k1>::group_order() - &e));
+        let e_fe_neg: Scalar<Secp256k1> =
+            Scalar::<Secp256k1>::from(&(Scalar::<Secp256k1>::group_order() - &e));
         let y_minus_e = &statement.Q * &e_fe_neg;
         let u1_test = g_s1 + y_minus_e;
 

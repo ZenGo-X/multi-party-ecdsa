@@ -109,7 +109,7 @@ impl Round2 {
         mut output: O,
     ) -> Result<Round3>
     where
-        O: Push<Msg<(VerifiableSS<Secp256k1>, Scalar::<Secp256k1>)>>,
+        O: Push<Msg<(VerifiableSS<Secp256k1>, Scalar<Secp256k1>)>>,
     {
         let params = gg_2020::party_i::Parameters {
             threshold: self.t.into(),
@@ -163,11 +163,11 @@ impl Round2 {
 pub struct Round3 {
     keys: gg_2020::party_i::Keys,
 
-    y_vec: Vec<Point::<Secp256k1>>,
+    y_vec: Vec<Point<Secp256k1>>,
     bc_vec: Vec<gg_2020::party_i::KeyGenBroadcastMessage1>,
 
     own_vss: VerifiableSS<Secp256k1>,
-    own_share: Scalar::<Secp256k1>,
+    own_share: Scalar<Secp256k1>,
 
     party_i: u16,
     t: u16,
@@ -175,7 +175,11 @@ pub struct Round3 {
 }
 
 impl Round3 {
-    pub fn proceed<O>(self, input: P2PMsgs<(VerifiableSS<Secp256k1>, Scalar::<Secp256k1>)>, mut output: O) -> Result<Round4>
+    pub fn proceed<O>(
+        self,
+        input: P2PMsgs<(VerifiableSS<Secp256k1>, Scalar<Secp256k1>)>,
+        mut output: O,
+    ) -> Result<Round4>
     where
         O: Push<Msg<DLogProof<Secp256k1, Sha256>>>,
     {
@@ -221,14 +225,17 @@ impl Round3 {
     pub fn is_expensive(&self) -> bool {
         true
     }
-    pub fn expects_messages(i: u16, n: u16) -> Store<P2PMsgs<(VerifiableSS<Secp256k1>, Scalar::<Secp256k1>)>> {
+    pub fn expects_messages(
+        i: u16,
+        n: u16,
+    ) -> Store<P2PMsgs<(VerifiableSS<Secp256k1>, Scalar<Secp256k1>)>> {
         containers::P2PMsgsStore::new(i, n)
     }
 }
 
 pub struct Round4 {
     keys: gg_2020::party_i::Keys,
-    y_vec: Vec<Point::<Secp256k1>>,
+    y_vec: Vec<Point<Secp256k1>>,
     bc_vec: Vec<gg_2020::party_i::KeyGenBroadcastMessage1>,
     shared_keys: gg_2020::party_i::SharedKeys,
     own_dlog_proof: DLogProof<Secp256k1, Sha256>,
@@ -256,7 +263,7 @@ impl Round4 {
         .map_err(ProceedError::Round4VerifyDLogProof)?;
         let pk_vec = (0..params.share_count as usize)
             .map(|i| dlog_proofs[i].pk)
-            .collect::<Vec<Point::<Secp256k1>>>();
+            .collect::<Vec<Point<Secp256k1>>>();
 
         let paillier_key_vec = (0..params.share_count)
             .map(|i| self.bc_vec[i as usize].e.clone())
@@ -298,13 +305,12 @@ impl Round4 {
 
 /// Local secret obtained by party after [keygen](super::Keygen) protocol is completed
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct LocalKey
-{
+pub struct LocalKey {
     pub paillier_dk: paillier::DecryptionKey,
-    pub pk_vec: Vec<Point::<Secp256k1>>,
+    pub pk_vec: Vec<Point<Secp256k1>>,
     pub keys_linear: gg_2020::party_i::SharedKeys,
     pub paillier_key_vec: Vec<EncryptionKey>,
-    pub y_sum_s: Point::<Secp256k1>,
+    pub y_sum_s: Point<Secp256k1>,
     pub h1_h2_n_tilde_vec: Vec<DLogStatement>,
     pub vss_scheme: VerifiableSS<Secp256k1>,
     pub i: u16,
@@ -314,7 +320,7 @@ pub struct LocalKey
 
 impl LocalKey {
     /// Public key of secret shared between parties
-    pub fn public_key(&self) -> Point::<Secp256k1> {
+    pub fn public_key(&self) -> Point<Secp256k1> {
         self.y_sum_s.clone()
     }
 }

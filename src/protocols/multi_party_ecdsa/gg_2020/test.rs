@@ -154,8 +154,8 @@ fn keygen_t_n_parties(
     (
         Vec<Keys>,
         Vec<SharedKeys>,
-        Vec<Point::<Secp256k1>>,
-        Point::<Secp256k1>,
+        Vec<Point<Secp256k1>>,
+        Point<Secp256k1>,
         VerifiableSS<Secp256k1>,
         Vec<EncryptionKey>,
         Vec<DLogStatement>,
@@ -182,7 +182,9 @@ fn keygen_t_n_parties(
         .iter()
         .map(|bc1| bc1.dlog_statement_base_h1.clone())
         .collect::<Vec<DLogStatement>>();
-    let y_vec = (0..n).map(|i| decom_vec[i].y_i).collect::<Vec<Point::<Secp256k1>>>();
+    let y_vec = (0..n)
+        .map(|i| decom_vec[i].y_i)
+        .collect::<Vec<Point<Secp256k1>>>();
     let mut y_vec_iter = y_vec.iter();
     let head = y_vec_iter.next().unwrap();
     let tail = y_vec_iter;
@@ -218,9 +220,9 @@ fn keygen_t_n_parties(
                     let vec_j = &secret_shares_vec[j];
                     vec_j[i]
                 })
-                .collect::<Vec<Scalar::<Secp256k1>>>()
+                .collect::<Vec<Scalar<Secp256k1>>>()
         })
-        .collect::<Vec<Vec<Scalar::<Secp256k1>>>>();
+        .collect::<Vec<Vec<Scalar<Secp256k1>>>>();
 
     let mut shared_keys_vec = Vec::new();
     let mut dlog_proof_vec = Vec::new();
@@ -240,7 +242,9 @@ fn keygen_t_n_parties(
         dlog_proof_vec.push(dlog_proof);
     }
 
-    let pk_vec = (0..n).map(|i| dlog_proof_vec[i].pk).collect::<Vec<Point::<Secp256k1>>>();
+    let pk_vec = (0..n)
+        .map(|i| dlog_proof_vec[i].pk)
+        .collect::<Vec<Point<Secp256k1>>>();
 
     let dlog_verification = Keys::verify_dlog_proofs_check_against_vss(
         &params,
@@ -253,11 +257,15 @@ fn keygen_t_n_parties(
         return Err(dlog_verification.err().unwrap());
     }
     //test
-    let xi_vec = (0..=t).map(|i| shared_keys_vec[i].x_i).collect::<Vec<Scalar::<Secp256k1>>>();
+    let xi_vec = (0..=t)
+        .map(|i| shared_keys_vec[i].x_i)
+        .collect::<Vec<Scalar<Secp256k1>>>();
     let x = vss_scheme_for_test[0]
         .clone()
         .reconstruct(&index_vec[0..=t], &xi_vec);
-    let sum_u_i = party_keys_vec.iter().fold(Scalar::<Secp256k1>::zero(), |acc, x| acc + x.u_i);
+    let sum_u_i = party_keys_vec
+        .iter()
+        .fold(Scalar::<Secp256k1>::zero(), |acc, x| acc + x.u_i);
     assert_eq!(x, sum_u_i);
 
     Ok((
@@ -421,7 +429,7 @@ fn sign(
 
                 beta
             })
-            .collect::<Vec<Scalar::<Secp256k1>>>();
+            .collect::<Vec<Scalar<Secp256k1>>>();
 
         // prepare ni_vec of party_i:
         let ni_vec = (0..ttag - 1)
@@ -430,7 +438,7 @@ fn sign(
                 let ind2 = if j < i { i - 1 } else { i };
                 ni_vec_all[ind1][ind2].clone()
             })
-            .collect::<Vec<Scalar::<Secp256k1>>>();
+            .collect::<Vec<Scalar<Secp256k1>>>();
 
         let mut delta = sign_keys_vec[i].phase2_delta_i(&alpha_vec_all[i], &beta_vec);
 
@@ -476,17 +484,17 @@ fn sign(
             let m_b_gamma_vec = &m_b_gamma_vec_all[i];
             let b_proof_vec = (0..ttag - 1)
                 .map(|j| &m_b_gamma_vec[j].b_proof)
-                .collect::<Vec<&DLogProof<Point::<Secp256k1>>>>();
+                .collect::<Vec<&DLogProof<Point<Secp256k1>>>>();
             SignKeys::phase4(&delta_inv, &b_proof_vec, decommit_vec1.clone(), &bc1_vec, i)
                 .expect("") //TODO: propagate the error
         })
-        .collect::<Vec<Point::<Secp256k1>>>();
+        .collect::<Vec<Point<Secp256k1>>>();
 
     //new phase 5
     // all parties broadcast R_dash = k_i * R.
     let R_dash_vec = (0..ttag)
         .map(|i| R_vec[i] * sign_keys_vec[i].k_i)
-        .collect::<Vec<Point::<Secp256k1>>>();
+        .collect::<Vec<Point<Secp256k1>>>();
 
     // each party sends first message to all other parties
     let mut phase5_proofs_vec: Vec<Vec<PDLwSlackProof>> = vec![Vec::new(); ttag];
@@ -555,7 +563,7 @@ fn sign(
         //g_gamma_vec:
         let g_gamma_vec = (0..decommit_vec1.len())
             .map(|i| decommit_vec1[i].g_gamma_i)
-            .collect::<Vec<Point::<Secp256k1>>>();
+            .collect::<Vec<Point<Secp256k1>>>();
         //m_a_vec
         let m_a_vec = (0..m_a_vec.len())
             .map(|i| m_a_vec[i].0.clone())
@@ -689,7 +697,12 @@ fn sign(
     return Ok(sig);
 }
 
-pub fn check_sig(r: &Scalar::<Secp256k1>, s: &Scalar::<Secp256k1>, msg: &BigInt, pk: &Point::<Secp256k1>) {
+pub fn check_sig(
+    r: &Scalar<Secp256k1>,
+    s: &Scalar<Secp256k1>,
+    msg: &BigInt,
+    pk: &Point<Secp256k1>,
+) {
     use secp256k1::{verify, Message, PublicKey, PublicKeyFormat, Signature};
 
     let raw_msg = BigInt::to_bytes(&msg);

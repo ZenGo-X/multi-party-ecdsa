@@ -189,7 +189,12 @@ pub fn poll_for_p2p(
 }
 
 #[allow(dead_code)]
-pub fn check_sig(r: &Scalar::<Secp256k1>, s: &Scalar::<Secp256k1>, msg: &BigInt, pk: &Point::<Secp256k1>) {
+pub fn check_sig(
+    r: &Scalar<Secp256k1>,
+    s: &Scalar<Secp256k1>,
+    msg: &BigInt,
+    pk: &Point<Secp256k1>,
+) {
     use secp256k1::{verify, Message, PublicKey, PublicKeyFormat, Signature};
 
     let raw_msg = BigInt::to_bytes(&msg);

@@ -19,17 +19,17 @@ use centipede::juggling::segmentation::Msegmentation;
 use curv::arithmetic::traits::*;
 use curv::cryptographic_primitives::commitments::hash_commitment::HashCommitment;
 use curv::cryptographic_primitives::commitments::traits::Commitment;
+use curv::cryptographic_primitives::hashing::{Digest, DigestExt};
 use curv::cryptographic_primitives::proofs::sigma_dlog::*;
 use curv::cryptographic_primitives::proofs::sigma_ec_ddh::*;
 use curv::cryptographic_primitives::proofs::ProofError;
-use curv::cryptographic_primitives::hashing::{Digest, DigestExt};
 use curv::elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar};
 use curv::BigInt;
-use sha2::Sha256;
 use paillier::Paillier;
 use paillier::{Add, Encrypt, Mul};
 use paillier::{EncryptionKey, RawCiphertext, RawPlaintext};
 use serde::{Deserialize, Serialize};
+use sha2::Sha256;
 use zk_paillier::zkproofs::{IncorrectProof, NiCorrectKeyProof};
 
 use super::party_one::EphKeyGenFirstMsg as Party1EphKeyGenFirstMsg;
@@ -48,14 +48,14 @@ const PAILLIER_KEY_SIZE: usize = 2048;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct EcKeyPair {
-    pub public_share: Point::<Secp256k1>,
-    secret_share: Scalar::<Secp256k1>,
+    pub public_share: Point<Secp256k1>,
+    secret_share: Scalar<Secp256k1>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct KeyGenFirstMsg {
     pub d_log_proof: DLogProof<Secp256k1, Sha256>,
-    pub public_share: Point::<Secp256k1>,
+    pub public_share: Point<Secp256k1>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -74,7 +74,7 @@ pub struct PartialSig {
 
 #[derive(Serialize, Deserialize)]
 pub struct Party2Private {
-    x2: Scalar::<Secp256k1>,
+    x2: Scalar<Secp256k1>,
 }
 #[derive(Debug)]
 pub struct PDLchallenge {
@@ -83,7 +83,7 @@ pub struct PDLchallenge {
     a: BigInt,
     b: BigInt,
     blindness: BigInt,
-    q_tag: Point::<Secp256k1>,
+    q_tag: Point<Secp256k1>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -105,17 +105,17 @@ pub struct PDLSecondMessage {
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct EphEcKeyPair {
-    pub public_share: Point::<Secp256k1>,
-    secret_share: Scalar::<Secp256k1>,
+    pub public_share: Point<Secp256k1>,
+    secret_share: Scalar<Secp256k1>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct EphCommWitness {
     pub pk_commitment_blind_factor: BigInt,
     pub zk_pok_blind_factor: BigInt,
-    pub public_share: Point::<Secp256k1>,
+    pub public_share: Point<Secp256k1>,
     pub d_log_proof: ECDDHProof<Secp256k1, Sha256>,
-    pub c: Point::<Secp256k1>, //c = secret_share * base_point2
+    pub c: Point<Secp256k1>, //c = secret_share * base_point2
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -134,7 +134,7 @@ pub struct EphKeyGenSecondMsg {
 impl KeyGenFirstMsg {
     pub fn create() -> (KeyGenFirstMsg, EcKeyPair) {
         let base = Point::<Secp256k1>::generator();
-        let mut secret_share: Scalar::<Secp256k1> = Scalar::<Secp256k1>::random();
+        let mut secret_share: Scalar<Secp256k1> = Scalar::<Secp256k1>::random();
         let public_share = base * secret_share;
         let d_log_proof = DLogProof::prove(&secret_share);
         let ec_key_pair = EcKeyPair {
@@ -151,7 +151,9 @@ impl KeyGenFirstMsg {
         )
     }
 
-    pub fn create_with_fixed_secret_share(mut secret_share: Scalar::<Secp256k1>) -> (KeyGenFirstMsg, EcKeyPair) {
+    pub fn create_with_fixed_secret_share(
+        mut secret_share: Scalar<Secp256k1>,
+    ) -> (KeyGenFirstMsg, EcKeyPair) {
         let base = Point::<Secp256k1>::generator();
         let public_share = base * secret_share;
         let d_log_proof = DLogProof::prove(&secret_share);
@@ -198,8 +200,12 @@ impl KeyGenSecondMsg {
         };
         if party_one_zk_pok_commitment
             == &HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
-                &BigInt::from_bytes(&party_one_d_log_proof
-                    .pk_t_rand_commitment.to_bytes(true).as_ref()),
+                &BigInt::from_bytes(
+                    &party_one_d_log_proof
+                        .pk_t_rand_commitment
+                        .to_bytes(true)
+                        .as_ref(),
+                ),
                 &party_one_zk_pok_blind_factor,
             )
         {
@@ -213,7 +219,10 @@ impl KeyGenSecondMsg {
     }
 }
 
-pub fn compute_pubkey(local_share: &EcKeyPair, other_share_public_share: &Point::<Secp256k1>) -> Point::<Secp256k1> {
+pub fn compute_pubkey(
+    local_share: &EcKeyPair,
+    other_share_public_share: &Point<Secp256k1>,
+) -> Point<Secp256k1> {
     let pubkey = other_share_public_share;
     pubkey * &local_share.secret_share
 }
@@ -226,7 +235,7 @@ impl Party2Private {
     }
 
     pub fn update_private_key(party_two_private: &Party2Private, factor: &BigInt) -> Party2Private {
-        let factor_fe: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(factor);
+        let factor_fe: Scalar<Secp256k1> = Scalar::<Secp256k1>::from(factor);
         Party2Private {
             x2: party_two_private.x2 * &factor_fe,
         }
@@ -237,14 +246,18 @@ impl Party2Private {
         &self,
         segment_size: usize,
         num_of_segments: usize,
-        pub_ke_y: &Point::<Secp256k1>,
-        g: &Point::<Secp256k1>,
+        pub_ke_y: &Point<Secp256k1>,
+        g: &Point<Secp256k1>,
     ) -> (Witness, Helgamalsegmented) {
         Msegmentation::to_encrypted_segments(&self.x2, &segment_size, num_of_segments, pub_ke_y, g)
     }
 
     // used to transform lindell master key to gg18 master key
-    pub fn to_mta_message_b(&self, ek: &EncryptionKey, ciphertext: &BigInt) -> (MessageB, Scalar::<Secp256k1>) {
+    pub fn to_mta_message_b(
+        &self,
+        ek: &EncryptionKey,
+        ciphertext: &BigInt,
+    ) -> (MessageB, Scalar<Secp256k1>) {
         let message_a = MessageA {
             c: ciphertext.clone(),
         };
@@ -259,7 +272,7 @@ impl PaillierPublic {
         pdl_w_slack_statement: &PDLwSlackStatement,
         pdl_w_slack_proof: &PDLwSlackProof,
         paillier_public: &PaillierPublic,
-        q1: &Point::<Secp256k1>,
+        q1: &Point<Secp256k1>,
     ) -> Result<(), ()> {
         if &pdl_w_slack_statement.ek != &paillier_public.ek
             || &pdl_w_slack_statement.ciphertext != &paillier_public.encrypted_secret_share
@@ -297,7 +310,7 @@ impl EphKeyGenFirstMsg {
     pub fn create_commitments() -> (EphKeyGenFirstMsg, EphCommWitness, EphEcKeyPair) {
         let base = Point::<Secp256k1>::generator();
 
-        let mut secret_share: Scalar::<Secp256k1> = Scalar::<Secp256k1>::random();
+        let mut secret_share: Scalar<Secp256k1> = Scalar::<Secp256k1>::random();
 
         let public_share = base * &secret_share;
 
@@ -316,16 +329,20 @@ impl EphKeyGenFirstMsg {
 
         // we use hash based commitment
         let pk_commitment_blind_factor = BigInt::sample(SECURITY_BITS);
-        let pk_commitment = HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
-            &BigInt::from_bytes(&public_share.to_bytes(true).as_ref()),
-            &pk_commitment_blind_factor,
-        );
+        let pk_commitment =
+            HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
+                &BigInt::from_bytes(&public_share.to_bytes(true).as_ref()),
+                &pk_commitment_blind_factor,
+            );
 
         let zk_pok_blind_factor = BigInt::sample(SECURITY_BITS);
-        let zk_pok_commitment = HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
-            &Sha256::new().chain_points([&d_log_proof.a1, &d_log_proof.a2]).result_bigint(),
-            &zk_pok_blind_factor,
-        );
+        let zk_pok_commitment =
+            HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
+                &Sha256::new()
+                    .chain_points([&d_log_proof.a1, &d_log_proof.a2])
+                    .result_bigint(),
+                &zk_pok_blind_factor,
+            );
 
         let ec_key_pair = EphEcKeyPair {
             public_share,
@@ -372,7 +389,7 @@ impl PartialSig {
         encrypted_secret_share: &BigInt,
         local_share: &Party2Private,
         ephemeral_local_share: &EphEcKeyPair,
-        ephemeral_other_public_share: &Point::<Secp256k1>,
+        ephemeral_other_public_share: &Point<Secp256k1>,
         message: &BigInt,
     ) -> PartialSig {
         let q = Scalar::<Secp256k1>::group_order();

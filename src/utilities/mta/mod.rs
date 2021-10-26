@@ -19,11 +19,11 @@ use curv::arithmetic::traits::Samplable;
 use curv::cryptographic_primitives::proofs::sigma_dlog::DLogProof;
 use curv::elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar};
 use curv::BigInt;
-use sha2::Sha256;
 use paillier::traits::EncryptWithChosenRandomness;
 use paillier::{Add, Decrypt, Mul};
 use paillier::{DecryptionKey, EncryptionKey, Paillier, Randomness, RawCiphertext, RawPlaintext};
 use serde::{Deserialize, Serialize};
+use sha2::Sha256;
 
 use crate::protocols::multi_party_ecdsa::gg_2018::party_i::PartyPrivate;
 use crate::Error::{self, InvalidKey};
@@ -41,7 +41,7 @@ pub struct MessageB {
 }
 
 impl MessageA {
-    pub fn a(a: &Scalar::<Secp256k1>, alice_ek: &EncryptionKey) -> (Self, BigInt) {
+    pub fn a(a: &Scalar<Secp256k1>, alice_ek: &EncryptionKey) -> (Self, BigInt) {
         let randomness = BigInt::sample_below(&alice_ek.n);
         let c_a = Paillier::encrypt_with_chosen_randomness(
             alice_ek,
@@ -57,7 +57,7 @@ impl MessageA {
     }
 
     pub fn a_with_predefined_randomness(
-        a: &Scalar::<Secp256k1>,
+        a: &Scalar<Secp256k1>,
         alice_ek: &EncryptionKey,
         randomness: &BigInt,
     ) -> Self {
@@ -74,9 +74,13 @@ impl MessageA {
 }
 
 impl MessageB {
-    pub fn b(b: &Scalar::<Secp256k1>, alice_ek: &EncryptionKey, c_a: MessageA) -> (Self, Scalar::<Secp256k1>, BigInt, BigInt) {
+    pub fn b(
+        b: &Scalar<Secp256k1>,
+        alice_ek: &EncryptionKey,
+        c_a: MessageA,
+    ) -> (Self, Scalar<Secp256k1>, BigInt, BigInt) {
         let beta_tag = BigInt::sample_below(&alice_ek.n);
-        let beta_tag_fe: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(&beta_tag);
+        let beta_tag_fe: Scalar<Secp256k1> = Scalar::<Secp256k1>::from(&beta_tag);
         let randomness = BigInt::sample_below(&alice_ek.n);
         let c_beta_tag = Paillier::encrypt_with_chosen_randomness(
             alice_ek,
@@ -108,13 +112,13 @@ impl MessageB {
     }
 
     pub fn b_with_predefined_randomness(
-        b: &Scalar::<Secp256k1>,
+        b: &Scalar<Secp256k1>,
         alice_ek: &EncryptionKey,
         c_a: MessageA,
         randomness: &BigInt,
         beta_tag: &BigInt,
-    ) -> (Self, Scalar::<Secp256k1>) {
-        let beta_tag_fe: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(beta_tag);
+    ) -> (Self, Scalar<Secp256k1>) {
+        let beta_tag_fe: Scalar<Secp256k1> = Scalar::<Secp256k1>::from(beta_tag);
         let c_beta_tag = Paillier::encrypt_with_chosen_randomness(
             alice_ek,
             RawPlaintext::from(beta_tag),
@@ -145,11 +149,11 @@ impl MessageB {
     pub fn verify_proofs_get_alpha(
         &self,
         dk: &DecryptionKey,
-        a: &Scalar::<Secp256k1>,
-    ) -> Result<(Scalar::<Secp256k1>, BigInt), Error> {
+        a: &Scalar<Secp256k1>,
+    ) -> Result<(Scalar<Secp256k1>, BigInt), Error> {
         let alice_share = Paillier::decrypt(dk, &RawCiphertext::from(self.c.clone()));
         let g = Point::<Secp256k1>::generator();
-        let alpha: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(alice_share.0.as_ref());
+        let alpha: Scalar<Secp256k1> = Scalar::<Secp256k1>::from(alice_share.0.as_ref());
         let g_alpha = g * alpha;
         let ba_btag = self.b_proof.pk * a + self.beta_tag_proof.pk;
         if DLogProof::verify(&self.b_proof).is_ok()
@@ -168,11 +172,11 @@ impl MessageB {
     pub fn verify_proofs_get_alpha_gg18(
         &self,
         private: &PartyPrivate,
-        a: &Scalar::<Secp256k1>,
-    ) -> Result<Scalar::<Secp256k1>, Error> {
+        a: &Scalar<Secp256k1>,
+    ) -> Result<Scalar<Secp256k1>, Error> {
         let alice_share = private.decrypt(self.c.clone());
         let g = Point::<Secp256k1>::generator();
-        let alpha: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(alice_share.0.as_ref());
+        let alpha: Scalar<Secp256k1> = Scalar::<Secp256k1>::from(alice_share.0.as_ref());
         let g_alpha = g * alpha;
         let ba_btag = self.b_proof.pk * a + self.beta_tag_proof.pk;
 
@@ -186,7 +190,10 @@ impl MessageB {
         }
     }
 
-    pub fn verify_b_against_public(public_gb: &Point::<Secp256k1>, mta_gb: &Point::<Secp256k1>) -> bool {
+    pub fn verify_b_against_public(
+        public_gb: &Point<Secp256k1>,
+        mta_gb: &Point<Secp256k1>,
+    ) -> bool {
         public_gb == mta_gb
     }
 }

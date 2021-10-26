@@ -50,7 +50,7 @@ fn main() {
         u16,
         Vec<VerifiableSS<Secp256k1>>,
         Vec<EncryptionKey>,
-        Point::<Secp256k1>,
+        Point<Secp256k1>,
     ) = serde_json::from_str(&data).unwrap();
 
     //read parameters:
@@ -148,9 +148,9 @@ fn main() {
 
     //////////////////////////////////////////////////////////////////////////////
     let mut m_b_gamma_send_vec: Vec<MessageB> = Vec::new();
-    let mut beta_vec: Vec<Scalar::<Secp256k1>> = Vec::new();
+    let mut beta_vec: Vec<Scalar<Secp256k1>> = Vec::new();
     let mut m_b_w_send_vec: Vec<MessageB> = Vec::new();
-    let mut ni_vec: Vec<Scalar::<Secp256k1>> = Vec::new();
+    let mut ni_vec: Vec<Scalar<Secp256k1>> = Vec::new();
     let mut j = 0;
     for i in 1..THRESHOLD + 2 {
         if i != party_num_int {
@@ -210,8 +210,8 @@ fn main() {
         //     }
     }
 
-    let mut alpha_vec: Vec<Scalar::<Secp256k1>> = Vec::new();
-    let mut miu_vec: Vec<Scalar::<Secp256k1>> = Vec::new();
+    let mut alpha_vec: Vec<Scalar<Secp256k1>> = Vec::new();
+    let mut miu_vec: Vec<Scalar<Secp256k1>> = Vec::new();
 
     let mut j = 0;
     for i in 1..THRESHOLD + 2 {
@@ -257,7 +257,7 @@ fn main() {
         "round3",
         uuid.clone(),
     );
-    let mut delta_vec: Vec<Scalar::<Secp256k1>> = Vec::new();
+    let mut delta_vec: Vec<Scalar<Secp256k1>> = Vec::new();
     format_vec_from_reads(
         &round3_ans_vec,
         party_num_int as usize,
@@ -296,7 +296,7 @@ fn main() {
     bc1_vec.remove((party_num_int - 1) as usize);
     let b_proof_vec = (0..m_b_gamma_rec_vec.len())
         .map(|i| &m_b_gamma_rec_vec[i].b_proof)
-        .collect::<Vec<&DLogProof<Point::<Secp256k1>>>>();
+        .collect::<Vec<&DLogProof<Point<Secp256k1>>>>();
     let R = SignKeys::phase4(&delta_inv, &b_proof_vec, decommit_vec, &bc1_vec)
         .expect("bad gamma_i decommit");
 
@@ -362,8 +362,8 @@ fn main() {
 
     let mut decommit5a_and_elgamal_and_dlog_vec: Vec<(
         Phase5ADecom1,
-        HomoELGamalProof<Point::<Secp256k1>>,
-        DLogProof<Point::<Secp256k1>>,
+        HomoELGamalProof<Point<Secp256k1>>,
+        DLogProof<Point<Secp256k1>>,
     )> = Vec::new();
     format_vec_from_reads(
         &round6_ans_vec,
@@ -384,10 +384,10 @@ fn main() {
         .collect::<Vec<Phase5ADecom1>>();
     let phase_5a_elgamal_vec = (0..THRESHOLD)
         .map(|i| decommit5a_and_elgamal_and_dlog_vec[i as usize].1.clone())
-        .collect::<Vec<HomoELGamalProof<Point::<Secp256k1>>>>();
+        .collect::<Vec<HomoELGamalProof<Point<Secp256k1>>>>();
     let phase_5a_dlog_vec = (0..THRESHOLD)
         .map(|i| decommit5a_and_elgamal_and_dlog_vec[i as usize].2.clone())
-        .collect::<Vec<DLogProof<Point::<Secp256k1>>>>();
+        .collect::<Vec<DLogProof<Point<Secp256k1>>>>();
     let (phase5_com2, phase_5d_decom2) = local_sig
         .phase5c(
             &phase_5a_decomm_vec,
@@ -484,7 +484,7 @@ fn main() {
         uuid.clone(),
     );
 
-    let mut s_i_vec: Vec<Scalar::<Secp256k1>> = Vec::new();
+    let mut s_i_vec: Vec<Scalar<Secp256k1>> = Vec::new();
     format_vec_from_reads(&round9_ans_vec, party_num_int as usize, s_i, &mut s_i_vec);
 
     s_i_vec.remove((party_num_int - 1) as usize);

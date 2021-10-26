@@ -99,7 +99,7 @@ fn main() {
     );
 
     let mut j = 0;
-    let mut point_vec: Vec<Point::<Secp256k1>> = Vec::new();
+    let mut point_vec: Vec<Point<Secp256k1>> = Vec::new();
     let mut decom_vec: Vec<KeyGenDecommitMessage1> = Vec::new();
     let mut enc_keys: Vec<Vec<u8>> = Vec::new();
     for i in 1..=PARTIES {
@@ -160,7 +160,7 @@ fn main() {
     );
 
     let mut j = 0;
-    let mut party_shares: Vec<Scalar::<Secp256k1>> = Vec::new();
+    let mut party_shares: Vec<Scalar<Secp256k1>> = Vec::new();
     for i in 1..=PARTIES {
         if i == party_num_int {
             party_shares.push(secret_shares[(i - 1) as usize]);
@@ -200,7 +200,8 @@ fn main() {
         if i == party_num_int {
             vss_scheme_vec.push(vss_scheme.clone());
         } else {
-            let vss_scheme_j: VerifiableSS<Secp256k1> = serde_json::from_str(&round4_ans_vec[j]).unwrap();
+            let vss_scheme_j: VerifiableSS<Secp256k1> =
+                serde_json::from_str(&round4_ans_vec[j]).unwrap();
             vss_scheme_vec.push(vss_scheme_j);
             j += 1;
         }
@@ -235,12 +236,13 @@ fn main() {
     );
 
     let mut j = 0;
-    let mut dlog_proof_vec: Vec<DLogProof<Point::<Secp256k1>>> = Vec::new();
+    let mut dlog_proof_vec: Vec<DLogProof<Point<Secp256k1>>> = Vec::new();
     for i in 1..=PARTIES {
         if i == party_num_int {
             dlog_proof_vec.push(dlog_proof.clone());
         } else {
-            let dlog_proof_j: DLogProof<Point::<Secp256k1>> = serde_json::from_str(&round5_ans_vec[j]).unwrap();
+            let dlog_proof_j: DLogProof<Point<Secp256k1>> =
+                serde_json::from_str(&round5_ans_vec[j]).unwrap();
             dlog_proof_vec.push(dlog_proof_j);
             j += 1;
         }

@@ -16,8 +16,9 @@ fn test_zk_pdl() {
 
     let (ek, dk) = Paillier::keypair().keys();
     let randomness = Randomness::sample(&ek);
-    let x: Scalar::<Secp256k1> = Scalar::<Secp256k1>::random();
-    let x: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(&x.to_bigint().div_floor(&BigInt::from(3)));
+    let x: Scalar<Secp256k1> = Scalar::<Secp256k1>::random();
+    let x: Scalar<Secp256k1> =
+        Scalar::<Secp256k1>::from(&x.to_bigint().div_floor(&BigInt::from(3)));
 
     let Q = Point::<Secp256k1>::generator() * &x;
 

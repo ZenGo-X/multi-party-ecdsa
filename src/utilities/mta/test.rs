@@ -4,9 +4,9 @@ use paillier::traits::KeyGeneration;
 
 #[test]
 fn test_mta() {
-    let alice_input: Scalar::<Secp256k1> = Scalar::<Secp256k1>::random();
+    let alice_input: Scalar<Secp256k1> = Scalar::<Secp256k1>::random();
     let (ek_alice, dk_alice) = Paillier::keypair().keys();
-    let bob_input: Scalar::<Secp256k1> = Scalar::<Secp256k1>::random();
+    let bob_input: Scalar<Secp256k1> = Scalar::<Secp256k1>::random();
     let (m_a, _r) = MessageA::a(&alice_input, &ek_alice);
     let (m_b, beta, _, _) = MessageB::b(&bob_input, &ek_alice, m_a);
     let alpha = m_b
