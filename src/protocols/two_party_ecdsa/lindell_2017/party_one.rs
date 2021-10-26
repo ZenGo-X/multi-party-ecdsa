@@ -528,7 +528,7 @@ impl Signature {
             &RawCiphertext::from(partial_sig_c3),
         )
         .0;
-        let mut s_tag_fe: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(&s_tag);
+        let mut s_tag_fe: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(s_tag.as_ref());
         let s_tag_tag = s_tag_fe * k1_inv;
         k1_inv.zeroize();
         s_tag_fe.zeroize();
