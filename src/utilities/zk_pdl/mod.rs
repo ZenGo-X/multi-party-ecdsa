@@ -119,7 +119,7 @@ impl Verifier {
         let c_tag_tag = HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
             &ab_concat, &blindness,
         );
-        let q_tag = &statement.Q * &a_fe + statement.G * b_fe;
+        let q_tag = &statement.Q * &a_fe + &statement.G * b_fe;
 
         (
             PDLVerifierFirstMessage {
@@ -187,7 +187,7 @@ impl Prover {
         let c_tag = verifier_first_message.c_tag.clone();
         let alpha = Paillier::decrypt(&witness.dk, &RawCiphertext::from(c_tag.clone()));
         let alpha_fe: Scalar<Secp256k1> = Scalar::<Secp256k1>::from(alpha.0.as_ref());
-        let q_hat = statement.G * alpha_fe;
+        let q_hat = &statement.G * alpha_fe;
         let blindness = BigInt::sample_below(&Scalar::<Secp256k1>::group_order());
         let c_hat = HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
             &BigInt::from_bytes(&q_hat.to_bytes(true).as_ref()),

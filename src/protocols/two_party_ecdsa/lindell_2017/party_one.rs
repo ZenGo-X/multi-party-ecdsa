@@ -403,22 +403,21 @@ impl PaillierKeyPair {
 impl EphKeyGenFirstMsg {
     pub fn create() -> (EphKeyGenFirstMsg, EphEcKeyPair) {
         let base = Point::<Secp256k1>::generator();
-        let mut secret_share: Scalar<Secp256k1> = Scalar::<Secp256k1>::random();
+        let secret_share: Scalar<Secp256k1> = Scalar::<Secp256k1>::random();
         let public_share = &*base * &secret_share;
         let h = Point::<Secp256k1>::base_point2();
 
         let c = h * &secret_share;
-        let mut x = secret_share;
-        let w = ECDDHWitness { x };
+        let w = ECDDHWitness { x: secret_share.clone() };
         let delta = ECDDHStatement {
             g1: base.to_point(),
-            h1: public_share,
+            h1: public_share.clone(),
             g2: h.clone(),
-            h2: c,
+            h2: c.clone(),
         };
         let d_log_proof = ECDDHProof::prove(&w, &delta);
         let ec_key_pair = EphEcKeyPair {
-            public_share,
+            public_share: public_share.clone(),
             secret_share,
         };
         (
@@ -472,9 +471,9 @@ impl EphKeyGenSecondMsg {
         assert!(flag);
         let delta = ECDDHStatement {
             g1: Point::<Secp256k1>::generator().to_point(),
-            h1: *party_two_public_share,
+            h1: party_two_public_share.clone(),
             g2: Point::<Secp256k1>::base_point2().clone(),
-            h2: party_two_second_message.comm_witness.c,
+            h2: party_two_second_message.comm_witness.c.clone(),
         };
         party_two_d_log_proof.verify(&delta)?;
         Ok(EphKeyGenSecondMsg {})
@@ -496,14 +495,14 @@ impl Signature {
             .unwrap()
             .mod_floor(&Scalar::<Secp256k1>::group_order());
 
-        let mut k1_inv = ephemeral_local_share.secret_share.invert().unwrap();
+        let k1_inv = ephemeral_local_share.secret_share.invert().unwrap();
 
         let s_tag = Paillier::decrypt(
             &party_one_private.paillier_priv,
             &RawCiphertext::from(partial_sig_c3),
         )
         .0;
-        let mut s_tag_fe: Scalar<Secp256k1> = Scalar::<Secp256k1>::from(s_tag.as_ref());
+        let s_tag_fe: Scalar<Secp256k1> = Scalar::<Secp256k1>::from(s_tag.as_ref());
         let s_tag_tag = s_tag_fe * k1_inv;
         let s_tag_tag_bn = s_tag_tag.to_bigint();
 
@@ -532,14 +531,14 @@ impl Signature {
             .y_coord()
             .unwrap()
             .mod_floor(&Scalar::<Secp256k1>::group_order());
-        let mut k1_inv = ephemeral_local_share.secret_share.invert().unwrap();
+        let k1_inv = ephemeral_local_share.secret_share.invert().unwrap();
 
         let s_tag = Paillier::decrypt(
             &party_one_private.paillier_priv,
             &RawCiphertext::from(partial_sig_c3),
         )
         .0;
-        let mut s_tag_fe: Scalar<Secp256k1> = Scalar::<Secp256k1>::from(s_tag.as_ref());
+        let s_tag_fe: Scalar<Secp256k1> = Scalar::<Secp256k1>::from(s_tag.as_ref());
         let s_tag_tag = s_tag_fe * k1_inv;
         let s_tag_tag_bn = s_tag_tag.to_bigint();
         let s = cmp::min(
@@ -574,8 +573,8 @@ pub fn verify(
     let s_inv_fe = s_fe.invert().unwrap();
     let e_fe: Scalar<Secp256k1> =
         Scalar::<Secp256k1>::from(&message.mod_floor(&Scalar::<Secp256k1>::group_order()));
-    let u1 = Point::<Secp256k1>::generator() * e_fe * s_inv_fe;
-    let u2 = *pubkey * rx_fe * s_inv_fe;
+    let u1 = Point::<Secp256k1>::generator() * e_fe * &s_inv_fe;
+    let u2 = &*pubkey * rx_fe * &s_inv_fe;
 
     // second condition is against malleability
     let rx_bytes = &BigInt::to_bytes(&signature.r)[..];

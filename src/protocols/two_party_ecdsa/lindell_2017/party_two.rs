@@ -133,11 +133,11 @@ pub struct EphKeyGenSecondMsg {
 impl KeyGenFirstMsg {
     pub fn create() -> (KeyGenFirstMsg, EcKeyPair) {
         let base = Point::<Secp256k1>::generator();
-        let mut secret_share: Scalar<Secp256k1> = Scalar::<Secp256k1>::random();
-        let public_share = base * secret_share;
+        let secret_share: Scalar<Secp256k1> = Scalar::<Secp256k1>::random();
+        let public_share = base * &secret_share;
         let d_log_proof = DLogProof::prove(&secret_share);
         let ec_key_pair = EcKeyPair {
-            public_share,
+            public_share: public_share.clone(),
             secret_share,
         };
         (
@@ -150,13 +150,13 @@ impl KeyGenFirstMsg {
     }
 
     pub fn create_with_fixed_secret_share(
-        mut secret_share: Scalar<Secp256k1>,
+        secret_share: Scalar<Secp256k1>,
     ) -> (KeyGenFirstMsg, EcKeyPair) {
         let base = Point::<Secp256k1>::generator();
-        let public_share = base * secret_share;
+        let public_share = base * &secret_share;
         let d_log_proof = DLogProof::prove(&secret_share);
         let ec_key_pair = EcKeyPair {
-            public_share,
+            public_share: public_share.clone(),
             secret_share,
         };
         (
@@ -227,14 +227,14 @@ pub fn compute_pubkey(
 impl Party2Private {
     pub fn set_private_key(ec_key: &EcKeyPair) -> Party2Private {
         Party2Private {
-            x2: ec_key.secret_share,
+            x2: ec_key.secret_share.clone(),
         }
     }
 
     pub fn update_private_key(party_two_private: &Party2Private, factor: &BigInt) -> Party2Private {
         let factor_fe: Scalar<Secp256k1> = Scalar::<Secp256k1>::from(factor);
         Party2Private {
-            x2: party_two_private.x2 * &factor_fe,
+            x2: &party_two_private.x2 * &factor_fe,
         }
     }
 
@@ -307,20 +307,19 @@ impl EphKeyGenFirstMsg {
     pub fn create_commitments() -> (EphKeyGenFirstMsg, EphCommWitness, EphEcKeyPair) {
         let base = Point::<Secp256k1>::generator();
 
-        let mut secret_share: Scalar<Secp256k1> = Scalar::<Secp256k1>::random();
+        let secret_share: Scalar<Secp256k1> = Scalar::<Secp256k1>::random();
 
         let public_share = base * &secret_share;
 
         let h = Point::<Secp256k1>::base_point2();
 
         let c = h * &secret_share;
-        let mut x = secret_share;
-        let w = ECDDHWitness { x };
+        let w = ECDDHWitness { x: secret_share.clone() };
         let delta = ECDDHStatement {
             g1: base.to_point(),
-            h1: public_share,
+            h1: public_share.clone(),
             g2: h.clone(),
-            h2: c,
+            h2: c.clone(),
         };
         let d_log_proof = ECDDHProof::prove(&w, &delta);
 
@@ -353,7 +352,7 @@ impl EphKeyGenFirstMsg {
             EphCommWitness {
                 pk_commitment_blind_factor,
                 zk_pok_blind_factor,
-                public_share: ec_key_pair.public_share,
+                public_share: ec_key_pair.public_share.clone(),
                 d_log_proof,
                 c,
             },
@@ -369,9 +368,9 @@ impl EphKeyGenSecondMsg {
     ) -> Result<EphKeyGenSecondMsg, ProofError> {
         let delta = ECDDHStatement {
             g1: Point::<Secp256k1>::generator().to_point(),
-            h1: party_one_first_message.public_share,
+            h1: party_one_first_message.public_share.clone(),
             g2: Point::<Secp256k1>::base_point2().clone(),
-            h2: party_one_first_message.c,
+            h2: party_one_first_message.c.clone(),
         };
         party_one_first_message.d_log_proof.verify(&delta)?;
         Ok(EphKeyGenSecondMsg { comm_witness })
@@ -393,7 +392,7 @@ impl PartialSig {
 
         let rx = r.x_coord().unwrap().mod_floor(&q);
         let rho = BigInt::sample_below(&q.pow(2));
-        let mut k2_inv =
+        let k2_inv =
             BigInt::mod_inv(&ephemeral_local_share.secret_share.to_bigint(), &q).unwrap();
         let partial_sig = rho * q + BigInt::mod_mul(&k2_inv, message, &q);
 
