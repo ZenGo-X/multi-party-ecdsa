@@ -40,7 +40,6 @@ use crate::utilities::mta::{MessageA, MessageB};
 
 use crate::utilities::zk_pdl_with_slack::PDLwSlackProof;
 use crate::utilities::zk_pdl_with_slack::PDLwSlackStatement;
-use zeroize::Zeroize;
 use zk_paillier::zkproofs::{CompositeDLogProof, DLogStatement};
 
 const PAILLIER_KEY_SIZE: usize = 2048;
@@ -404,7 +403,6 @@ impl PartialSig {
             &BigInt::mod_mul(&rx, &local_share.x2.to_bigint(), &q),
             &q,
         );
-        k2_inv.zeroize();
         let c2 = Paillier::mul(
             ek,
             RawCiphertext::from(encrypted_secret_share.clone()),
