@@ -32,7 +32,6 @@ use paillier::{DecryptionKey, EncryptionKey, Randomness, RawCiphertext, RawPlain
 use serde::{Deserialize, Serialize};
 use sha2::Sha256;
 use subtle::ConstantTimeEq;
-use zeroize::Zeroize;
 use zk_paillier::zkproofs::NiCorrectKeyProof;
 
 use super::party_two::EphKeyGenFirstMsg as Party2EphKeyGenFirstMessage;
@@ -162,7 +161,6 @@ impl KeyGenFirstMsg {
             public_share,
             secret_share,
         };
-        secret_share.zeroize();
         (
             KeyGenFirstMsg {
                 pk_commitment,
@@ -204,7 +202,6 @@ impl KeyGenFirstMsg {
             public_share,
             secret_share,
         };
-        secret_share.zeroize();
         (
             KeyGenFirstMsg {
                 pk_commitment,
@@ -424,8 +421,6 @@ impl EphKeyGenFirstMsg {
             public_share,
             secret_share,
         };
-        secret_share.zeroize();
-        x.zeroize();
         (
             EphKeyGenFirstMsg {
                 d_log_proof,
@@ -510,8 +505,6 @@ impl Signature {
         .0;
         let mut s_tag_fe: Scalar<Secp256k1> = Scalar::<Secp256k1>::from(s_tag.as_ref());
         let s_tag_tag = s_tag_fe * k1_inv;
-        k1_inv.zeroize();
-        s_tag_fe.zeroize();
         let s_tag_tag_bn = s_tag_tag.to_bigint();
 
         let s = cmp::min(
@@ -548,8 +541,6 @@ impl Signature {
         .0;
         let mut s_tag_fe: Scalar<Secp256k1> = Scalar::<Secp256k1>::from(s_tag.as_ref());
         let s_tag_tag = s_tag_fe * k1_inv;
-        k1_inv.zeroize();
-        s_tag_fe.zeroize();
         let s_tag_tag_bn = s_tag_tag.to_bigint();
         let s = cmp::min(
             s_tag_tag_bn.clone(),

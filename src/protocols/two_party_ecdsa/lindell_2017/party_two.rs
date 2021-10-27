@@ -141,7 +141,6 @@ impl KeyGenFirstMsg {
             public_share,
             secret_share,
         };
-        secret_share.zeroize();
         (
             KeyGenFirstMsg {
                 d_log_proof,
@@ -161,7 +160,6 @@ impl KeyGenFirstMsg {
             public_share,
             secret_share,
         };
-        secret_share.zeroize();
         (
             KeyGenFirstMsg {
                 d_log_proof,
@@ -348,8 +346,6 @@ impl EphKeyGenFirstMsg {
             public_share,
             secret_share,
         };
-        secret_share.zeroize();
-        x.zeroize();
         (
             EphKeyGenFirstMsg {
                 pk_commitment,
