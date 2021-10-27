@@ -138,7 +138,7 @@ impl KeyGenFirstMsg {
     pub fn create_commitments() -> (KeyGenFirstMsg, CommWitness, EcKeyPair) {
         let base = Point::<Secp256k1>::generator();
 
-        let mut secret_share: Scalar<Secp256k1> = Scalar::<Secp256k1>::random();
+        let secret_share: Scalar<Secp256k1> = Scalar::<Secp256k1>::random();
 
         let public_share = base * &secret_share;
 
@@ -169,7 +169,7 @@ impl KeyGenFirstMsg {
             CommWitness {
                 pk_commitment_blind_factor,
                 zk_pok_blind_factor,
-                public_share: ec_key_pair.public_share,
+                public_share: ec_key_pair.public_share.clone(),
                 d_log_proof,
             },
             ec_key_pair,
@@ -177,7 +177,7 @@ impl KeyGenFirstMsg {
     }
 
     pub fn create_commitments_with_fixed_secret_share(
-        mut secret_share: Scalar<Secp256k1>,
+        secret_share: Scalar<Secp256k1>,
     ) -> (KeyGenFirstMsg, CommWitness, EcKeyPair) {
         let base = Point::<Secp256k1>::generator();
         let public_share = base * &secret_share;
@@ -210,7 +210,7 @@ impl KeyGenFirstMsg {
             CommWitness {
                 pk_commitment_blind_factor,
                 zk_pok_blind_factor,
-                public_share: ec_key_pair.public_share,
+                public_share: ec_key_pair.public_share.clone(),
                 d_log_proof,
             },
             ec_key_pair,
@@ -238,7 +238,7 @@ pub fn compute_pubkey(
 impl Party1Private {
     pub fn set_private_key(ec_key: &EcKeyPair, paillier_key: &PaillierKeyPair) -> Party1Private {
         Party1Private {
-            x1: ec_key.secret_share,
+            x1: ec_key.secret_share.clone(),
             paillier_priv: paillier_key.dk.clone(),
             c_key_randomness: paillier_key.randomness.clone(),
         }
@@ -258,7 +258,7 @@ impl Party1Private {
         let (ek_new, dk_new) = Paillier::keypair().keys();
         let randomness = Randomness::sample(&ek_new);
         let factor_fe: Scalar<Secp256k1> = Scalar::<Secp256k1>::from(&*factor);
-        let x1_new = party_one_private.x1 * factor_fe;
+        let x1_new = &party_one_private.x1 * factor_fe;
         let c_key_new = Paillier::encrypt_with_chosen_randomness(
             &ek_new,
             RawPlaintext::from(x1_new.to_bigint().clone()),
