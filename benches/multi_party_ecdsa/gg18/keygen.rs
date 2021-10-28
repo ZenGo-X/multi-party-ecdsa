@@ -27,7 +27,7 @@ mod bench {
         Vec<SharedKeys>,
         Vec<Point<Secp256k1>>,
         Point<Secp256k1>,
-        VerifiableSS<Point<Secp256k1>>,
+        VerifiableSS<Secp256k1>,
     ) {
         let parames = Parameters {
             threshold: t,
@@ -46,7 +46,7 @@ mod bench {
         }
 
         let y_vec = (0..n)
-            .map(|i| decom_vec[i].y_i)
+            .map(|i| decom_vec[i].y_i.clone())
             .collect::<Vec<Point<Secp256k1>>>();
         let mut y_vec_iter = y_vec.iter();
         let head = y_vec_iter.next().unwrap();
@@ -63,7 +63,7 @@ mod bench {
                 .expect("invalid key");
             vss_scheme_vec.push(vss_scheme);
             secret_shares_vec.push(secret_shares);
-            index_vec.push(index);
+            index_vec.push(index as u16);
         }
         let vss_scheme_for_test = vss_scheme_vec.clone();
 
@@ -72,7 +72,7 @@ mod bench {
                 (0..n)
                     .map(|j| {
                         let vec_j = &secret_shares_vec[j];
-                        vec_j[i]
+                        vec_j[i].clone()
                     })
                     .collect::<Vec<Scalar<Secp256k1>>>()
             })
@@ -87,7 +87,7 @@ mod bench {
                     &y_vec,
                     &party_shares[i],
                     &vss_scheme_vec,
-                    &index_vec[i] + 1,
+                    (&index_vec[i] + 1).into(),
                 )
                 .expect("invalid vss");
             shared_keys_vec.push(shared_keys);
@@ -95,7 +95,7 @@ mod bench {
         }
 
         let pk_vec = (0..n)
-            .map(|i| dlog_proof_vec[i].pk)
+            .map(|i| dlog_proof_vec[i].pk.clone())
             .collect::<Vec<Point<Secp256k1>>>();
 
         //both parties run:
@@ -103,14 +103,14 @@ mod bench {
 
         //test
         let xi_vec = (0..=t)
-            .map(|i| shared_keys_vec[i].x_i)
+            .map(|i| shared_keys_vec[i].x_i.clone())
             .collect::<Vec<Scalar<Secp256k1>>>();
         let x = vss_scheme_for_test[0]
             .clone()
             .reconstruct(&index_vec[0..=t], &xi_vec);
         let sum_u_i = party_keys_vec
             .iter()
-            .fold(Scalar::<Secp256k1>::zero(), |acc, x| acc + x.u_i);
+            .fold(Scalar::<Secp256k1>::zero(), |acc, x| acc + &x.u_i);
         assert_eq!(x, sum_u_i);
 
         (

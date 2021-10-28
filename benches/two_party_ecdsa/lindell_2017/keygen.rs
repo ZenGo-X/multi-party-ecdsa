@@ -3,7 +3,7 @@ use criterion::criterion_main;
 mod bench {
     use criterion::{criterion_group, Criterion};
     use curv::arithmetic::traits::Samplable;
-    use curv::elliptic::curves::traits::*;
+    use curv::elliptic::curves::{secp256_k1::Secp256k1, Scalar};
     use curv::BigInt;
     use multi_party_ecdsa::protocols::two_party_ecdsa::lindell_2017::*;
 
