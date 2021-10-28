@@ -1,5 +1,5 @@
 use crate::utilities::mta::*;
-use curv::elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar};
+use curv::elliptic::curves::{secp256_k1::Secp256k1, Scalar};
 use paillier::traits::KeyGeneration;
 
 #[test]
@@ -15,5 +15,5 @@ fn test_mta() {
 
     let left = alpha.0 + beta;
     let right = alice_input * bob_input;
-    assert_eq!(left.get_element(), right.get_element());
+    assert_eq!(left, right);
 }

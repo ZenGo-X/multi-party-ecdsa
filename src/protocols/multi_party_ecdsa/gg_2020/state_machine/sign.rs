@@ -653,9 +653,9 @@ pub enum SignError {
 #[cfg(test)]
 mod test {
     use curv::arithmetic::Converter;
-    use curv::cryptographic_primitives::hashing::hash_sha256::HSha256;
-    use curv::cryptographic_primitives::hashing::traits::Hash;
+    use curv::cryptographic_primitives::hashing::{Digest, DigestExt};
     use round_based::dev::Simulation;
+    use sha2::Sha256;
 
     use super::*;
     use gg20::party_i::verify;
@@ -688,7 +688,7 @@ mod test {
     }
 
     fn simulate_signing(offline: Vec<CompletedOfflineStage>, message: &[u8]) {
-        let message = HSha256::create_hash(&[&BigInt::from_bytes(message)]);
+        let message = Sha256::new().chain_bigint(&BigInt::from_bytes(message)).result_bigint();
         let pk = offline[0].public_key().clone();
 
         let parties = offline

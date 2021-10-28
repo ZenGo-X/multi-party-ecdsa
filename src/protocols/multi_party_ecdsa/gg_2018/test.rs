@@ -23,12 +23,12 @@ use crate::protocols::multi_party_ecdsa::gg_2018::party_i::{
 use crate::utilities::mta::{MessageA, MessageB};
 
 use curv::arithmetic::traits::Converter;
-use curv::cryptographic_primitives::hashing::hash_sha256::HSha256;
-use curv::cryptographic_primitives::hashing::traits::Hash;
 use curv::cryptographic_primitives::proofs::sigma_dlog::DLogProof;
 use curv::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS;
+use curv::cryptographic_primitives::hashing::{Digest, DigestExt};
 use curv::elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar};
 use paillier::*;
+use sha2::Sha256;
 
 #[test]
 fn test_keygen_t1_n2() {
@@ -62,7 +62,7 @@ fn keygen_t_n_parties(
     Vec<SharedKeys>,
     Vec<Point<Secp256k1>>,
     Point<Secp256k1>,
-    VerifiableSS<Point<Secp256k1>>,
+    VerifiableSS<Secp256k1>,
 ) {
     let parames = Parameters {
         threshold: t,
@@ -306,14 +306,14 @@ fn sign(t: u16, n: u16, ttag: u16, s: Vec<usize>) {
                     let b_gamma_vec = &m_b_gamma_vec_all[j];
                     &b_gamma_vec[0].b_proof
                 })
-                .collect::<Vec<&DLogProof<Point<Secp256k1>>>>();
+                .collect::<Vec<&DLogProof<Secp256k1, Sha256>>>();
             SignKeys::phase4(&delta_inv, &b_proof_vec, decommit_vec1.clone(), &bc1_vec)
                 .expect("bad gamma_i decommit")
         })
         .collect::<Vec<Point<Secp256k1>>>();
 
     let message: [u8; 4] = [79, 77, 69, 82];
-    let message_bn = HSha256::create_hash(&[&BigInt::from_bytes(&message[..])]);
+    let message_bn = Sha256::new().chain_bigint(&BigInt::from_bytes(&message[..])).result_bigint();
     let mut local_sig_vec = Vec::new();
 
     // each party computes s_i but don't send it yet. we start with phase5
@@ -413,11 +413,11 @@ fn check_sig(r: &Scalar<Secp256k1>, s: &Scalar<Secp256k1>, msg: &BigInt, pk: &Po
     let pk = PublicKey::parse_slice(&raw_pk, Some(PublicKeyFormat::Full)).unwrap();
 
     let mut compact: Vec<u8> = Vec::new();
-    let bytes_r = &r.get_element()[..];
+    let bytes_r = &r.to_bytes()[..];
     compact.extend(vec![0u8; 32 - bytes_r.len()]);
     compact.extend(bytes_r.iter());
 
-    let bytes_s = &s.get_element()[..];
+    let bytes_s = &s.to_bytes()[..];
     compact.extend(vec![0u8; 32 - bytes_s.len()]);
     compact.extend(bytes_s.iter());
 

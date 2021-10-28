@@ -33,7 +33,7 @@ fn test_zk_pdl() {
         ciphertext: c,
         ek,
         Q,
-        G: Point::<Secp256k1>::generator(),
+        G: Point::<Secp256k1>::generator().to_point(),
     };
     let witness = PDLWitness {
         x,
