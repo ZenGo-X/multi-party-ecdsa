@@ -262,7 +262,7 @@ impl Round4 {
         )
         .map_err(ProceedError::Round4VerifyDLogProof)?;
         let pk_vec = (0..params.share_count as usize)
-            .map(|i| dlog_proofs[i].pk)
+            .map(|i| dlog_proofs[i].pk.clone())
             .collect::<Vec<Point<Secp256k1>>>();
 
         let paillier_key_vec = (0..params.share_count)
@@ -275,7 +275,7 @@ impl Round4 {
             .collect::<Vec<DLogStatement>>();
 
         let (head, tail) = self.y_vec.split_at(1);
-        let y_sum = tail.iter().fold(head[0], |acc, x| acc + x);
+        let y_sum = tail.iter().fold(head[0].clone(), |acc, x| acc + x);
 
         let local_key = LocalKey {
             paillier_dk: self.keys.dk,

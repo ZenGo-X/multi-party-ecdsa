@@ -264,7 +264,7 @@ impl Round2 {
         output.push(Msg {
             sender: self.i,
             receiver: None,
-            body: (DeltaI(delta_i), TI(t_i), TIProof(t_i_proof.clone())),
+            body: (DeltaI(delta_i.clone()), TI(t_i.clone()), TIProof(t_i_proof.clone())),
         });
 
         Ok(Round3 {
@@ -322,7 +322,7 @@ impl Round3 {
         O: Push<Msg<SignDecommitPhase1>>,
     {
         let (delta_vec, t_vec, t_proof_vec) = input
-            .into_vec_including_me((DeltaI(self.delta_i), TI(self.t_i), TIProof(self.t_i_proof)))
+            .into_vec_including_me((DeltaI(self.delta_i), TI(self.t_i.clone()), TIProof(self.t_i_proof)))
             .into_iter()
             .map(|(delta_i, t_i, t_i_proof)| (delta_i.0, t_i.0, t_i_proof.0))
             .unzip3();
@@ -404,7 +404,7 @@ impl Round4 {
             usize::from(self.i - 1),
         )
         .expect(""); //TODO: propagate the error
-        let R_dash = R * self.sign_keys.k_i;
+        let R_dash = &R * &self.sign_keys.k_i;
 
         // each party sends first message to all other parties
         let mut phase5_proofs_vec = Vec::new();
@@ -433,7 +433,7 @@ impl Round4 {
         output.push(Msg {
             sender: self.i,
             receiver: None,
-            body: (RDash(R_dash), phase5_proofs_vec.clone()),
+            body: (RDash(R_dash.clone()), phase5_proofs_vec.clone()),
         });
 
         Ok(Round5 {
@@ -635,7 +635,7 @@ impl Round7 {
     }
 
     pub fn proceed_manual(self, sigs: &[PartialSignature]) -> Result<SignatureRecid> {
-        let sigs = sigs.iter().map(|s_i| s_i.0).collect::<Vec<_>>();
+        let sigs = sigs.iter().map(|s_i| s_i.0.clone()).collect::<Vec<_>>();
         self.local_signature
             .output_signature(&sigs)
             .map_err(Error::Round7)

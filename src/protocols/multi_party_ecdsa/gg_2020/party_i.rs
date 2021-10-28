@@ -900,8 +900,8 @@ impl LocalSignature {
 pub fn verify(sig: &SignatureRecid, y: &Point<Secp256k1>, message: &BigInt) -> Result<(), Error> {
     let b = sig.s.invert().unwrap();
     let a: Scalar<Secp256k1> = Scalar::<Secp256k1>::from(message);
-    let u1 = a * b;
-    let u2 = sig.r * b;
+    let u1 = a * &b;
+    let u2 = sig.r * &b;
 
     let g = Point::<Secp256k1>::generator();
     let gu1 = g * u1;
