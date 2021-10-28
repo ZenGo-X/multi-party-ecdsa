@@ -77,7 +77,7 @@ fn keygen_t_n_parties(
         .unzip();
 
     let y_vec = (0..n)
-        .map(|i| decom_vec[i].y_i)
+        .map(|i| decom_vec[i].y_i.clone())
         .collect::<Vec<Point<Secp256k1>>>();
     let mut y_vec_iter = y_vec.iter();
     let head = y_vec_iter.next().unwrap();
@@ -111,7 +111,7 @@ fn keygen_t_n_parties(
             (0..n)
                 .map(|j| {
                     let vec_j = &secret_shares_vec[j];
-                    vec_j[i]
+                    vec_j[i].clone()
                 })
                 .collect::<Vec<Scalar<Secp256k1>>>()
         })
@@ -134,7 +134,7 @@ fn keygen_t_n_parties(
     }
 
     let pk_vec = (0..n)
-        .map(|i| dlog_proof_vec[i].pk)
+        .map(|i| dlog_proof_vec[i].pk.clone())
         .collect::<Vec<Point<Secp256k1>>>();
 
     //both parties run:
@@ -142,14 +142,14 @@ fn keygen_t_n_parties(
 
     //test
     let xi_vec = (0..=t)
-        .map(|i| shared_keys_vec[i].x_i)
+        .map(|i| shared_keys_vec[i].x_i.clone())
         .collect::<Vec<Scalar<Secp256k1>>>();
     let x = vss_scheme_for_test[0]
         .clone()
         .reconstruct(&index_vec[0..=t], &xi_vec);
     let sum_u_i = party_keys_vec
         .iter()
-        .fold(Scalar::<Secp256k1>::zero(), |acc, x| acc + x.u_i);
+        .fold(Scalar::<Secp256k1>::zero(), |acc, x| acc + &x.u_i);
     assert_eq!(x, sum_u_i);
 
     (
@@ -276,10 +276,10 @@ fn sign(t: u16, n: u16, ttag: u16, s: Vec<usize>) {
 
     for i in 0..ttag {
         let alpha_vec: Vec<Scalar<Secp256k1>> = (0..alpha_vec_all[i].len())
-            .map(|j| alpha_vec_all[i][j].0)
+            .map(|j| alpha_vec_all[i][j].0.clone())
             .collect();
         let miu_vec: Vec<Scalar<Secp256k1>> = (0..miu_vec_all[i].len())
-            .map(|j| miu_vec_all[i][j].0)
+            .map(|j| miu_vec_all[i][j].0.clone())
             .collect();
 
         let delta = sign_keys_vec[i].phase2_delta_i(&alpha_vec[..], &beta_vec_all[i]);
@@ -295,7 +295,7 @@ fn sign(t: u16, n: u16, ttag: u16, s: Vec<usize>) {
     // Return R
 
     let _g_gamma_i_vec = (0..ttag)
-        .map(|i| sign_keys_vec[i].g_gamma_i)
+        .map(|i| sign_keys_vec[i].g_gamma_i.clone())
         .collect::<Vec<Point<Secp256k1>>>();
 
     let R_vec = (0..ttag)

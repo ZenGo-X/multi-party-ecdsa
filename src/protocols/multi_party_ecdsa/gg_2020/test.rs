@@ -183,7 +183,7 @@ fn keygen_t_n_parties(
         .map(|bc1| bc1.dlog_statement_base_h1.clone())
         .collect::<Vec<DLogStatement>>();
     let y_vec = (0..n)
-        .map(|i| decom_vec[i].y_i)
+        .map(|i| decom_vec[i].y_i.clone())
         .collect::<Vec<Point<Secp256k1>>>();
     let mut y_vec_iter = y_vec.iter();
     let head = y_vec_iter.next().unwrap();
@@ -218,7 +218,7 @@ fn keygen_t_n_parties(
             (0..n)
                 .map(|j| {
                     let vec_j = &secret_shares_vec[j];
-                    vec_j[i]
+                    vec_j[i].clone()
                 })
                 .collect::<Vec<Scalar<Secp256k1>>>()
         })
@@ -243,7 +243,7 @@ fn keygen_t_n_parties(
     }
 
     let pk_vec = (0..n)
-        .map(|i| dlog_proof_vec[i].pk)
+        .map(|i| dlog_proof_vec[i].pk.clone())
         .collect::<Vec<Point<Secp256k1>>>();
 
     let dlog_verification = Keys::verify_dlog_proofs_check_against_vss(
@@ -258,14 +258,14 @@ fn keygen_t_n_parties(
     }
     //test
     let xi_vec = (0..=t)
-        .map(|i| shared_keys_vec[i].x_i)
+        .map(|i| shared_keys_vec[i].x_i.clone())
         .collect::<Vec<Scalar<Secp256k1>>>();
     let x = vss_scheme_for_test[0]
         .clone()
         .reconstruct(&index_vec[0..=t], &xi_vec);
     let sum_u_i = party_keys_vec
         .iter()
-        .fold(Scalar::<Secp256k1>::zero(), |acc, x| acc + x.u_i);
+        .fold(Scalar::<Secp256k1>::zero(), |acc, x| acc + &x.u_i);
     assert_eq!(x, sum_u_i);
 
     Ok((
@@ -446,13 +446,13 @@ fn sign(
         // test wrong delta corruption
         if corrupt_step == 5 {
             if corrupted_parties.iter().find(|&&x| x == i).is_some() {
-                delta = delta + &delta;
+                delta = &delta + &delta;
             }
         }
         // test wrong sigma corruption
         if corrupt_step == 6 {
             if corrupted_parties.iter().find(|&&x| x == i).is_some() {
-                sigma = sigma + &sigma;
+                sigma = &sigma + &sigma;
             }
         }
         delta_vec.push(delta);
@@ -493,7 +493,7 @@ fn sign(
     //new phase 5
     // all parties broadcast R_dash = k_i * R.
     let R_dash_vec = (0..ttag)
-        .map(|i| R_vec[i] * sign_keys_vec[i].k_i)
+        .map(|i| &R_vec[i] * &sign_keys_vec[i].k_i)
         .collect::<Vec<Point<Secp256k1>>>();
 
     // each party sends first message to all other parties
@@ -551,9 +551,9 @@ fn sign(
             }
 
             let local_state = LocalStatePhase5 {
-                k: sign_keys_vec[i].k_i,
+                k: sign_keys_vec[i].k_i.clone(),
                 k_randomness: m_a_vec[i].1.clone(),
-                gamma: sign_keys_vec[i].gamma_i,
+                gamma: sign_keys_vec[i].gamma_i.clone(),
                 beta_randomness: beta_randomness_vec_to_test,
                 beta_tag: beta_tag_vec_to_test,
                 encryption_key: ek_vec[s[i]].clone(),
@@ -562,7 +562,7 @@ fn sign(
         }
         //g_gamma_vec:
         let g_gamma_vec = (0..decommit_vec1.len())
-            .map(|i| decommit_vec1[i].g_gamma_i)
+            .map(|i| decommit_vec1[i].g_gamma_i.clone())
             .collect::<Vec<Point<Secp256k1>>>();
         //m_a_vec
         let m_a_vec = (0..m_a_vec.len())
@@ -618,7 +618,7 @@ fn sign(
             }
             let proof = GlobalStatePhase6::ecddh_proof(&sigma_vec[i], &R_vec[i], &S_vec[i]);
             let local_state = LocalStatePhase6 {
-                k: sign_keys_vec[i].k_i,
+                k: sign_keys_vec[i].k_i.clone(),
                 k_randomness: m_a_vec[i].1.clone(),
                 miu: miu_bigint_vec_all[i].clone(),
                 miu_randomness: miu_randomness_vec,
@@ -669,7 +669,7 @@ fn sign(
     if corrupt_step == 7 {
         for i in 0..s_vec.len() {
             if corrupted_parties.iter().find(|&&x| x == i).is_some() {
-                s_vec[i] = s_vec[i] + &s_vec[i];
+                s_vec[i] = &s_vec[i] + &s_vec[i];
             }
         }
     }
@@ -682,10 +682,10 @@ fn sign(
     if sig.is_err() {
         let global_state = GlobalStatePhase7 {
             s_vec,
-            r: local_sig_vec[0].r,
+            r: local_sig_vec[0].r.clone(),
             R_dash_vec,
             m: local_sig_vec[0].m.clone(),
-            R: local_sig_vec[0].R,
+            R: local_sig_vec[0].R.clone(),
             S_vec,
         };
         global_state.phase7_blame()?;
