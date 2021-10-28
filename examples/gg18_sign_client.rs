@@ -499,9 +499,9 @@ fn main() {
 
     let sign_json = serde_json::to_string(&(
         "r",
-        (BigInt::from_bytes(&(sig.r.get_element())[..])).to_str_radix(16),
+        BigInt::from_bytes(sig.r.to_bytes().as_ref()).to_str_radix(16),
         "s",
-        (BigInt::from_bytes(&(sig.s.get_element())[..])).to_str_radix(16),
+        BigInt::from_bytes(sig.s.to_bytes().as_ref()).to_str_radix(16),
     ))
     .unwrap();
 

@@ -203,18 +203,18 @@ pub fn check_sig(
     msg.extend(raw_msg.iter());
 
     let msg = Message::parse_slice(msg.as_slice()).unwrap();
-    let mut raw_pk = pk.pk_to_key_slice();
+    let mut raw_pk = pk.to_bytes(false).to_vec();
     if raw_pk.len() == 64 {
         raw_pk.insert(0, 4u8);
     }
     let pk = PublicKey::parse_slice(&raw_pk, Some(PublicKeyFormat::Full)).unwrap();
 
     let mut compact: Vec<u8> = Vec::new();
-    let bytes_r = &r.get_element()[..];
+    let bytes_r = &r.to_bytes().to_vec();
     compact.extend(vec![0u8; 32 - bytes_r.len()]);
     compact.extend(bytes_r.iter());
 
-    let bytes_s = &s.get_element()[..];
+    let bytes_s = &s.to_bytes().to_vec();
     compact.extend(vec![0u8; 32 - bytes_s.len()]);
     compact.extend(bytes_s.iter());
 
