@@ -146,7 +146,7 @@ pub struct SignatureRecid {
 impl Keys {
     pub fn create(index: usize) -> Self {
         let u = Scalar::<Secp256k1>::random();
-        let y = Point::<Secp256k1>::generator() * u;
+        let y = Point::<Secp256k1>::generator() * &u;
         let (ek, dk) = Paillier::keypair().keys();
 
         Self {
@@ -202,7 +202,7 @@ impl Keys {
         };
         let decom1 = KeyGenDecommitMessage1 {
             blind_factor,
-            y_i: self.y_i,
+            y_i: self.y_i.clone(),
         };
         (bcm1, decom1)
     }
@@ -262,7 +262,7 @@ impl Keys {
 
         if correct_ss_verify {
             let (head, tail) = y_vec.split_at(1);
-            let y = tail.iter().fold(head[0], |acc, x| acc + x);
+            let y = tail.iter().fold(head[0].clone(), |acc, x| acc + x);
 
             let x_i = secret_shares_vec
                 .iter()
@@ -338,7 +338,7 @@ impl PartyPrivate {
 
     pub fn y_i(&self) -> Point<Secp256k1> {
         let g = Point::<Secp256k1>::generator();
-        g * self.u_i
+        g * &self.u_i
     }
 
     pub fn decrypt(&self, ciphertext: BigInt) -> RawPlaintext {
@@ -346,8 +346,8 @@ impl PartyPrivate {
     }
 
     pub fn refresh_private_key(&self, factor: &Scalar<Secp256k1>, index: usize) -> Keys {
-        let u: Scalar<Secp256k1> = self.u_i + factor;
-        let y = Point::<Secp256k1>::generator() * u;
+        let u: Scalar<Secp256k1> = &self.u_i + factor;
+        let y = Point::<Secp256k1>::generator() * &u;
         let (ek, dk) = Paillier::keypair().keys();
 
         Keys {
@@ -361,7 +361,7 @@ impl PartyPrivate {
 
     // we recommend using safe primes if the code is used in production
     pub fn refresh_private_key_safe_prime(&self, factor: &Scalar<Secp256k1>, index: usize) -> Keys {
-        let u: Scalar<Secp256k1> = self.u_i + factor;
+        let u: Scalar<Secp256k1> = &self.u_i + factor;
         let y = &*Point::<Secp256k1>::generator() * &u;
         let (ek, dk) = Paillier::keypair_safe_primes().keys();
 
@@ -391,8 +391,8 @@ impl PartyPrivate {
         factor_x_i: &Scalar<Secp256k1>,
     ) -> Self {
         PartyPrivate {
-            u_i: self.u_i + factor_u_i,
-            x_i: self.x_i + factor_x_i,
+            u_i: &self.u_i + factor_u_i,
+            x_i: &self.x_i + factor_x_i,
             dk: self.dk.clone(),
         }
     }
@@ -408,11 +408,11 @@ impl SignKeys {
         let s: Vec<u16> = s.into_iter().map(|&i| i.try_into().unwrap()).collect();
         let li =
             VerifiableSS::<Secp256k1>::map_share_to_new_params(&vss_scheme.parameters, index.try_into().unwrap(), s.as_slice());
-        let w_i = li * private.x_i;
+        let w_i = li * &private.x_i;
         let g = Point::<Secp256k1>::generator();
-        let g_w_i = g * w_i;
+        let g_w_i = g * &w_i;
         let gamma_i: Scalar<Secp256k1> = Scalar::<Secp256k1>::random();
-        let g_gamma_i = g * gamma_i;
+        let g_gamma_i = g * &gamma_i;
 
         Self {
             w_i,
@@ -426,7 +426,7 @@ impl SignKeys {
     pub fn phase1_broadcast(&self) -> (SignBroadcastPhase1, SignDecommitPhase1) {
         let blind_factor = BigInt::sample(SECURITY);
         let g = Point::<Secp256k1>::generator();
-        let g_gamma_i = g * self.gamma_i;
+        let g_gamma_i = g * &self.gamma_i;
         let com = HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
             &BigInt::from_bytes(&g_gamma_i.to_bytes(true).as_ref()),
             &blind_factor,
@@ -436,7 +436,7 @@ impl SignKeys {
             SignBroadcastPhase1 { com },
             SignDecommitPhase1 {
                 blind_factor,
-                g_gamma_i: self.g_gamma_i,
+                g_gamma_i: self.g_gamma_i.clone(),
             },
         )
     }
@@ -449,9 +449,9 @@ impl SignKeys {
         let vec_len = alpha_vec.len();
         assert_eq!(alpha_vec.len(), beta_vec.len());
         // assert_eq!(alpha_vec.len(), self.s.len() - 1);
-        let ki_gamma_i = self.k_i * &self.gamma_i;
+        let ki_gamma_i = &self.k_i * &self.gamma_i;
         (0..vec_len)
-            .map(|i| alpha_vec[i] + &beta_vec[i])
+            .map(|i| &alpha_vec[i] + &beta_vec[i])
             .fold(ki_gamma_i, |acc, x| acc + x)
     }
 
@@ -463,9 +463,9 @@ impl SignKeys {
         let vec_len = miu_vec.len();
         assert_eq!(miu_vec.len(), ni_vec.len());
         //assert_eq!(miu_vec.len(), self.s.len() - 1);
-        let ki_w_i = self.k_i * &self.w_i;
+        let ki_w_i = &self.k_i * &self.w_i;
         (0..vec_len)
-            .map(|i| miu_vec[i] + &ni_vec[i])
+            .map(|i| &miu_vec[i] + &ni_vec[i])
             .fold(ki_w_i, |acc, x| acc + x)
     }
 
@@ -502,7 +502,7 @@ impl SignKeys {
         let tail = g_gamma_i_iter;
         if test_b_vec_and_com {
             Ok({
-                let gamma_sum = tail.fold(head.g_gamma_i, |acc, x| acc + x.g_gamma_i);
+                let gamma_sum = tail.fold(head.g_gamma_i.clone(), |acc, x| acc + &x.g_gamma_i);
                 // R
                 gamma_sum * delta_inv
             })
@@ -532,10 +532,10 @@ impl LocalSignature {
         Self {
             l_i,
             rho_i,
-            R: *R,
+            R: R.clone(),
             s_i,
             m: message.clone(),
-            y: *pubkey,
+            y: pubkey.clone(),
         }
     }
 
@@ -549,10 +549,10 @@ impl LocalSignature {
     ) {
         let blind_factor = BigInt::sample(SECURITY);
         let g = Point::<Secp256k1>::generator();
-        let A_i = g * self.rho_i;
-        let l_i_rho_i = self.l_i * &self.rho_i;
+        let A_i = g * &self.rho_i;
+        let l_i_rho_i = &self.l_i * &self.rho_i;
         let B_i = g * l_i_rho_i;
-        let V_i = self.R * self.s_i + g * self.l_i;
+        let V_i = &self.R * &self.s_i + g * &self.l_i;
         let input_hash = Sha256::new()
             .chain_points([&V_i, &A_i, &B_i])
             .result_bigint();
@@ -561,15 +561,15 @@ impl LocalSignature {
             &blind_factor,
         );
         let witness = HomoElGamalWitness {
-            r: self.l_i,
-            x: self.s_i,
+            r: self.l_i.clone(),
+            x: self.s_i.clone(),
         };
         let delta = HomoElGamalStatement {
-            G: A_i,
-            H: self.R,
+            G: A_i.clone(),
+            H: self.R.clone(),
             Y: g.to_point(),
-            D: V_i,
-            E: B_i,
+            D: V_i.clone(),
+            E: B_i.clone(),
         };
         let dlog_proof_rho = DLogProof::prove(&self.rho_i);
         let proof = HomoELGamalProof::prove(&witness, &delta);
@@ -602,11 +602,11 @@ impl LocalSignature {
         let test_com_elgamal = (0..com_vec.len())
             .map(|i| {
                 let delta = HomoElGamalStatement {
-                    G: decom_vec[i].A_i,
-                    H: *R,
+                    G: decom_vec[i].A_i.clone(),
+                    H: R.clone(),
                     Y: g.to_point(),
-                    D: decom_vec[i].V_i,
-                    E: decom_vec[i].B_i,
+                    D: decom_vec[i].V_i.clone(),
+                    E: decom_vec[i].B_i.clone(),
                 };
 
                 let input_hash = Sha256::new()
@@ -643,13 +643,13 @@ impl LocalSignature {
                 .unwrap()
                 .mod_floor(&Scalar::<Secp256k1>::group_order()),
         );
-        let yr = self.y * r;
+        let yr = &self.y * r;
         let g = Point::<Secp256k1>::generator();
         let m_fe: Scalar<Secp256k1> = Scalar::<Secp256k1>::from(&self.m);
         let gm = g * m_fe;
         let v = v - (&gm - &yr);
-        let u_i = v * self.rho_i;
-        let t_i = a * self.l_i;
+        let u_i = v * &self.rho_i;
+        let t_i = a * &self.l_i;
         let input_hash = Sha256::new().chain_points([&u_i, &t_i]).result_bigint();
         let blind_factor = BigInt::sample(SECURITY);
         let com = HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
@@ -705,11 +705,11 @@ impl LocalSignature {
             .collect::<Vec<&Point<Secp256k1>>>();
 
         let g = Point::<Secp256k1>::generator().to_point();
-        let biased_sum_tb = t_vec.iter().zip(b_vec).fold(g, |acc, x| acc + *x.0 + x.1);
+        let biased_sum_tb = t_vec.iter().zip(b_vec).fold(g.clone(), |acc, x| acc + *x.0 + x.1);
         let biased_sum_tb_minus_u = u_vec.iter().fold(biased_sum_tb, |acc, x| acc - *x);
         if test_com {
             if g == biased_sum_tb_minus_u {
-                Ok(self.s_i)
+                Ok(self.s_i.clone())
             } else {
                 Err(InvalidKey)
             }
