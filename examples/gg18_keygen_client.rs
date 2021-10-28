@@ -105,13 +105,13 @@ fn main() {
     let mut enc_keys: Vec<Vec<u8>> = Vec::new();
     for i in 1..=PARTIES {
         if i == party_num_int {
-            point_vec.push(decom_i.y_i);
+            point_vec.push(decom_i.y_i.clone());
             decom_vec.push(decom_i.clone());
         } else {
             let decom_j: KeyGenDecommitMessage1 = serde_json::from_str(&round2_ans_vec[j]).unwrap();
-            point_vec.push(decom_j.y_i);
+            point_vec.push(decom_j.y_i.clone());
             decom_vec.push(decom_j.clone());
-            let key_bn: BigInt = (decom_j.y_i.clone() * party_keys.u_i).x_coord().unwrap();
+            let key_bn: BigInt = (decom_j.y_i.clone() * party_keys.u_i.clone()).x_coord().unwrap();
             let key_bytes = BigInt::to_bytes(&key_bn);
             let mut template: Vec<u8> = vec![0u8; AES_KEY_BYTES_LEN - key_bytes.len()];
             template.extend_from_slice(&key_bytes[..]);
@@ -121,7 +121,7 @@ fn main() {
     }
 
     let (head, tail) = point_vec.split_at(1);
-    let y_sum = tail.iter().fold(head[0], |acc, x| acc + x);
+    let y_sum = tail.iter().fold(head[0].clone(), |acc, x| acc + x);
 
     let (vss_scheme, secret_shares, _index) = party_keys
         .phase1_verify_com_phase3_verify_correct_key_phase2_distribute(
@@ -164,7 +164,7 @@ fn main() {
     let mut party_shares: Vec<Scalar<Secp256k1>> = Vec::new();
     for i in 1..=PARTIES {
         if i == party_num_int {
-            party_shares.push(secret_shares[(i - 1) as usize]);
+            party_shares.push(secret_shares[(i - 1) as usize].clone());
         } else {
             let aead_pack: AEAD = serde_json::from_str(&round3_ans_vec[j]).unwrap();
             let key_i = &enc_keys[j];
