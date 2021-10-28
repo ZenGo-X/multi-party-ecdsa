@@ -529,7 +529,7 @@ impl SignKeys {
                     s[i].try_into().unwrap(),
                     s.as_slice(),
                 );
-                pk_vec[s[i] as usize] * &li
+                &pk_vec[s[i] as usize] * &li
             })
             .collect::<Vec<Point<Secp256k1>>>()
     }
@@ -545,9 +545,9 @@ impl SignKeys {
             VerifiableSS::<Secp256k1>::map_share_to_new_params(&vss_scheme.parameters, index.try_into().unwrap(), s.as_slice());
         let w_i = li * private_x_i;
         let g = Point::<Secp256k1>::generator();
-        let g_w_i = g * w_i;
+        let g_w_i = g * &w_i;
         let gamma_i: Scalar<Secp256k1> = Scalar::<Secp256k1>::random();
-        let g_gamma_i = g * gamma_i;
+        let g_gamma_i = g * &gamma_i;
         let k_i: Scalar<Secp256k1> = Scalar::<Secp256k1>::random();
         Self {
             w_i,
@@ -561,7 +561,7 @@ impl SignKeys {
     pub fn phase1_broadcast(&self) -> (SignBroadcastPhase1, SignDecommitPhase1) {
         let blind_factor = BigInt::sample(SECURITY);
         let g = Point::<Secp256k1>::generator();
-        let g_gamma_i = g * self.gamma_i;
+        let g_gamma_i = g * &self.gamma_i;
         let com = HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
             &BigInt::from_bytes(&g_gamma_i.to_bytes(true).as_ref()),
             &blind_factor,
@@ -571,7 +571,7 @@ impl SignKeys {
             SignBroadcastPhase1 { com },
             SignDecommitPhase1 {
                 blind_factor,
-                g_gamma_i: self.g_gamma_i,
+                g_gamma_i: self.g_gamma_i.clone(),
             },
         )
     }
@@ -584,10 +584,10 @@ impl SignKeys {
         let vec_len = alpha_vec.len();
         assert_eq!(alpha_vec.len(), beta_vec.len());
         // assert_eq!(alpha_vec.len(), self.s.len() - 1);
-        let ki_gamma_i = self.k_i * &self.gamma_i;
+        let ki_gamma_i = &self.k_i * &self.gamma_i;
 
         (0..vec_len)
-            .map(|i| alpha_vec[i] + &beta_vec[i])
+            .map(|i| &alpha_vec[i] + &beta_vec[i])
             .fold(ki_gamma_i, |acc, x| acc + x)
     }
 
@@ -599,9 +599,9 @@ impl SignKeys {
         let vec_len = miu_vec.len();
         assert_eq!(miu_vec.len(), ni_vec.len());
         //assert_eq!(miu_vec.len(), self.s.len() - 1);
-        let ki_w_i = self.k_i * &self.w_i;
+        let ki_w_i = &self.k_i * &self.w_i;
         (0..vec_len)
-            .map(|i| miu_vec[i] + &ni_vec[i])
+            .map(|i| &miu_vec[i] + &ni_vec[i])
             .fold(ki_w_i, |acc, x| acc + x)
     }
 
@@ -665,7 +665,7 @@ impl SignKeys {
 
         if test_b_vec_and_com {
             Ok({
-                let gamma_sum = tail.fold(head.g_gamma_i, |acc, x| acc + x.g_gamma_i);
+                let gamma_sum = tail.fold(head.g_gamma_i.clone(), |acc, x| acc + &x.g_gamma_i);
                 // R
                 gamma_sum * delta_inv
             })
@@ -723,8 +723,8 @@ impl LocalSignature {
                 let pdl_w_slack_statement = PDLwSlackStatement {
                     ciphertext: k_ciphertext.clone(),
                     ek: ek.clone(),
-                    Q: *R_dash,
-                    G: *R,
+                    Q: R_dash.clone(),
+                    G: R.clone(),
                     h1: dlog_statement[s[ind]].g.clone(),
                     h2: dlog_statement[s[ind]].ni.clone(),
                     N_tilde: dlog_statement[s[ind]].N.clone(),
@@ -847,18 +847,18 @@ impl LocalSignature {
                 .unwrap()
                 .mod_floor(&Scalar::<Secp256k1>::group_order()),
         );
-        let s_i = m_fe * k_i + r * sigma_i;
+        let s_i = m_fe * k_i + &r * sigma_i;
         Self {
             r,
-            R: *R,
+            R: R.clone(),
             s_i,
             m: message.clone(),
-            y: *pubkey,
+            y: pubkey.clone(),
         }
     }
 
     pub fn output_signature(&self, s_vec: &[Scalar<Secp256k1>]) -> Result<SignatureRecid, Error> {
-        let mut s = s_vec.iter().fold(self.s_i, |acc, x| acc + x);
+        let mut s = s_vec.iter().fold(self.s_i.clone(), |acc, x| acc + x);
         let s_bn = s.to_bigint();
 
         let r: Scalar<Secp256k1> = Scalar::<Secp256k1>::from(
@@ -901,7 +901,7 @@ pub fn verify(sig: &SignatureRecid, y: &Point<Secp256k1>, message: &BigInt) -> R
     let b = sig.s.invert().unwrap();
     let a: Scalar<Secp256k1> = Scalar::<Secp256k1>::from(message);
     let u1 = a * &b;
-    let u2 = sig.r * &b;
+    let u2 = &sig.r * &b;
 
     let g = Point::<Secp256k1>::generator();
     let gu1 = g * u1;
