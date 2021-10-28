@@ -9,6 +9,7 @@ use curv::{
     elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar},
     BigInt,
 };
+use sha2::Sha256;
 use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2018::party_i::{
     Keys, LocalSignature, PartyPrivate, Phase5ADecom1, Phase5Com1, Phase5Com2, Phase5DDecom2,
     SharedKeys, SignBroadcastPhase1, SignDecommitPhase1, SignKeys,
@@ -296,7 +297,7 @@ fn main() {
     bc1_vec.remove((party_num_int - 1) as usize);
     let b_proof_vec = (0..m_b_gamma_rec_vec.len())
         .map(|i| &m_b_gamma_rec_vec[i].b_proof)
-        .collect::<Vec<&DLogProof<Point<Secp256k1>>>>();
+        .collect::<Vec<&DLogProof<Secp256k1, Sha256>>>();
     let R = SignKeys::phase4(&delta_inv, &b_proof_vec, decommit_vec, &bc1_vec)
         .expect("bad gamma_i decommit");
 
@@ -362,8 +363,8 @@ fn main() {
 
     let mut decommit5a_and_elgamal_and_dlog_vec: Vec<(
         Phase5ADecom1,
-        HomoELGamalProof<Point<Secp256k1>>,
-        DLogProof<Point<Secp256k1>>,
+        HomoELGamalProof<Secp256k1, Sha256>,
+        DLogProof<Secp256k1, Sha256>,
     )> = Vec::new();
     format_vec_from_reads(
         &round6_ans_vec,
@@ -384,10 +385,10 @@ fn main() {
         .collect::<Vec<Phase5ADecom1>>();
     let phase_5a_elgamal_vec = (0..THRESHOLD)
         .map(|i| decommit5a_and_elgamal_and_dlog_vec[i as usize].1.clone())
-        .collect::<Vec<HomoELGamalProof<Point<Secp256k1>>>>();
+        .collect::<Vec<HomoELGamalProof<Secp256k1, Sha256>>>();
     let phase_5a_dlog_vec = (0..THRESHOLD)
         .map(|i| decommit5a_and_elgamal_and_dlog_vec[i as usize].2.clone())
-        .collect::<Vec<DLogProof<Point<Secp256k1>>>>();
+        .collect::<Vec<DLogProof<Secp256k1, Sha256>>>();
     let (phase5_com2, phase_5d_decom2) = local_sig
         .phase5c(
             &phase_5a_decomm_vec,
@@ -492,8 +493,8 @@ fn main() {
         .output_signature(&s_i_vec)
         .expect("verification failed");
     println!("party {:?} Output Signature: \n", party_num_int);
-    println!("R: {:?}", sig.r.get_element());
-    println!("s: {:?} \n", sig.s.get_element());
+    println!("R: {:?}", sig.r);
+    println!("s: {:?} \n", sig.s);
     println!("recid: {:?} \n", sig.recid.clone());
 
     let sign_json = serde_json::to_string(&(

@@ -10,6 +10,7 @@ use curv::{
     elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar},
     BigInt,
 };
+use sha2::Sha256;
 use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2018::party_i::{
     KeyGenBroadcastMessage1, KeyGenDecommitMessage1, Keys, Parameters,
 };
@@ -236,12 +237,12 @@ fn main() {
     );
 
     let mut j = 0;
-    let mut dlog_proof_vec: Vec<DLogProof<Point<Secp256k1>>> = Vec::new();
+    let mut dlog_proof_vec: Vec<DLogProof<Secp256k1, Sha256>> = Vec::new();
     for i in 1..=PARTIES {
         if i == party_num_int {
             dlog_proof_vec.push(dlog_proof.clone());
         } else {
-            let dlog_proof_j: DLogProof<Point<Secp256k1>> =
+            let dlog_proof_j: DLogProof<Secp256k1, Sha256> =
                 serde_json::from_str(&round5_ans_vec[j]).unwrap();
             dlog_proof_vec.push(dlog_proof_j);
             j += 1;
