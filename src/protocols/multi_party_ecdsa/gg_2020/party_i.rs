@@ -157,7 +157,7 @@ pub fn generate_h1_h2_N_tilde() -> (BigInt, BigInt, BigInt, BigInt, BigInt) {
 impl Keys {
     pub fn create(index: usize) -> Self {
         let u = Scalar::<Secp256k1>::random();
-        let y = Point::<Secp256k1>::generator() * u;
+        let y = Point::<Secp256k1>::generator() * &u;
         let (ek, dk) = Paillier::keypair().keys();
         let (N_tilde, h1, h2, xhi, xhi_inv) = generate_h1_h2_N_tilde();
 
@@ -252,7 +252,7 @@ impl Keys {
         };
         let decom1 = KeyGenDecommitMessage1 {
             blind_factor,
-            y_i: self.y_i,
+            y_i: self.y_i.clone(),
         };
         (bcm1, decom1)
     }
@@ -348,7 +348,7 @@ impl Keys {
 
         if correct_ss_verify {
             let (head, tail) = y_vec.split_at(1);
-            let y = tail.iter().fold(head[0], |acc, x| acc + x);
+            let y = tail.iter().fold(head[0].clone(), |acc, x| acc + x);
 
             let x_i = secret_shares_vec
                 .iter()
@@ -368,7 +368,7 @@ impl Keys {
         let mut global_coefficients = head[0].commitments.clone();
         for vss in tail {
             for (i, coefficient_commitment) in vss.commitments.iter().enumerate() {
-                global_coefficients[i] = global_coefficients[i] + &*coefficient_commitment;
+                global_coefficients[i] = &global_coefficients[i] + &*coefficient_commitment;
             }
         }
 
@@ -440,7 +440,7 @@ impl PartyPrivate {
 
     pub fn y_i(&self) -> Point<Secp256k1> {
         let g = Point::<Secp256k1>::generator();
-        g * self.u_i
+        g * &self.u_i
     }
 
     pub fn decrypt(&self, ciphertext: BigInt) -> RawPlaintext {
@@ -448,8 +448,8 @@ impl PartyPrivate {
     }
 
     pub fn refresh_private_key(&self, factor: &Scalar<Secp256k1>, index: usize) -> Keys {
-        let u: Scalar<Secp256k1> = self.u_i + factor;
-        let y = Point::<Secp256k1>::generator() * u;
+        let u: Scalar<Secp256k1> = &self.u_i + factor;
+        let y = Point::<Secp256k1>::generator() * &u;
         let (ek, dk) = Paillier::keypair().keys();
 
         let (N_tilde, h1, h2, xhi, xhi_inv) = generate_h1_h2_N_tilde();
@@ -470,7 +470,7 @@ impl PartyPrivate {
 
     // we recommend using safe primes if the code is used in production
     pub fn refresh_private_key_safe_prime(&self, factor: &Scalar<Secp256k1>, index: usize) -> Keys {
-        let u: Scalar<Secp256k1> = self.u_i + factor;
+        let u: Scalar<Secp256k1> = &self.u_i + factor;
         let y = &*Point::<Secp256k1>::generator() * &u;
         let (ek, dk) = Paillier::keypair_safe_primes().keys();
 
@@ -507,8 +507,8 @@ impl PartyPrivate {
         factor_x_i: &Scalar<Secp256k1>,
     ) -> Self {
         PartyPrivate {
-            u_i: self.u_i + factor_u_i,
-            x_i: self.x_i + factor_x_i,
+            u_i: &self.u_i + factor_u_i,
+            x_i: &self.x_i + factor_x_i,
             dk: self.dk.clone(),
         }
     }
