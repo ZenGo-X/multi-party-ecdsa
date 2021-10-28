@@ -131,6 +131,7 @@ impl GlobalStatePhase5 {
                     &self.k_vec[i],
                     &self.encryption_key_vec[i],
                     &self.k_randomness_vec[i],
+                    &[],
                 );
 
                 // check message a
@@ -138,27 +139,33 @@ impl GlobalStatePhase5 {
                     bad_signers_vec.push(i)
                 }
 
-                let alpha_beta_vector = (0..len - 1)
-                    .map(|j| {
-                        let ind = if j < i { j } else { j + 1 };
-                        let (message_b, beta) = MessageB::b_with_predefined_randomness(
-                            &self.gamma_vec[ind],
-                            &self.encryption_key_vec[i],
-                            self.m_a_vec[i].clone(),
-                            &self.beta_randomness_vec[i][j],
-                            &self.beta_tag_vec[i][j],
-                        );
-                        // check message_b
-                        if message_b.c != self.m_b_mat[i][j].c {
-                            bad_signers_vec.push(ind)
-                        }
+                let alpha_beta_vector = if bad_signers_vec.is_empty() {
+                    (0..len - 1)
+                        .map(|j| {
+                            let ind = if j < i { j } else { j + 1 };
+                            let (message_b, beta) = MessageB::b_with_predefined_randomness(
+                                &self.gamma_vec[ind],
+                                &self.encryption_key_vec[i],
+                                message_a.clone(),
+                                &self.beta_randomness_vec[i][j],
+                                &self.beta_tag_vec[i][j],
+                                &[],
+                            )
+                            .unwrap();
+                            // check message_b
+                            if message_b.c != self.m_b_mat[i][j].c {
+                                bad_signers_vec.push(ind)
+                            }
 
-                        let k_i_gamma_j = self.k_vec[i] * self.gamma_vec[ind];
-                        let alpha = k_i_gamma_j.sub(&beta.get_element());
+                            let k_i_gamma_j = self.k_vec[i] * self.gamma_vec[ind];
+                            let alpha = k_i_gamma_j.sub(&beta.get_element());
 
-                        (alpha, beta)
-                    })
-                    .collect::<Vec<(FE, FE)>>();
+                            (alpha, beta)
+                        })
+                        .collect::<Vec<(FE, FE)>>()
+                } else {
+                    vec![]
+                };
 
                 alpha_beta_vector
             })
@@ -333,6 +340,7 @@ impl GlobalStatePhase6 {
                 &self.k_vec[i],
                 &self.encryption_key_vec[i],
                 &self.k_randomness_vec[i],
+                &[],
             )
             .c != self.m_a_vec[i].c
             {
