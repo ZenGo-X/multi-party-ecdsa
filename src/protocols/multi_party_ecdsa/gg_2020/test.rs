@@ -208,7 +208,7 @@ fn keygen_t_n_parties(
     for (vss_scheme, secret_shares, index) in vss_result {
         vss_scheme_vec.push(vss_scheme);
         secret_shares_vec.push(secret_shares); // cannot unzip
-        index_vec.push(index);
+        index_vec.push(index as u16);
     }
 
     let vss_scheme_for_test = vss_scheme_vec.clone();
@@ -232,7 +232,7 @@ fn keygen_t_n_parties(
             &y_vec,
             &party_shares[i],
             &vss_scheme_vec,
-            &index_vec[i] + 1,
+            (&index_vec[i] + 1).into(),
         );
         if res.is_err() {
             return Err(res.err().unwrap());
