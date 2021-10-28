@@ -718,7 +718,7 @@ impl LocalSignature {
         }
     }
     pub fn output_signature(&self, s_vec: &[Scalar<Secp256k1>]) -> Result<SignatureRecid, Error> {
-        let mut s = s_vec.iter().fold(self.s_i, |acc, x| acc + x);
+        let mut s = s_vec.iter().fold(self.s_i.clone(), |acc, x| acc + x);
         let s_bn = s.to_bigint();
 
         let r: Scalar<Secp256k1> = Scalar::<Secp256k1>::from(
@@ -760,8 +760,8 @@ impl LocalSignature {
 pub fn verify(sig: &SignatureRecid, y: &Point<Secp256k1>, message: &BigInt) -> Result<(), Error> {
     let b = sig.s.invert().unwrap();
     let a: Scalar<Secp256k1> = Scalar::<Secp256k1>::from(message);
-    let u1 = a * b;
-    let u2 = sig.r * b;
+    let u1 = a * &b;
+    let u2 = &sig.r * &b;
 
     let g = Point::<Secp256k1>::generator();
     let gu1 = g * u1;

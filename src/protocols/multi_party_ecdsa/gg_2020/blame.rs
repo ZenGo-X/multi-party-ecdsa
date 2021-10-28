@@ -119,7 +119,7 @@ impl GlobalStatePhase5 {
 
         // check commitment to g_gamma
         for i in 0..len {
-            if self.g_gamma_vec[i] != Point::<Secp256k1>::generator() * self.gamma_vec[i] {
+            if self.g_gamma_vec[i] != Point::<Secp256k1>::generator() * &self.gamma_vec[i] {
                 bad_signers_vec.push(i)
             }
         }
@@ -152,7 +152,7 @@ impl GlobalStatePhase5 {
                             bad_signers_vec.push(ind)
                         }
 
-                        let k_i_gamma_j = self.k_vec[i] * self.gamma_vec[ind];
+                        let k_i_gamma_j = &self.k_vec[i] * &self.gamma_vec[ind];
                         let alpha = k_i_gamma_j - &beta;
 
                         (alpha, beta)
@@ -178,7 +178,7 @@ impl GlobalStatePhase5 {
             //reconstruct delta's
             let delta_vec_reconstruct = (0..len)
                 .map(|i| {
-                    let k_i_gamma_i = self.k_vec[i] * self.gamma_vec[i];
+                    let k_i_gamma_i = &self.k_vec[i] * &self.gamma_vec[i];
 
                     let alpha_sum = alpha_beta_matrix[i]
                         .iter()
@@ -187,7 +187,7 @@ impl GlobalStatePhase5 {
                         .map(|j| {
                             let ind1 = if j < i { j } else { j + 1 };
                             let ind2 = if j < i { i - 1 } else { i };
-                            alpha_beta_matrix[ind1][ind2].1
+                            alpha_beta_matrix[ind1][ind2].1.clone()
                         })
                         .collect::<Vec<Scalar<Secp256k1>>>();
 
@@ -371,7 +371,7 @@ impl GlobalStatePhase6 {
 
             let mut g_sigma_i_vec = (0..len)
                 .map(|i| {
-                    let g_wi_ki = self.g_w_vec[i] * &self.k_vec[i];
+                    let g_wi_ki = &self.g_w_vec[i] * &self.k_vec[i];
                     let sum = self.miu_vec[i].iter().fold(g_wi_ki, |acc, x| {
                         acc + (Point::<Secp256k1>::generator() * &Scalar::<Secp256k1>::from(&*x))
                     });
@@ -383,7 +383,7 @@ impl GlobalStatePhase6 {
                 for j in 0..len - 1 {
                     let ind1 = if j < i { j } else { j + 1 };
                     let ind2 = if j < i { i - 1 } else { i };
-                    g_sigma_i_vec[i] = g_sigma_i_vec[i] + g_ni_mat[ind1][ind2];
+                    g_sigma_i_vec[i] = &g_sigma_i_vec[i] + &g_ni_mat[ind1][ind2];
                 }
             }
 
@@ -392,8 +392,8 @@ impl GlobalStatePhase6 {
                 let statement = ECDDHStatement {
                     g1: Point::<Secp256k1>::generator().to_point(),
                     g2: R.clone(),
-                    h1: g_sigma_i_vec[i],
-                    h2: self.S_vec[i],
+                    h1: g_sigma_i_vec[i].clone(),
+                    h2: self.S_vec[i].clone(),
                 };
 
                 let result = self.proof_vec[i].verify(&statement);
@@ -429,9 +429,9 @@ impl GlobalStatePhase7 {
         let mut bad_signers_vec = Vec::new();
 
         for i in 0..len {
-            let R_si = self.R * &self.s_vec[i];
-            let R_dash_m = self.R_dash_vec[i] * &Scalar::<Secp256k1>::from(&self.m);
-            let Si_r = self.S_vec[i] * &self.r;
+            let R_si = &self.R * &self.s_vec[i];
+            let R_dash_m = &self.R_dash_vec[i] * &Scalar::<Secp256k1>::from(&self.m);
+            let Si_r = &self.S_vec[i] * &self.r;
             let right = R_dash_m + Si_r;
             let left = R_si;
             if left != right {
