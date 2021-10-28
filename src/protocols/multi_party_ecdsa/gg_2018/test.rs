@@ -397,15 +397,15 @@ fn check_sig(r: &Scalar<Secp256k1>, s: &Scalar<Secp256k1>, msg: &BigInt, pk: &Po
     msg.extend(raw_msg.iter());
 
     let msg = Message::parse_slice(msg.as_slice()).unwrap();
-    let slice = pk.pk_to_key_slice();
+    let slice = pk.to_bytes(false);
     let mut raw_pk = Vec::new();
     if slice.len() != 65 {
         // after curv's pk_to_key_slice return 65 bytes, this can be removed
         raw_pk.insert(0, 4u8);
         raw_pk.extend(vec![0u8; 64 - slice.len()]);
-        raw_pk.extend(slice);
+        raw_pk.extend(slice.as_ref());
     } else {
-        raw_pk.extend(slice);
+        raw_pk.extend(slice.as_ref());
     }
 
     assert_eq!(raw_pk.len(), 65);
