@@ -24,6 +24,8 @@ use std::borrow::Borrow;
 use zeroize::Zeroize;
 
 /// Represents the first round of the interactive version of the proof
+#[derive(Zeroize)]
+#[zeroize(drop)]
 struct AliceZkpRound1 {
     alpha: BigInt,
     beta: BigInt,
@@ -32,26 +34,6 @@ struct AliceZkpRound1 {
     z: BigInt,
     u: BigInt,
     w: BigInt,
-}
-
-/// Zeroize Alice's first round
-impl Zeroize for AliceZkpRound1 {
-    fn zeroize(&mut self) {
-        self.alpha.zeroize();
-        self.beta.zeroize();
-        self.gamma.zeroize();
-        self.ro.zeroize();
-        self.z.zeroize();
-        self.u.zeroize();
-        self.w.zeroize();
-    }
-}
-
-/// Zeroize Alice's first round on drop as it contains secret values
-impl Drop for AliceZkpRound1 {
-    fn drop(&mut self) {
-        self.zeroize();
-    }
 }
 
 impl AliceZkpRound1 {
