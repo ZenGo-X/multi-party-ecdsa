@@ -139,11 +139,11 @@ impl AliceProof {
         }
 
         let z_e_inv = BigInt::mod_inv(&BigInt::mod_pow(&self.z, &self.e, N_tilde), N_tilde);
-        if z_e_inv.is_none() {
+        let z_e_inv = match z_e_inv {
             // z must be invertible, yet the check is done here
-            return false;
-        }
-        let z_e_inv = z_e_inv.unwrap();
+            None => return false,
+            Some(c) => c,
+        };
 
         let w = (BigInt::mod_pow(h1, &self.s1, N_tilde)
             * BigInt::mod_pow(h2, &self.s2, N_tilde)
@@ -152,10 +152,10 @@ impl AliceProof {
 
         let gs1 = (self.s1.borrow() * N + 1) % NN;
         let cipher_e_inv = BigInt::mod_inv(&BigInt::mod_pow(&cipher, &self.e, NN), NN);
-        if cipher_e_inv.is_none() {
-            return false;
-        }
-        let cipher_e_inv = cipher_e_inv.unwrap();
+        let cipher_e_inv = match cipher_e_inv {
+            None => return false,
+            Some(c) => c,
+        };
 
         let u = (gs1 * BigInt::mod_pow(&self.s, N, NN) * cipher_e_inv) % NN;
 
@@ -194,6 +194,8 @@ impl AliceProof {
 }
 
 /// Represents first round of the interactive version of the proof
+#[derive(Zeroize)]
+#[zeroize(drop)]
 struct BobZkpRound1 {
     pub alpha: BigInt,
     pub beta: BigInt,
@@ -207,31 +209,6 @@ struct BobZkpRound1 {
     pub t: BigInt,
     pub w: BigInt,
     pub v: BigInt,
-}
-
-/// Zeroize Bob's first round
-impl Zeroize for BobZkpRound1 {
-    fn zeroize(&mut self) {
-        self.alpha.zeroize();
-        self.beta.zeroize();
-        self.gamma.zeroize();
-        self.ro.zeroize();
-        self.ro_prim.zeroize();
-        self.sigma.zeroize();
-        self.tau.zeroize();
-        self.z.zeroize();
-        self.z_prim.zeroize();
-        self.t.zeroize();
-        self.w.zeroize();
-        self.v.zeroize();
-    }
-}
-
-/// Zeroize Bob's first round on drop as it contains secret values
-impl Drop for BobZkpRound1 {
-    fn drop(&mut self) {
-        self.zeroize();
-    }
 }
 
 impl BobZkpRound1 {
@@ -360,11 +337,11 @@ impl BobProof {
         }
 
         let z_e_inv = BigInt::mod_inv(&BigInt::mod_pow(&self.z, &self.e, N_tilde), N_tilde);
-        if z_e_inv.is_none() {
+        let z_e_inv = match z_e_inv {
             // z must be invertible, yet the check is done here
-            return false;
-        }
-        let z_e_inv = z_e_inv.unwrap();
+            None => return false,
+            Some(c) => c,
+        };
 
         let z_prim = (BigInt::mod_pow(h1, &self.s1, N_tilde)
             * BigInt::mod_pow(h2, &self.s2, N_tilde)
@@ -372,11 +349,10 @@ impl BobProof {
             % N_tilde;
 
         let mta_e_inv = BigInt::mod_inv(&BigInt::mod_pow(mta_avc_out, &self.e, NN), NN);
-        if mta_e_inv.is_none() {
-            // mta_avc_out must be invertible, yet the check is done here
-            return false;
-        }
-        let mta_e_inv = mta_e_inv.unwrap();
+        let mta_e_inv = match mta_e_inv {
+            None => return false,
+            Some(c) => c,
+        };
 
         let v = (BigInt::mod_pow(a_enc, &self.s1, NN)
             * BigInt::mod_pow(&self.s, N, NN)
@@ -385,11 +361,11 @@ impl BobProof {
             % NN;
 
         let t_e_inv = BigInt::mod_inv(&BigInt::mod_pow(&self.t, &self.e, N_tilde), N_tilde);
-        if t_e_inv.is_none() {
-            // t must be invertible, yet the check is done here
-            return false;
-        }
-        let t_e_inv = t_e_inv.unwrap();
+        let t_e_inv = match t_e_inv {
+            None => return false,
+            Some(c) => c,
+        };
+
         let w = (BigInt::mod_pow(h1, &self.t1, N_tilde)
             * BigInt::mod_pow(h2, &self.t2, N_tilde)
             * t_e_inv)
@@ -407,18 +383,19 @@ impl BobProof {
             &v,
             &w,
         ];
-        let e = if check.is_some() {
-            let X_x_coor = check.unwrap().X.x_coor().unwrap();
-            values_to_hash.push(&X_x_coor);
-            let X_y_coor = check.unwrap().X.y_coor().unwrap();
-            values_to_hash.push(&X_y_coor);
-            let u_x_coor = check.unwrap().u.x_coor().unwrap();
-            values_to_hash.push(&u_x_coor);
-            let u_y_coor = check.unwrap().u.y_coor().unwrap();
-            values_to_hash.push(&u_y_coor);
-            HSha256::create_hash(&values_to_hash[..])
-        } else {
-            HSha256::create_hash(&values_to_hash[..])
+        let e = match check {
+            Some(_) => {
+                let X_x_coor = check.unwrap().X.x_coor().unwrap();
+                values_to_hash.push(&X_x_coor);
+                let X_y_coor = check.unwrap().X.y_coor().unwrap();
+                values_to_hash.push(&X_y_coor);
+                let u_x_coor = check.unwrap().u.x_coor().unwrap();
+                values_to_hash.push(&u_x_coor);
+                let u_y_coor = check.unwrap().u.y_coor().unwrap();
+                values_to_hash.push(&u_y_coor);
+                HSha256::create_hash(&values_to_hash[..])
+            }
+            None => HSha256::create_hash(&values_to_hash[..]),
         };
 
         if e != self.e {
