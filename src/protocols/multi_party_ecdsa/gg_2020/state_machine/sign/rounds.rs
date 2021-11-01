@@ -80,7 +80,7 @@ impl Round0 {
         let (bc1, decom1) = sign_keys.phase1_broadcast();
 
         let party_ek = self.local_key.paillier_key_vec[usize::from(self.local_key.i - 1)].clone();
-        let m_a = MessageA::a(&sign_keys.k_i, &party_ek);
+        let m_a = MessageA::a(&sign_keys.k_i, &party_ek, &self.local_key.h1_h2_n_tilde_vec);
 
         output.push(Msg {
             sender: self.i,
@@ -149,12 +149,16 @@ impl Round1 {
                 &self.sign_keys.gamma_i,
                 &self.local_key.paillier_key_vec[l_s[ind]],
                 m_a_vec[ind].clone(),
-            );
+                &self.local_key.h1_h2_n_tilde_vec,
+            )
+            .expect("Incorrect Alice's range proof in MtA");
             let (m_b_w, beta_wi, _, _) = MessageB::b(
                 &self.sign_keys.w_i,
                 &self.local_key.paillier_key_vec[l_s[ind]],
                 m_a_vec[ind].clone(),
-            );
+                &self.local_key.h1_h2_n_tilde_vec,
+            )
+            .expect("Incorrect Alice's range proof in MtA");
 
             m_b_gamma_vec.push(m_b_gamma);
             beta_vec.push(beta_gamma);
