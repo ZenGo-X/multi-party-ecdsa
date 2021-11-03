@@ -619,7 +619,7 @@ impl LocalSignature {
             &self
                 .R
                 .x_coord()
-                .unwrap()
+                .ok_or(Error::InvalidSig)?
                 .mod_floor(Scalar::<Secp256k1>::group_order()),
         );
         let yr = &self.y * r;
@@ -698,13 +698,13 @@ impl LocalSignature {
             &self
                 .R
                 .x_coord()
-                .unwrap()
+                .ok_or(Error::InvalidSig)?
                 .mod_floor(Scalar::<Secp256k1>::group_order()),
         );
         let ry: BigInt = self
             .R
             .y_coord()
-            .unwrap()
+            .ok_or(Error::InvalidSig)?
             .mod_floor(Scalar::<Secp256k1>::group_order());
 
         /*
@@ -731,7 +731,7 @@ impl LocalSignature {
 }
 
 pub fn verify(sig: &SignatureRecid, y: &Point<Secp256k1>, message: &BigInt) -> Result<(), Error> {
-    let b = sig.s.invert().unwrap();
+    let b = sig.s.invert().ok_or(Error::InvalidSig)?;
     let a: Scalar<Secp256k1> = Scalar::<Secp256k1>::from(message);
     let u1 = a * &b;
     let u2 = &sig.r * &b;
@@ -745,7 +745,7 @@ pub fn verify(sig: &SignatureRecid, y: &Point<Secp256k1>, message: &BigInt) -> R
         == Scalar::<Secp256k1>::from(
             &(gu1 + yu2)
                 .x_coord()
-                .unwrap()
+                .ok_or(Error::InvalidSig)?
                 .mod_floor(Scalar::<Secp256k1>::group_order()),
         )
     {
