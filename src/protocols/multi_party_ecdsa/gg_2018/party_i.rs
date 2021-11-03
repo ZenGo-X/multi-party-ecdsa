@@ -161,7 +161,7 @@ impl Keys {
     // we recommend using safe primes if the code is used in production
     pub fn create_safe_prime(index: usize) -> Keys {
         let u: Scalar<Secp256k1> = Scalar::<Secp256k1>::random();
-        let y = &*Point::<Secp256k1>::generator() * &u;
+        let y = Point::<Secp256k1>::generator() * &u;
 
         let (ek, dk) = Paillier::keypair_safe_primes().keys();
 
@@ -174,7 +174,7 @@ impl Keys {
         }
     }
     pub fn create_from(u: Scalar<Secp256k1>, index: usize) -> Keys {
-        let y = &*Point::<Secp256k1>::generator() * &u;
+        let y = Point::<Secp256k1>::generator() * &u;
         let (ek, dk) = Paillier::keypair().keys();
 
         Self {
@@ -261,12 +261,8 @@ impl Keys {
             .all(|x| x);
 
         if correct_ss_verify {
-            let (head, tail) = y_vec.split_at(1);
-            let y = tail.iter().fold(head[0].clone(), |acc, x| acc + x);
-
-            let x_i = secret_shares_vec
-                .iter()
-                .fold(Scalar::<Secp256k1>::zero(), |acc, x| acc + x);
+            let y: Point<Secp256k1> = y_vec.iter().sum();
+            let x_i: Scalar<Secp256k1> = secret_shares_vec.iter().sum();
             let dlog_proof = DLogProof::prove(&x_i);
             Ok((SharedKeys { y, x_i }, dlog_proof))
         } else {
@@ -280,15 +276,9 @@ impl Keys {
         let len = vss_scheme_vec.len();
         (1..=len)
             .map(|i| {
-                let xij_points_vec = (0..len)
+                (0..len)
                     .map(|j| vss_scheme_vec[j].get_point_commitment(i.try_into().unwrap()))
-                    .collect::<Vec<Point<Secp256k1>>>();
-
-                let mut xij_points_iter = xij_points_vec.iter();
-                let first = xij_points_iter.next().unwrap();
-
-                let tail = xij_points_iter;
-                tail.fold(first.clone(), |acc, x| acc + x)
+                    .sum()
             })
             .collect::<Vec<Point<Secp256k1>>>()
     }
@@ -362,7 +352,7 @@ impl PartyPrivate {
     // we recommend using safe primes if the code is used in production
     pub fn refresh_private_key_safe_prime(&self, factor: &Scalar<Secp256k1>, index: usize) -> Keys {
         let u: Scalar<Secp256k1> = &self.u_i + factor;
-        let y = &*Point::<Secp256k1>::generator() * &u;
+        let y = Point::<Secp256k1>::generator() * &u;
         let (ek, dk) = Paillier::keypair_safe_primes().keys();
 
         Keys {
@@ -406,8 +396,11 @@ impl SignKeys {
         s: &[usize],
     ) -> Self {
         let s: Vec<u16> = s.into_iter().map(|&i| i.try_into().unwrap()).collect();
-        let li =
-            VerifiableSS::<Secp256k1>::map_share_to_new_params(&vss_scheme.parameters, index.try_into().unwrap(), s.as_slice());
+        let li = VerifiableSS::<Secp256k1>::map_share_to_new_params(
+            &vss_scheme.parameters,
+            index.try_into().unwrap(),
+            s.as_slice(),
+        );
         let w_i = li * &private.x_i;
         let g = Point::<Secp256k1>::generator();
         let g_w_i = g * &w_i;
@@ -446,13 +439,9 @@ impl SignKeys {
         alpha_vec: &[Scalar<Secp256k1>],
         beta_vec: &[Scalar<Secp256k1>],
     ) -> Scalar<Secp256k1> {
-        let vec_len = alpha_vec.len();
         assert_eq!(alpha_vec.len(), beta_vec.len());
-        // assert_eq!(alpha_vec.len(), self.s.len() - 1);
         let ki_gamma_i = &self.k_i * &self.gamma_i;
-        (0..vec_len)
-            .map(|i| &alpha_vec[i] + &beta_vec[i])
-            .fold(ki_gamma_i, |acc, x| acc + x)
+        ki_gamma_i + alpha_vec.iter().chain(beta_vec).sum::<Scalar<Secp256k1>>()
     }
 
     pub fn phase2_sigma_i(
@@ -460,20 +449,17 @@ impl SignKeys {
         miu_vec: &[Scalar<Secp256k1>],
         ni_vec: &[Scalar<Secp256k1>],
     ) -> Scalar<Secp256k1> {
-        let vec_len = miu_vec.len();
         assert_eq!(miu_vec.len(), ni_vec.len());
-        //assert_eq!(miu_vec.len(), self.s.len() - 1);
         let ki_w_i = &self.k_i * &self.w_i;
-        (0..vec_len)
-            .map(|i| &miu_vec[i] + &ni_vec[i])
-            .fold(ki_w_i, |acc, x| acc + x)
+        ki_w_i + miu_vec.iter().chain(ni_vec).sum::<Scalar<Secp256k1>>()
     }
 
     pub fn phase3_reconstruct_delta(delta_vec: &[Scalar<Secp256k1>]) -> Scalar<Secp256k1> {
-        let sum = delta_vec
+        delta_vec
             .iter()
-            .fold(Scalar::<Secp256k1>::zero(), |acc, x| acc + x);
-        sum.invert().unwrap()
+            .sum::<Scalar<Secp256k1>>()
+            .invert()
+            .expect("sum of deltas is zero")
     }
 
     pub fn phase4(
@@ -497,12 +483,12 @@ impl SignKeys {
             })
             .all(|x| x);
 
-        let mut g_gamma_i_iter = phase1_decommit_vec.iter();
-        let head = g_gamma_i_iter.next().unwrap();
-        let tail = g_gamma_i_iter;
         if test_b_vec_and_com {
             Ok({
-                let gamma_sum = tail.fold(head.g_gamma_i.clone(), |acc, x| acc + &x.g_gamma_i);
+                let gamma_sum: Point<Secp256k1> = phase1_decommit_vec
+                    .iter()
+                    .map(|decom| &decom.g_gamma_i)
+                    .sum();
                 // R
                 gamma_sum * delta_inv
             })
@@ -524,7 +510,7 @@ impl LocalSignature {
         let r: Scalar<Secp256k1> = Scalar::<Secp256k1>::from(
             &R.x_coord()
                 .unwrap()
-                .mod_floor(&Scalar::<Secp256k1>::group_order()),
+                .mod_floor(Scalar::<Secp256k1>::group_order()),
         );
         let s_i = m_fe * k_i + r * sigma_i;
         let l_i: Scalar<Secp256k1> = Scalar::<Secp256k1>::random();
@@ -622,26 +608,19 @@ impl LocalSignature {
             })
             .all(|x| x);
 
-        let v_vec = (0..com_vec.len())
-            .map(|i| &decom_vec[i].V_i)
-            .collect::<Vec<&Point<Secp256k1>>>();
-        let a_vec = (0..com_vec.len())
-            .map(|i| &decom_vec[i].A_i)
-            .collect::<Vec<&Point<Secp256k1>>>();
+        let v_iter = (0..com_vec.len()).map(|i| &decom_vec[i].V_i);
+        let a_iter = (0..com_vec.len()).map(|i| &decom_vec[i].A_i);
 
-        let v = v_vec.iter().fold(v_i.clone(), |acc, x| acc + *x);
+        let v = v_i + v_iter.sum::<Point<Secp256k1>>();
         // V = -mG -ry - sum (vi)
-        let mut a_i_iter = a_vec.iter();
-        let head = a_i_iter.next().unwrap();
-        let tail = a_i_iter;
-        let a = tail.fold((*head).clone(), |acc, x| acc + *x);
+        let a: Point<Secp256k1> = a_iter.sum();
 
         let r: Scalar<Secp256k1> = Scalar::<Secp256k1>::from(
             &self
                 .R
                 .x_coord()
                 .unwrap()
-                .mod_floor(&Scalar::<Secp256k1>::group_order()),
+                .mod_floor(Scalar::<Secp256k1>::group_order()),
         );
         let yr = &self.y * r;
         let g = Point::<Secp256k1>::generator();
@@ -694,21 +673,15 @@ impl LocalSignature {
             })
             .all(|x| x);
 
-        let t_vec = (0..com_vec2.len())
-            .map(|i| &decom_vec2[i].t_i)
-            .collect::<Vec<&Point<Secp256k1>>>();
-        let u_vec = (0..com_vec2.len())
-            .map(|i| &decom_vec2[i].u_i)
-            .collect::<Vec<&Point<Secp256k1>>>();
-        let b_vec = (0..decom_vec1.len())
-            .map(|i| &decom_vec1[i].B_i)
-            .collect::<Vec<&Point<Secp256k1>>>();
+        let t_iter = (0..com_vec2.len()).map(|i| &decom_vec2[i].t_i);
+        let u_iter = (0..com_vec2.len()).map(|i| &decom_vec2[i].u_i);
+        let b_iter = (0..decom_vec1.len()).map(|i| &decom_vec1[i].B_i);
 
-        let g = Point::<Secp256k1>::generator().to_point();
-        let biased_sum_tb = t_vec.iter().zip(b_vec).fold(g.clone(), |acc, x| acc + *x.0 + x.1);
-        let biased_sum_tb_minus_u = u_vec.iter().fold(biased_sum_tb, |acc, x| acc - *x);
+        let g = Point::<Secp256k1>::generator();
+        let biased_sum_tb = g + t_iter.chain(b_iter).sum::<Point<Secp256k1>>();
+        let biased_sum_tb_minus_u = biased_sum_tb - u_iter.sum::<Point<Secp256k1>>();
         if test_com {
-            if g == biased_sum_tb_minus_u {
+            if *g.as_point() == biased_sum_tb_minus_u {
                 Ok(self.s_i.clone())
             } else {
                 Err(InvalidKey)
@@ -718,7 +691,7 @@ impl LocalSignature {
         }
     }
     pub fn output_signature(&self, s_vec: &[Scalar<Secp256k1>]) -> Result<SignatureRecid, Error> {
-        let mut s = s_vec.iter().fold(self.s_i.clone(), |acc, x| acc + x);
+        let mut s = &self.s_i + s_vec.iter().sum::<Scalar<Secp256k1>>();
         let s_bn = s.to_bigint();
 
         let r: Scalar<Secp256k1> = Scalar::<Secp256k1>::from(
@@ -726,13 +699,13 @@ impl LocalSignature {
                 .R
                 .x_coord()
                 .unwrap()
-                .mod_floor(&Scalar::<Secp256k1>::group_order()),
+                .mod_floor(Scalar::<Secp256k1>::group_order()),
         );
         let ry: BigInt = self
             .R
             .y_coord()
             .unwrap()
-            .mod_floor(&Scalar::<Secp256k1>::group_order());
+            .mod_floor(Scalar::<Secp256k1>::group_order());
 
         /*
          Calculate recovery id - it is not possible to compute the public key out of the signature
@@ -773,7 +746,7 @@ pub fn verify(sig: &SignatureRecid, y: &Point<Secp256k1>, message: &BigInt) -> R
             &(gu1 + yu2)
                 .x_coord()
                 .unwrap()
-                .mod_floor(&Scalar::<Secp256k1>::group_order()),
+                .mod_floor(Scalar::<Secp256k1>::group_order()),
         )
     {
         Ok(())

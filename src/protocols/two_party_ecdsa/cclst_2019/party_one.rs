@@ -367,7 +367,7 @@ impl Signature {
         let rx = r
             .x_coord()
             .unwrap()
-            .mod_floor(&Scalar::<Secp256k1>::group_order());
+            .mod_floor(Scalar::<Secp256k1>::group_order());
         let k1_inv = &ephemeral_local_share
             .secret_share
             .to_bigint()
@@ -401,7 +401,7 @@ pub fn verify(
 
     let s_inv_fe = s_fe.invert();
     let e_fe: Scalar<Secp256k1> =
-        Scalar::<Secp256k1>::from(&message.mod_floor(&Scalar::<Secp256k1>::group_order()));
+        Scalar::<Secp256k1>::from(&message.mod_floor(Scalar::<Secp256k1>::group_order()));
     let u1 = Point::<Secp256k1>::generator() * e_fe * s_inv_fe;
     let u2 = *pubkey * rx_fe * s_inv_fe;
 

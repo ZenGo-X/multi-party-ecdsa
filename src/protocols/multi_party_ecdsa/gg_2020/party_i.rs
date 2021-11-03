@@ -178,7 +178,7 @@ impl Keys {
     // we recommend using safe primes if the code is used in production
     pub fn create_safe_prime(index: usize) -> Keys {
         let u: Scalar<Secp256k1> = Scalar::<Secp256k1>::random();
-        let y = &*Point::<Secp256k1>::generator() * &u;
+        let y = Point::<Secp256k1>::generator() * &u;
 
         let (ek, dk) = Paillier::keypair_safe_primes().keys();
         let (N_tilde, h1, h2, xhi, xhi_inv) = generate_h1_h2_N_tilde();
@@ -197,7 +197,7 @@ impl Keys {
         }
     }
     pub fn create_from(u: Scalar<Secp256k1>, index: usize) -> Keys {
-        let y = &*Point::<Secp256k1>::generator() * &u;
+        let y = Point::<Secp256k1>::generator() * &u;
         let (ek, dk) = Paillier::keypair().keys();
         let (N_tilde, h1, h2, xhi, xhi_inv) = generate_h1_h2_N_tilde();
 
@@ -301,11 +301,8 @@ impl Keys {
             bad_actors: bad_actors_vec,
         };
 
-        let (vss_scheme, secret_shares) = VerifiableSS::share(
-            params.threshold,
-            params.share_count,
-            &self.u_i,
-        );
+        let (vss_scheme, secret_shares) =
+            VerifiableSS::share(params.threshold, params.share_count, &self.u_i);
         if correct_key_correct_decom_all {
             Ok((vss_scheme, secret_shares.to_vec(), self.party_index))
         } else {
@@ -388,8 +385,11 @@ impl Keys {
         s: &[usize],
     ) -> Point<Secp256k1> {
         let s: Vec<u16> = s.into_iter().map(|&i| i.try_into().unwrap()).collect();
-        let li =
-            VerifiableSS::<Secp256k1>::map_share_to_new_params(&vss_scheme.parameters, index.try_into().unwrap(), s.as_slice());
+        let li = VerifiableSS::<Secp256k1>::map_share_to_new_params(
+            &vss_scheme.parameters,
+            index.try_into().unwrap(),
+            s.as_slice(),
+        );
         comm * &li
     }
 
@@ -471,7 +471,7 @@ impl PartyPrivate {
     // we recommend using safe primes if the code is used in production
     pub fn refresh_private_key_safe_prime(&self, factor: &Scalar<Secp256k1>, index: usize) -> Keys {
         let u: Scalar<Secp256k1> = &self.u_i + factor;
-        let y = &*Point::<Secp256k1>::generator() * &u;
+        let y = Point::<Secp256k1>::generator() * &u;
         let (ek, dk) = Paillier::keypair_safe_primes().keys();
 
         let (N_tilde, h1, h2, xhi, xhi_inv) = generate_h1_h2_N_tilde();
@@ -541,8 +541,11 @@ impl SignKeys {
         s: &[usize],
     ) -> Self {
         let s: Vec<u16> = s.into_iter().map(|&i| i.try_into().unwrap()).collect();
-        let li =
-            VerifiableSS::<Secp256k1>::map_share_to_new_params(&vss_scheme.parameters, index.try_into().unwrap(), s.as_slice());
+        let li = VerifiableSS::<Secp256k1>::map_share_to_new_params(
+            &vss_scheme.parameters,
+            index.try_into().unwrap(),
+            s.as_slice(),
+        );
         let w_i = li * private_x_i;
         let g = Point::<Secp256k1>::generator();
         let g_w_i = g * &w_i;
@@ -845,7 +848,7 @@ impl LocalSignature {
         let r: Scalar<Secp256k1> = Scalar::<Secp256k1>::from(
             &R.x_coord()
                 .unwrap()
-                .mod_floor(&Scalar::<Secp256k1>::group_order()),
+                .mod_floor(Scalar::<Secp256k1>::group_order()),
         );
         let s_i = m_fe * k_i + &r * sigma_i;
         Self {
@@ -866,13 +869,13 @@ impl LocalSignature {
                 .R
                 .x_coord()
                 .unwrap()
-                .mod_floor(&Scalar::<Secp256k1>::group_order()),
+                .mod_floor(Scalar::<Secp256k1>::group_order()),
         );
         let ry: BigInt = self
             .R
             .y_coord()
             .unwrap()
-            .mod_floor(&Scalar::<Secp256k1>::group_order());
+            .mod_floor(Scalar::<Secp256k1>::group_order());
 
         /*
          Calculate recovery id - it is not possible to compute the public key out of the signature
@@ -913,7 +916,7 @@ pub fn verify(sig: &SignatureRecid, y: &Point<Secp256k1>, message: &BigInt) -> R
             &(gu1 + yu2)
                 .x_coord()
                 .unwrap()
-                .mod_floor(&Scalar::<Secp256k1>::group_order()),
+                .mod_floor(Scalar::<Secp256k1>::group_order()),
         )
     {
         Ok(())
