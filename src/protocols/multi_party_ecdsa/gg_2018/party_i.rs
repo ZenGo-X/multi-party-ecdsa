@@ -626,7 +626,7 @@ impl LocalSignature {
         let g = Point::<Secp256k1>::generator();
         let m_fe: Scalar<Secp256k1> = Scalar::<Secp256k1>::from(&self.m);
         let gm = g * m_fe;
-        let v = v - (&gm - &yr);
+        let v = v - &gm - &yr;
         let u_i = v * &self.rho_i;
         let t_i = a * &self.l_i;
         let input_hash = Sha256::new().chain_points([&u_i, &t_i]).result_bigint();
