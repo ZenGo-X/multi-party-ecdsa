@@ -157,11 +157,11 @@ impl GlobalStatePhase5 {
                             }
 
                             let k_i_gamma_j = self.k_vec[i] * self.gamma_vec[ind];
-                            let alpha = k_i_gamma_j.sub(&beta.get_element());
+                            let alpha = k_i_gamma_j - &beta;
 
                             (alpha, beta)
                         })
-                        .collect::<Vec<(FE, FE)>>()
+                        .collect::<Vec<(Scalar::<Secp256k1>, Scalar::<Secp256k1>)>>()
                 } else {
                     vec![]
                 };

@@ -76,7 +76,7 @@ impl MessageA {
         let alice_range_proofs = dlog_statements
             .into_iter()
             .map(|dlog_statement| {
-                AliceProof::generate(&a.to_big_int(), &c_a, alice_ek, dlog_statement, &randomness)
+                AliceProof::generate(&a.to_bigint(), &c_a, alice_ek, dlog_statement, &randomness)
             })
             .collect::<Vec<AliceProof>>();
 
