@@ -9,12 +9,12 @@ use curv::{
     elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar},
     BigInt,
 };
-use sha2::Sha256;
 use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2018::party_i::{
     Keys, LocalSignature, PartyPrivate, Phase5ADecom1, Phase5Com1, Phase5Com2, Phase5DDecom2,
     SharedKeys, SignBroadcastPhase1, SignDecommitPhase1, SignKeys,
 };
 use multi_party_ecdsa::utilities::mta::*;
+use sha2::Sha256;
 
 use paillier::EncryptionKey;
 use reqwest::Client;

@@ -161,7 +161,12 @@ impl AliceProof {
         dlog_statement: &DLogStatement,
         r: &BigInt,
     ) -> Self {
-        let round1 = AliceZkpRound1::from(alice_ek, dlog_statement, a, &Scalar::<Secp256k1>::group_order());
+        let round1 = AliceZkpRound1::from(
+            alice_ek,
+            dlog_statement,
+            a,
+            &Scalar::<Secp256k1>::group_order(),
+        );
 
         let Gen = alice_ek.n.borrow() + 1;
         let e = Sha256::new()
@@ -208,7 +213,7 @@ impl BobZkpRound1 {
     fn from(
         alice_ek: &EncryptionKey,
         dlog_statement: &DLogStatement,
-        b: &Scalar::<Secp256k1>,
+        b: &Scalar<Secp256k1>,
         beta_prim: &BigInt,
         a_encrypted: &BigInt,
         q: &BigInt,
@@ -272,7 +277,7 @@ impl BobZkpRound2 {
         alice_ek: &EncryptionKey,
         round1: &BobZkpRound1,
         e: &BigInt,
-        b: &Scalar::<Secp256k1>,
+        b: &Scalar<Secp256k1>,
         beta_prim: &BigInt,
         r: &Randomness,
     ) -> Self {
@@ -289,8 +294,8 @@ impl BobZkpRound2 {
 
 /// Additional fields in Bob's proof if MtA is run with check
 pub struct BobCheck {
-    u: Point::<Secp256k1>,
-    X: Point::<Secp256k1>,
+    u: Point<Secp256k1>,
+    X: Point<Secp256k1>,
 }
 
 /// Bob's regular proof
@@ -383,10 +388,15 @@ impl BobProof {
                 values_to_hash.push(&u_x_coor);
                 let u_y_coor = check.unwrap().u.y_coord().unwrap();
                 values_to_hash.push(&u_y_coor);
-                values_to_hash.into_iter().fold(Sha256::new(), |acc, b| acc.chain_bigint(b)).result_bigint()
+                values_to_hash
+                    .into_iter()
+                    .fold(Sha256::new(), |acc, b| acc.chain_bigint(b))
+                    .result_bigint()
             }
-            None =>
-                values_to_hash.into_iter().fold(Sha256::new(), |acc, b| acc.chain_bigint(b)).result_bigint(),
+            None => values_to_hash
+                .into_iter()
+                .fold(Sha256::new(), |acc, b| acc.chain_bigint(b))
+                .result_bigint(),
         };
 
         if e != self.e {
@@ -399,13 +409,13 @@ impl BobProof {
     pub fn generate(
         a_encrypted: &BigInt,
         mta_encrypted: &BigInt,
-        b: &Scalar::<Secp256k1>,
+        b: &Scalar<Secp256k1>,
         beta_prim: &BigInt,
         alice_ek: &EncryptionKey,
         dlog_statement: &DLogStatement,
         r: &Randomness,
         check: bool,
-    ) -> (BobProof, Option<Point::<Secp256k1>>) {
+    ) -> (BobProof, Option<Point<Secp256k1>>) {
         let round1 = BobZkpRound1::from(
             alice_ek,
             dlog_statement,
@@ -431,7 +441,7 @@ impl BobProof {
         let e = if check {
             let (X, u) = {
                 let ec_gen = Point::<Secp256k1>::generator();
-                let alpha: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(&round1.alpha);
+                let alpha: Scalar<Secp256k1> = Scalar::<Secp256k1>::from(&round1.alpha);
                 (ec_gen * b, ec_gen * alpha)
             };
             check_u = Some(u);
@@ -443,9 +453,15 @@ impl BobProof {
             values_to_hash.push(&u_x_coor);
             let u_y_coor = u.y_coord().unwrap();
             values_to_hash.push(&u_y_coor);
-            values_to_hash.into_iter().fold(Sha256::new(), |acc, b| acc.chain_bigint(b)).result_bigint()
+            values_to_hash
+                .into_iter()
+                .fold(Sha256::new(), |acc, b| acc.chain_bigint(b))
+                .result_bigint()
         } else {
-            values_to_hash.into_iter().fold(Sha256::new(), |acc, b| acc.chain_bigint(b)).result_bigint()
+            values_to_hash
+                .into_iter()
+                .fold(Sha256::new(), |acc, b| acc.chain_bigint(b))
+                .result_bigint()
         };
 
         let round2 = BobZkpRound2::from(alice_ek, &round1, &e, b, beta_prim, r);
@@ -470,7 +486,7 @@ impl BobProof {
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct BobProofExt {
     proof: BobProof,
-    u: Point::<Secp256k1>,
+    u: Point<Secp256k1>,
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -481,7 +497,7 @@ impl BobProofExt {
         mta_avc_out: &BigInt,
         alice_ek: &EncryptionKey,
         dlog_statement: &DLogStatement,
-        X: &Point::<Secp256k1>,
+        X: &Point<Secp256k1>,
     ) -> bool {
         // check basic proof first
         if !self.proof.verify(
@@ -497,8 +513,8 @@ impl BobProofExt {
         // fiddle with EC points
         let (x1, x2) = {
             let ec_gen = Point::<Secp256k1>::generator();
-            let s1: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(&self.proof.s1);
-            let e: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(&self.proof.e);
+            let s1: Scalar<Secp256k1> = Scalar::<Secp256k1>::from(&self.proof.s1);
+            let e: Scalar<Secp256k1> = Scalar::<Secp256k1>::from(&self.proof.e);
             (ec_gen * s1, (X * &e) + self.u)
         };
 
@@ -512,7 +528,7 @@ impl BobProofExt {
     fn generate(
         a_encrypted: &BigInt,
         mta_encrypted: &BigInt,
-        b: &Scalar::<Secp256k1>,
+        b: &Scalar<Secp256k1>,
         beta_prim: &BigInt,
         alice_ek: &EncryptionKey,
         dlog_statement: &DLogStatement,

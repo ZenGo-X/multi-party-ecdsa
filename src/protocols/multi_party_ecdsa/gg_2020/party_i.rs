@@ -275,26 +275,27 @@ impl Keys {
                     g: bc1_vec[i].dlog_statement.ni.clone(),
                     ni: bc1_vec[i].dlog_statement.g.clone(),
                 };
-                let test_res = HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
-                    &BigInt::from_bytes(&decom_vec[i].y_i.to_bytes(true)),
-                    &decom_vec[i].blind_factor,
-                ) == bc1_vec[i].com
-                    && bc1_vec[i]
-                        .correct_key_proof
-                        .verify(&bc1_vec[i].e, zk_paillier::zkproofs::SALT_STRING)
-                        .is_ok()
-                    && bc1_vec[i].e.n.bit_length() >= PAILLIER_MIN_BIT_LENGTH
-                    && bc1_vec[i].e.n.bit_length() <= PAILLIER_MAX_BIT_LENGTH
-                    && bc1_vec[i].dlog_statement.N.bit_length() >= PAILLIER_MIN_BIT_LENGTH
-                    && bc1_vec[i].dlog_statement.N.bit_length() <= PAILLIER_MAX_BIT_LENGTH
-                    && bc1_vec[i]
-                        .composite_dlog_proof_base_h1
-                        .verify(&bc1_vec[i].dlog_statement)
-                        .is_ok()
-                    && bc1_vec[i]
-                        .composite_dlog_proof_base_h2
-                        .verify(&dlog_statement_base_h2)
-                        .is_ok();
+                let test_res =
+                    HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
+                        &BigInt::from_bytes(&decom_vec[i].y_i.to_bytes(true)),
+                        &decom_vec[i].blind_factor,
+                    ) == bc1_vec[i].com
+                        && bc1_vec[i]
+                            .correct_key_proof
+                            .verify(&bc1_vec[i].e, zk_paillier::zkproofs::SALT_STRING)
+                            .is_ok()
+                        && bc1_vec[i].e.n.bit_length() >= PAILLIER_MIN_BIT_LENGTH
+                        && bc1_vec[i].e.n.bit_length() <= PAILLIER_MAX_BIT_LENGTH
+                        && bc1_vec[i].dlog_statement.N.bit_length() >= PAILLIER_MIN_BIT_LENGTH
+                        && bc1_vec[i].dlog_statement.N.bit_length() <= PAILLIER_MAX_BIT_LENGTH
+                        && bc1_vec[i]
+                            .composite_dlog_proof_base_h1
+                            .verify(&bc1_vec[i].dlog_statement)
+                            .is_ok()
+                        && bc1_vec[i]
+                            .composite_dlog_proof_base_h2
+                            .verify(&dlog_statement_base_h2)
+                            .is_ok();
                 if test_res == false {
                     bad_actors_vec.push(i);
                     false

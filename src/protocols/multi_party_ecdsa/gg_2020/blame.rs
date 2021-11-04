@@ -161,7 +161,7 @@ impl GlobalStatePhase5 {
 
                             (alpha, beta)
                         })
-                        .collect::<Vec<(Scalar::<Secp256k1>, Scalar::<Secp256k1>)>>()
+                        .collect::<Vec<(Scalar<Secp256k1>, Scalar<Secp256k1>)>>()
                 } else {
                     vec![]
                 };

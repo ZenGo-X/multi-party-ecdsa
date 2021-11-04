@@ -268,7 +268,11 @@ impl Round2 {
         output.push(Msg {
             sender: self.i,
             receiver: None,
-            body: (DeltaI(delta_i.clone()), TI(t_i.clone()), TIProof(t_i_proof.clone())),
+            body: (
+                DeltaI(delta_i.clone()),
+                TI(t_i.clone()),
+                TIProof(t_i_proof.clone()),
+            ),
         });
 
         Ok(Round3 {
@@ -326,7 +330,11 @@ impl Round3 {
         O: Push<Msg<SignDecommitPhase1>>,
     {
         let (delta_vec, t_vec, t_proof_vec) = input
-            .into_vec_including_me((DeltaI(self.delta_i), TI(self.t_i.clone()), TIProof(self.t_i_proof)))
+            .into_vec_including_me((
+                DeltaI(self.delta_i),
+                TI(self.t_i.clone()),
+                TIProof(self.t_i_proof),
+            ))
             .into_iter()
             .map(|(delta_i, t_i, t_i_proof)| (delta_i.0, t_i.0, t_i_proof.0))
             .unzip3();

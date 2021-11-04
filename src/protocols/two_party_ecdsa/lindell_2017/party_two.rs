@@ -315,7 +315,9 @@ impl EphKeyGenFirstMsg {
         let h = Point::<Secp256k1>::base_point2();
 
         let c = h * &secret_share;
-        let w = ECDDHWitness { x: secret_share.clone() };
+        let w = ECDDHWitness {
+            x: secret_share.clone(),
+        };
         let delta = ECDDHStatement {
             g1: base.to_point(),
             h1: public_share.clone(),
@@ -393,8 +395,7 @@ impl PartialSig {
 
         let rx = r.x_coord().unwrap().mod_floor(&q);
         let rho = BigInt::sample_below(&q.pow(2));
-        let k2_inv =
-            BigInt::mod_inv(&ephemeral_local_share.secret_share.to_bigint(), &q).unwrap();
+        let k2_inv = BigInt::mod_inv(&ephemeral_local_share.secret_share.to_bigint(), &q).unwrap();
         let partial_sig = rho * q + BigInt::mod_mul(&k2_inv, message, &q);
 
         let c1 = Paillier::encrypt(ek, RawPlaintext::from(partial_sig));

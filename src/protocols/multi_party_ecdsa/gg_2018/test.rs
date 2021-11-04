@@ -23,9 +23,9 @@ use crate::protocols::multi_party_ecdsa::gg_2018::party_i::{
 use crate::utilities::mta::{MessageA, MessageB};
 
 use curv::arithmetic::traits::Converter;
+use curv::cryptographic_primitives::hashing::{Digest, DigestExt};
 use curv::cryptographic_primitives::proofs::sigma_dlog::DLogProof;
 use curv::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS;
-use curv::cryptographic_primitives::hashing::{Digest, DigestExt};
 use curv::elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar};
 use paillier::*;
 use sha2::Sha256;
@@ -321,7 +321,9 @@ fn sign(t: u16, n: u16, ttag: u16, s: Vec<usize>) {
         .collect::<Vec<Point<Secp256k1>>>();
 
     let message: [u8; 4] = [79, 77, 69, 82];
-    let message_bn = Sha256::new().chain_bigint(&BigInt::from_bytes(&message[..])).result_bigint();
+    let message_bn = Sha256::new()
+        .chain_bigint(&BigInt::from_bytes(&message[..]))
+        .result_bigint();
     let mut local_sig_vec = Vec::new();
 
     // each party computes s_i but don't send it yet. we start with phase5

@@ -688,7 +688,9 @@ mod test {
     }
 
     fn simulate_signing(offline: Vec<CompletedOfflineStage>, message: &[u8]) {
-        let message = Sha256::new().chain_bigint(&BigInt::from_bytes(message)).result_bigint();
+        let message = Sha256::new()
+            .chain_bigint(&BigInt::from_bytes(message))
+            .result_bigint();
         let pk = offline[0].public_key().clone();
 
         let parties = offline

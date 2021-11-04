@@ -50,7 +50,7 @@ impl MessageA {
     /// If range proofs are not needed (one example is identification of aborts where we
     /// only want to reconstruct a ciphertext), `dlog_statements` can be an empty slice.
     pub fn a(
-        a: &Scalar::<Secp256k1>,
+        a: &Scalar<Secp256k1>,
         alice_ek: &EncryptionKey,
         dlog_statements: &[DLogStatement],
     ) -> (Self, BigInt) {
@@ -89,11 +89,11 @@ impl MessageA {
 
 impl MessageB {
     pub fn b(
-        b: &Scalar::<Secp256k1>,
+        b: &Scalar<Secp256k1>,
         alice_ek: &EncryptionKey,
         m_a: MessageA,
         dlog_statements: &[DLogStatement],
-    ) -> Result<(Self, Scalar::<Secp256k1>, BigInt, BigInt), Error> {
+    ) -> Result<(Self, Scalar<Secp256k1>, BigInt, BigInt), Error> {
         let beta_tag = BigInt::sample_below(&alice_ek.n);
         let randomness = BigInt::sample_below(&alice_ek.n);
         let (m_b, beta) = MessageB::b_with_predefined_randomness(
@@ -115,7 +115,7 @@ impl MessageB {
         randomness: &BigInt,
         beta_tag: &BigInt,
         dlog_statements: &[DLogStatement],
-    ) -> Result<(Self, Scalar::<Secp256k1>), Error> {
+    ) -> Result<(Self, Scalar<Secp256k1>), Error> {
         if m_a.range_proofs.len() != dlog_statements.len() {
             return Err(InvalidKey);
         }
@@ -129,7 +129,7 @@ impl MessageB {
         {
             return Err(InvalidKey);
         };
-        let beta_tag_fe: Scalar::<Secp256k1> = Scalar::<Secp256k1>::from(beta_tag);
+        let beta_tag_fe: Scalar<Secp256k1> = Scalar::<Secp256k1>::from(beta_tag);
         let c_beta_tag = Paillier::encrypt_with_chosen_randomness(
             alice_ek,
             RawPlaintext::from(beta_tag),

@@ -10,12 +10,12 @@ use curv::{
     elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar},
     BigInt,
 };
-use sha2::Sha256;
 use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2018::party_i::{
     KeyGenBroadcastMessage1, KeyGenDecommitMessage1, Keys, Parameters,
 };
 use paillier::EncryptionKey;
 use reqwest::Client;
+use sha2::Sha256;
 use std::{env, fs, time};
 
 mod common;
@@ -111,7 +111,9 @@ fn main() {
             let decom_j: KeyGenDecommitMessage1 = serde_json::from_str(&round2_ans_vec[j]).unwrap();
             point_vec.push(decom_j.y_i.clone());
             decom_vec.push(decom_j.clone());
-            let key_bn: BigInt = (decom_j.y_i.clone() * party_keys.u_i.clone()).x_coord().unwrap();
+            let key_bn: BigInt = (decom_j.y_i.clone() * party_keys.u_i.clone())
+                .x_coord()
+                .unwrap();
             let key_bytes = BigInt::to_bytes(&key_bn);
             let mut template: Vec<u8> = vec![0u8; AES_KEY_BYTES_LEN - key_bytes.len()];
             template.extend_from_slice(&key_bytes[..]);

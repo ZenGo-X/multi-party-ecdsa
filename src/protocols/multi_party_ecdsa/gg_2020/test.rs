@@ -28,14 +28,14 @@ use curv::arithmetic::traits::Converter;
 
 use crate::protocols::multi_party_ecdsa::gg_2020::ErrorType;
 use crate::utilities::zk_pdl_with_slack::PDLwSlackProof;
+use curv::cryptographic_primitives::hashing::{Digest, DigestExt};
 use curv::cryptographic_primitives::proofs::sigma_dlog::DLogProof;
 use curv::cryptographic_primitives::proofs::sigma_valid_pedersen::PedersenProof;
 use curv::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS;
-use curv::cryptographic_primitives::hashing::{Digest, DigestExt};
 use curv::elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar};
 use paillier::*;
-use zk_paillier::zkproofs::DLogStatement;
 use sha2::Sha256;
+use zk_paillier::zkproofs::DLogStatement;
 
 #[test]
 fn test_keygen_t1_n2() {
@@ -662,7 +662,9 @@ fn sign(
     }
 
     let message: [u8; 4] = [79, 77, 69, 82];
-    let message_bn = Sha256::new().chain_bigint(&BigInt::from_bytes(&message[..])).result_bigint();
+    let message_bn = Sha256::new()
+        .chain_bigint(&BigInt::from_bytes(&message[..]))
+        .result_bigint();
     let mut local_sig_vec = Vec::new();
     let mut s_vec = Vec::new();
     // each party computes s_i
