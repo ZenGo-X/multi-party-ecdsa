@@ -188,10 +188,11 @@ fn sign(t: u16, n: u16, ttag: u16, s: Vec<usize>) {
 
     // each party i sends encryption of k_i under her Paillier key
     // m_a_vec = [ma_0;ma_1;,...]
+    // range proofs are ignored here, as there's no h1, h2, N_tilde setup in this version of GG18
     let m_a_vec: Vec<_> = sign_keys_vec
         .iter()
         .enumerate()
-        .map(|(i, k)| MessageA::a(&k.k_i, &party_keys_vec[s[i]].ek).0)
+        .map(|(i, k)| MessageA::a(&k.k_i, &party_keys_vec[s[i]].ek, &[]).0)
         .collect();
 
     // each party i sends responses to m_a_vec she received (one response with input gamma_i and one with w_i)
@@ -216,9 +217,16 @@ fn sign(t: u16, n: u16, ttag: u16, s: Vec<usize>) {
                 &key.gamma_i,
                 &party_keys_vec[s[ind]].ek,
                 m_a_vec[ind].clone(),
-            );
-            let (m_b_w, beta_wi, _, _) =
-                MessageB::b(&key.w_i, &party_keys_vec[s[ind]].ek, m_a_vec[ind].clone());
+                &[],
+            )
+            .unwrap();
+            let (m_b_w, beta_wi, _, _) = MessageB::b(
+                &key.w_i,
+                &party_keys_vec[s[ind]].ek,
+                m_a_vec[ind].clone(),
+                &[],
+            )
+            .unwrap();
 
             m_b_gamma_vec.push(m_b_gamma);
             beta_vec.push(beta_gamma);

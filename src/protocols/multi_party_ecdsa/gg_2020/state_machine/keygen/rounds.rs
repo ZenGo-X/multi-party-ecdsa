@@ -271,7 +271,7 @@ impl Round4 {
         let h1_h2_n_tilde_vec = self
             .bc_vec
             .iter()
-            .map(|bc1| bc1.dlog_statement_base_h1.clone())
+            .map(|bc1| bc1.dlog_statement.clone())
             .collect::<Vec<DLogStatement>>();
 
         let (head, tail) = self.y_vec.split_at(1);

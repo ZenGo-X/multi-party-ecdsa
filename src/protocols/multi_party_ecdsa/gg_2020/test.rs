@@ -180,7 +180,7 @@ fn keygen_t_n_parties(
         .collect::<Vec<EncryptionKey>>();
     let h1_h2_N_tilde_vec = bc1_vec
         .iter()
-        .map(|bc1| bc1.dlog_statement_base_h1.clone())
+        .map(|bc1| bc1.dlog_statement.clone())
         .collect::<Vec<DLogStatement>>();
     let y_vec = (0..n)
         .map(|i| decom_vec[i].y_i.clone())
@@ -315,6 +315,12 @@ fn sign(
     let (bc1_vec, decommit_vec1): (Vec<_>, Vec<_>) =
         sign_keys_vec.iter().map(|k| k.phase1_broadcast()).unzip();
 
+    // each signer's dlog statement. in reality, parties prove statements
+    // using only other parties' h1,h2,N_tilde. here we also use own parameters for simplicity
+    let signers_dlog_statements = (0..ttag)
+        .map(|i| dlog_statement_vec[s[i]].clone())
+        .collect::<Vec<DLogStatement>>();
+
     // each party i BROADCASTS encryption of k_i under her Paillier key
     // m_a_vec = [ma_0;ma_1;,...]
     // we assume here that party sends the same encryption to all other parties.
@@ -322,7 +328,7 @@ fn sign(
     let m_a_vec: Vec<_> = sign_keys_vec
         .iter()
         .enumerate()
-        .map(|(i, k)| MessageA::a(&k.k_i, &party_keys_vec[s[i]].ek))
+        .map(|(i, k)| MessageA::a(&k.k_i, &party_keys_vec[s[i]].ek, &signers_dlog_statements))
         .collect();
 
     // #each party i sends responses to m_a_vec she received (one response with input gamma_i and one with w_i)
@@ -351,9 +357,16 @@ fn sign(
                 &sign_keys_vec[ind].gamma_i,
                 &ek_vec[s[i]],
                 m_a_vec[i].0.clone(),
-            );
-            let (m_b_w, beta_wi, _, _) =
-                MessageB::b(&sign_keys_vec[ind].w_i, &ek_vec[s[i]], m_a_vec[i].0.clone());
+                &signers_dlog_statements,
+            )
+            .expect("Alice's range proofs in MtA failed");
+            let (m_b_w, beta_wi, _, _) = MessageB::b(
+                &sign_keys_vec[ind].w_i,
+                &ek_vec[s[i]],
+                m_a_vec[i].0.clone(),
+                &signers_dlog_statements,
+            )
+            .expect("Alice's range proofs in MtA failed");
 
             m_b_gamma_vec.push(m_b_gamma);
             beta_vec.push(beta_gamma);
@@ -754,4 +767,24 @@ fn test_serialize_deserialize() {
     let encoded = serde_json::to_string(&decommit).unwrap();
     let decoded: KeyGenDecommitMessage1 = serde_json::from_str(&encoded).unwrap();
     assert_eq!(decommit.y_i, decoded.y_i);
+}
+#[test]
+fn test_small_paillier() {
+    // parties shouldn't be able to choose small Paillier modulus
+    let mut k = Keys::create(0);
+    // creating 2046-bit Paillier
+    let (ek, dk) = Paillier::keypair_with_modulus_size(2046).keys();
+    k.dk = dk;
+    k.ek = ek;
+    let (commit, decommit) = k.phase1_broadcast_phase3_proof_of_correct_key_proof_of_correct_h1h2();
+    assert!(k
+        .phase1_verify_com_phase3_verify_correct_key_verify_dlog_phase2_distribute(
+            &Parameters {
+                threshold: 0,
+                share_count: 1
+            },
+            &[decommit],
+            &[commit],
+        )
+        .is_err());
 }

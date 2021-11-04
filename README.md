@@ -25,7 +25,7 @@ To learn about the core principles as well as on the [audit](https://github.com/
 ## Use It
 
 
-The library implements four different protocols for threshold ECDSA. The protocols presents differnt tradeoffs in terms of parameters, security assumptions and efficiency.
+The library implements four different protocols for threshold ECDSA. The protocols presents different tradeoffs in terms of parameters, security assumptions and efficiency.
 
 |  Protocol                                               | High Level code                                                             |
 | -------------------------------------------- | -------------------------------------------- |
@@ -40,7 +40,7 @@ The following steps are for setup, key generation with `n` parties and signing w
 
 ### Setup
 
-1.  We use shared state machine architecture (see [white city](https://github.com/KZen-networks/white-city)). The parameters `parties` and `threshold` can be configured by changing the file: `param`. a keygen will run with `parties` parties and signing will run with any subset of `threshold + 1` parties. `param` file should be located in the same path of the client softwares.
+1.  We use shared state machine architecture (see [white city](https://github.com/KZen-networks/white-city)). The parameters `parties` and `threshold` can be configured by changing the file: `param`. a keygen will run with `parties` parties and signing will run with any subset of `threshold + 1` parties. `param` file should be located in the same path of the client software.
 
 2.  Install [Rust](https://rustup.rs/). Run `cargo build --release --examples` (it will build into `/target/release/examples/`)
 
@@ -48,11 +48,11 @@ The following steps are for setup, key generation with `n` parties and signing w
 
 ### KeyGen
 
-run `gg18_keygen_client` as follows: `./gg18_keygen_client http://127.0.0.1:8001 keys.store`. Replace IP and port with the ones configured in setup. Once `n` parties join the application will run till finish. At the end each party will get a local keys file `keys.store` (change filename in command line). This contain secret and public data of the party after keygen. The file therefore should remain private.
+run `gg18_keygen_client` as follows: `./gg18_keygen_client http://127.0.0.1:8001 keys.store`. Replace IP and port with the ones configured in setup. Once `n` parties join the application will run till finish. At the end each party will get a local keys file `keys.store` (change filename in command line). This contains secret and public data of the party after keygen. The file therefore should remain private.
 
 ### Sign
 
-Run `./gg18_sign_client`. The application should be in the same folder as the `keys.store` file (or custom filename generated in keygen). the application takes three arguments: `IP:port` as in keygen, `filename` and message to be signed: `./gg18_sign_client http://127.0.0.1:8001 keys.store "KZen Networks"`. The same message should be used by all signers. Once `t+1` parties join the protocol will run and will output to screen signatue (R,s).
+Run `./gg18_sign_client`. The application should be in the same folder as the `keys.store` file (or custom filename generated in keygen). the application takes three arguments: `IP:port` as in keygen, `filename` and message to be signed: `./gg18_sign_client http://127.0.0.1:8001 keys.store "KZen Networks"`. The same message should be used by all signers. Once `t+1` parties join the protocol will run and will output to screen signature (R,s).
 
 The `./gg18_sign_client` executable initially tries to unhex its input message (the third parameter). Before running ensure two things:
 
@@ -69,7 +69,7 @@ Then, run:
 
 ### GG18 demo
 
-Run `./run.sh` (located in `/demo` folder) in the main folder. Move `params` file to the same folder as the excutables (usually `/target/release/examples`). The script will spawn a shared state machine, clients in the number of parties and signing requests for the `threshold + 1` first parties.
+Run `./run.sh` (located in `/demo` folder) in the main folder. Move `params` file to the same folder as the executables (usually `/target/release/examples`). The script will spawn a shared state machine, clients in the number of parties and signing requests for the `threshold + 1` first parties.
 
 `sm_manager` rocket server runs in _production_ mode by default. You may modify the `./run.sh` to config it to run in different environments. For example, to run rocket server in _development_:
 ```
@@ -77,7 +77,7 @@ ROCKET_ENV=development ./target/release/examples/sm_manager
 ```
 
 ### GG20 demo
-Run `./demo/run20.sh`. You would need nightly rust toolchain and libgmp to be installed and available. The `params.json` file should be changed in case you want to change the defalt split of 2-of-3. The script starts sm_manager which exposes a shared state over http for message passing between parties. Multiple instances of the gg20_keygen_client and gg20_sign_client communicate via the sm_manager. This demo does not implement the identifiable abort portion of the protocol yet.
+Run `./demo/run20.sh`. You would need nightly rust toolchain and libgmp to be installed and available. The `params.json` file should be changed in case you want to change the default split of 2-of-3. The script starts sm_manager which exposes a shared state over http for message passing between parties. Multiple instances of the gg20_keygen_client and gg20_sign_client communicate via the sm_manager. This demo does not implement the identifiable abort portion of the protocol yet.
 
 
 |          !["Multiparty ECDSA Demo"][demo]          |

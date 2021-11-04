@@ -257,8 +257,9 @@ impl Party2Private {
     ) -> (MessageB, Scalar<Secp256k1>) {
         let message_a = MessageA {
             c: ciphertext.clone(),
+            range_proofs: vec![],
         };
-        let (a, b, _, _) = MessageB::b(&self.x2, &ek, message_a);
+        let (a, b, _, _) = MessageB::b(&self.x2, &ek, message_a, &[]).unwrap();
         (a, b)
     }
 }

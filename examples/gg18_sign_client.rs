@@ -108,7 +108,7 @@ fn main() {
     let xi_com_vec = Keys::get_commitments_to_xi(&vss_scheme_vec);
     //////////////////////////////////////////////////////////////////////////////
     let (com, decommit) = sign_keys.phase1_broadcast();
-    let (m_a_k, _) = MessageA::a(&sign_keys.k_i, &party_keys.ek);
+    let (m_a_k, _) = MessageA::a(&sign_keys.k_i, &party_keys.ek, &[]);
     assert!(broadcast(
         &client,
         party_num_int,
@@ -159,12 +159,16 @@ fn main() {
                 &sign_keys.gamma_i,
                 &paillier_key_vector[signers_vec[(i - 1) as usize]],
                 m_a_vec[j].clone(),
-            );
+                &[],
+            )
+            .unwrap();
             let (m_b_w, beta_wi, _, _) = MessageB::b(
                 &sign_keys.w_i,
                 &paillier_key_vector[signers_vec[(i - 1) as usize]],
                 m_a_vec[j].clone(),
-            );
+                &[],
+            )
+            .unwrap();
             m_b_gamma_send_vec.push(m_b_gamma);
             m_b_w_send_vec.push(m_b_w);
             beta_vec.push(beta_gamma);

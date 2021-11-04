@@ -46,6 +46,8 @@ use curv::cryptographic_primitives::proofs::sigma_valid_pedersen::PedersenProof;
 use std::convert::TryInto;
 
 const SECURITY: usize = 256;
+const PAILLIER_MIN_BIT_LENGTH: usize = 2047;
+const PAILLIER_MAX_BIT_LENGTH: usize = 2048;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Parameters {
@@ -77,8 +79,7 @@ pub struct PartyPrivate {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct KeyGenBroadcastMessage1 {
     pub e: EncryptionKey,
-    pub dlog_statement_base_h1: DLogStatement,
-    pub dlog_statement_base_h2: DLogStatement,
+    pub dlog_statement: DLogStatement,
     pub com: BigInt,
     pub correct_key_proof: NiCorrectKeyProof,
     pub composite_dlog_proof_base_h1: CompositeDLogProof,
@@ -243,8 +244,7 @@ impl Keys {
         );
         let bcm1 = KeyGenBroadcastMessage1 {
             e: self.ek.clone(),
-            dlog_statement_base_h1,
-            dlog_statement_base_h2,
+            dlog_statement: dlog_statement_base_h1,
             com,
             correct_key_proof,
             composite_dlog_proof_base_h1,
@@ -270,23 +270,31 @@ impl Keys {
         // test paillier correct key, h1,h2 correct generation and test decommitments
         let correct_key_correct_decom_all = (0..bc1_vec.len())
             .map(|i| {
-                let test_res =
-                    HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
-                        &BigInt::from_bytes(&decom_vec[i].y_i.to_bytes(true).as_ref()),
-                        &decom_vec[i].blind_factor,
-                    ) == bc1_vec[i].com
-                        && bc1_vec[i]
-                            .correct_key_proof
-                            .verify(&bc1_vec[i].e, zk_paillier::zkproofs::SALT_STRING)
-                            .is_ok()
-                        && bc1_vec[i]
-                            .composite_dlog_proof_base_h1
-                            .verify(&bc1_vec[i].dlog_statement_base_h1)
-                            .is_ok()
-                        && bc1_vec[i]
-                            .composite_dlog_proof_base_h2
-                            .verify(&bc1_vec[i].dlog_statement_base_h2)
-                            .is_ok();
+                let dlog_statement_base_h2 = DLogStatement {
+                    N: bc1_vec[i].dlog_statement.N.clone(),
+                    g: bc1_vec[i].dlog_statement.ni.clone(),
+                    ni: bc1_vec[i].dlog_statement.g.clone(),
+                };
+                let test_res = HashCommitment::create_commitment_with_user_defined_randomness(
+                    &decom_vec[i].y_i.bytes_compressed_to_big_int(),
+                    &decom_vec[i].blind_factor,
+                ) == bc1_vec[i].com
+                    && bc1_vec[i]
+                        .correct_key_proof
+                        .verify(&bc1_vec[i].e, zk_paillier::zkproofs::SALT_STRING)
+                        .is_ok()
+                    && bc1_vec[i].e.n.bit_length() >= PAILLIER_MIN_BIT_LENGTH
+                    && bc1_vec[i].e.n.bit_length() <= PAILLIER_MAX_BIT_LENGTH
+                    && bc1_vec[i].dlog_statement.N.bit_length() >= PAILLIER_MIN_BIT_LENGTH
+                    && bc1_vec[i].dlog_statement.N.bit_length() <= PAILLIER_MAX_BIT_LENGTH
+                    && bc1_vec[i]
+                        .composite_dlog_proof_base_h1
+                        .verify(&bc1_vec[i].dlog_statement)
+                        .is_ok()
+                    && bc1_vec[i]
+                        .composite_dlog_proof_base_h2
+                        .verify(&dlog_statement_base_h2)
+                        .is_ok();
                 if test_res == false {
                     bad_actors_vec.push(i);
                     false
