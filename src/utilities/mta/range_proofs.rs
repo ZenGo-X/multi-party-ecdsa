@@ -20,11 +20,8 @@ use zk_paillier::zkproofs::DLogStatement;
 
 use serde::{Deserialize, Serialize};
 use std::borrow::Borrow;
-use zeroize::Zeroize;
 
 /// Represents the first round of the interactive version of the proof
-#[derive(Zeroize)]
-#[zeroize(drop)]
 struct AliceZkpRound1 {
     alpha: BigInt,
     beta: BigInt,
@@ -189,8 +186,6 @@ impl AliceProof {
 }
 
 /// Represents first round of the interactive version of the proof
-#[derive(Zeroize)]
-#[zeroize(drop)]
 struct BobZkpRound1 {
     pub alpha: BigInt,
     pub beta: BigInt,
