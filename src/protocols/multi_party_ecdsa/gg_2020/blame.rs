@@ -156,7 +156,7 @@ impl GlobalStatePhase5 {
                                 bad_signers_vec.push(ind)
                             }
 
-                            let k_i_gamma_j = self.k_vec[i] * self.gamma_vec[ind];
+                            let k_i_gamma_j = &self.k_vec[i] * &self.gamma_vec[ind];
                             let alpha = k_i_gamma_j - &beta;
 
                             (alpha, beta)

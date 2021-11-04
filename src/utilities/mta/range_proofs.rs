@@ -444,7 +444,7 @@ impl BobProof {
                 let alpha: Scalar<Secp256k1> = Scalar::<Secp256k1>::from(&round1.alpha);
                 (ec_gen * b, ec_gen * alpha)
             };
-            check_u = Some(u);
+            check_u = Some(u.clone());
             let X_x_coor = X.x_coord().unwrap();
             values_to_hash.push(&X_x_coor);
             let X_y_coor = X.y_coord().unwrap();
@@ -505,7 +505,7 @@ impl BobProofExt {
             mta_avc_out,
             alice_ek,
             dlog_statement,
-            Some(&BobCheck { u: self.u, X: *X }),
+            Some(&BobCheck { u: self.u.clone(), X: X.clone() }),
         ) {
             return false;
         }
@@ -515,7 +515,7 @@ impl BobProofExt {
             let ec_gen = Point::<Secp256k1>::generator();
             let s1: Scalar<Secp256k1> = Scalar::<Secp256k1>::from(&self.proof.s1);
             let e: Scalar<Secp256k1> = Scalar::<Secp256k1>::from(&self.proof.e);
-            (ec_gen * s1, (X * &e) + self.u)
+            (ec_gen * s1, (X * &e) + &self.u)
         };
 
         if x1 != x2 {
@@ -609,7 +609,7 @@ pub(crate) mod tests {
         let (dlog_statement, ek, _) = generate_init();
 
         // Alice's secret value
-        let a = Scalar::<Secp256k1>::new_random().to_bigint();
+        let a = Scalar::<Secp256k1>::random().to_bigint();
         let r = BigInt::from_paillier_key(&ek);
         let cipher = Paillier::encrypt_with_chosen_randomness(
             &ek,
@@ -635,14 +635,14 @@ pub(crate) mod tests {
             // run MtA protocol with different inputs
             (0..5).for_each(|_| {
                 // Simulate Alice
-                let a = Scalar::<Secp256k1>::new_random().to_bigint();
+                let a = Scalar::<Secp256k1>::random().to_bigint();
                 let encrypted_a = Paillier::encrypt(alice_public_key, RawPlaintext::from(a))
                     .0
                     .clone()
                     .into_owned();
 
                 // Bob follows MtA
-                let b = Scalar::<Secp256k1>::new_random();
+                let b = Scalar::<Secp256k1>::random();
                 // E(a) * b
                 let b_times_enc_a = Paillier::mul(
                     alice_public_key,
@@ -679,7 +679,7 @@ pub(crate) mod tests {
 
                 // Bob follows MtAwc
                 let ec_gen = Point::<Secp256k1>::generator();
-                let X = ec_gen * b;
+                let X = ec_gen * &b;
                 let bob_proof = BobProofExt::generate(
                     &encrypted_a,
                     &mta_out.0.clone().into_owned(),
