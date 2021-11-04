@@ -275,8 +275,8 @@ impl Keys {
                     g: bc1_vec[i].dlog_statement.ni.clone(),
                     ni: bc1_vec[i].dlog_statement.g.clone(),
                 };
-                let test_res = HashCommitment::create_commitment_with_user_defined_randomness(
-                    &decom_vec[i].y_i.bytes_compressed_to_big_int(),
+                let test_res = HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
+                    &BigInt::from_bytes(&decom_vec[i].y_i.to_bytes(true)),
                     &decom_vec[i].blind_factor,
                 ) == bc1_vec[i].com
                     && bc1_vec[i]

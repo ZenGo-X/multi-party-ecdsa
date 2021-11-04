@@ -383,9 +383,10 @@ impl BobProof {
                 values_to_hash.push(&u_x_coor);
                 let u_y_coor = check.unwrap().u.y_coord().unwrap();
                 values_to_hash.push(&u_y_coor);
-                HSha256::create_hash(&values_to_hash[..])
+                values_to_hash.into_iter().fold(Sha256::new(), |acc, b| acc.chain_bigint(b)).result_bigint()
             }
-            None => HSha256::create_hash(&values_to_hash[..]),
+            None =>
+                values_to_hash.into_iter().fold(Sha256::new(), |acc, b| acc.chain_bigint(b)).result_bigint(),
         };
 
         if e != self.e {
@@ -442,9 +443,9 @@ impl BobProof {
             values_to_hash.push(&u_x_coor);
             let u_y_coor = u.y_coord().unwrap();
             values_to_hash.push(&u_y_coor);
-            HSha256::create_hash(&values_to_hash[..])
+            values_to_hash.into_iter().fold(Sha256::new(), |acc, b| acc.chain_bigint(b)).result_bigint()
         } else {
-            HSha256::create_hash(&values_to_hash[..])
+            values_to_hash.into_iter().fold(Sha256::new(), |acc, b| acc.chain_bigint(b)).result_bigint()
         };
 
         let round2 = BobZkpRound2::from(alice_ek, &round1, &e, b, beta_prim, r);
