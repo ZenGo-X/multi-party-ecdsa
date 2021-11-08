@@ -52,7 +52,7 @@ impl Round0 {
 }
 
 pub struct Round1 {
-    keys: Keys,
+    keys: Keys<Secp256k1>,
     bc1: KeyGenBroadcastMessage1,
     decom1: KeyGenDecommitMessage1,
     party_i: u16,
@@ -93,7 +93,7 @@ impl Round1 {
 }
 
 pub struct Round2 {
-    keys: gg_2020::party_i::Keys,
+    keys: gg_2020::party_i::Keys<Secp256k1>,
     received_comm: Vec<KeyGenBroadcastMessage1>,
     decom: KeyGenDecommitMessage1,
 
@@ -161,7 +161,7 @@ impl Round2 {
 }
 
 pub struct Round3 {
-    keys: gg_2020::party_i::Keys,
+    keys: gg_2020::party_i::Keys<Secp256k1>,
 
     y_vec: Vec<Point<Secp256k1>>,
     bc_vec: Vec<gg_2020::party_i::KeyGenBroadcastMessage1>,
@@ -234,7 +234,7 @@ impl Round3 {
 }
 
 pub struct Round4 {
-    keys: gg_2020::party_i::Keys,
+    keys: gg_2020::party_i::Keys<Secp256k1>,
     y_vec: Vec<Point<Secp256k1>>,
     bc_vec: Vec<gg_2020::party_i::KeyGenBroadcastMessage1>,
     shared_keys: gg_2020::party_i::SharedKeys,
