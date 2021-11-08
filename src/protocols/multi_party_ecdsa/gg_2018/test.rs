@@ -58,7 +58,7 @@ fn keygen_t_n_parties(
     t: u16,
     n: u16,
 ) -> (
-    Vec<Keys>,
+    Vec<Keys<Secp256k1>>,
     Vec<SharedKeys>,
     Vec<Point<Secp256k1>>,
     Point<Secp256k1>,
@@ -69,7 +69,7 @@ fn keygen_t_n_parties(
         share_count: n,
     };
     let (t, n) = (t as usize, n as usize);
-    let party_keys_vec = (0..n).map(Keys::create).collect::<Vec<Keys>>();
+    let party_keys_vec = (0..n).map(Keys::create).collect::<Vec<Keys<Secp256k1>>>();
 
     let (bc1_vec, decom_vec): (Vec<_>, Vec<_>) = party_keys_vec
         .iter()

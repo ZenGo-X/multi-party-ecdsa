@@ -46,7 +46,7 @@ fn main() {
     let data = fs::read_to_string(env::args().nth(2).unwrap())
         .expect("Unable to load keys, did you run keygen first? ");
     let (party_keys, shared_keys, party_id, vss_scheme_vec, paillier_key_vector, y_sum): (
-        Keys,
+        Keys<Secp256k1>,
         SharedKeys,
         u16,
         Vec<VerifiableSS<Secp256k1>>,

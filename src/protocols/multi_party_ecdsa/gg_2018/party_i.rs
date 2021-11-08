@@ -24,7 +24,7 @@ use curv::cryptographic_primitives::hashing::{Digest, DigestExt};
 use curv::cryptographic_primitives::proofs::sigma_correct_homomorphic_elgamal_enc::*;
 use curv::cryptographic_primitives::proofs::sigma_dlog::DLogProof;
 use curv::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS;
-use curv::elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar};
+use curv::elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar, Curve};
 use curv::BigInt;
 use sha2::Sha256;
 
@@ -47,9 +47,9 @@ pub struct Parameters {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Keys {
-    pub u_i: Scalar<Secp256k1>,
-    pub y_i: Point<Secp256k1>,
+pub struct Keys<E: Curve> {
+    pub u_i: Scalar<E>,
+    pub y_i: Point<E>,
     pub dk: DecryptionKey,
     pub ek: EncryptionKey,
     pub party_index: usize,
@@ -143,7 +143,7 @@ pub struct SignatureRecid {
     pub recid: u8,
 }
 
-impl Keys {
+impl Keys<Secp256k1> {
     pub fn create(index: usize) -> Self {
         let u = Scalar::<Secp256k1>::random();
         let y = Point::<Secp256k1>::generator() * &u;
@@ -159,7 +159,7 @@ impl Keys {
     }
 
     // we recommend using safe primes if the code is used in production
-    pub fn create_safe_prime(index: usize) -> Keys {
+    pub fn create_safe_prime(index: usize) -> Keys<Secp256k1> {
         let u: Scalar<Secp256k1> = Scalar::<Secp256k1>::random();
         let y = Point::<Secp256k1>::generator() * &u;
 
@@ -173,7 +173,7 @@ impl Keys {
             party_index: index.clone(),
         }
     }
-    pub fn create_from(u: Scalar<Secp256k1>, index: usize) -> Keys {
+    pub fn create_from(u: Scalar<Secp256k1>, index: usize) -> Keys<Secp256k1> {
         let y = Point::<Secp256k1>::generator() * &u;
         let (ek, dk) = Paillier::keypair().keys();
 
@@ -318,7 +318,7 @@ impl Keys {
 }
 
 impl PartyPrivate {
-    pub fn set_private(key: Keys, shared_key: SharedKeys) -> Self {
+    pub fn set_private(key: Keys<Secp256k1>, shared_key: SharedKeys) -> Self {
         Self {
             u_i: key.u_i,
             x_i: shared_key.x_i,
@@ -335,7 +335,7 @@ impl PartyPrivate {
         Paillier::decrypt(&self.dk, &RawCiphertext::from(ciphertext))
     }
 
-    pub fn refresh_private_key(&self, factor: &Scalar<Secp256k1>, index: usize) -> Keys {
+    pub fn refresh_private_key(&self, factor: &Scalar<Secp256k1>, index: usize) -> Keys<Secp256k1> {
         let u: Scalar<Secp256k1> = &self.u_i + factor;
         let y = Point::<Secp256k1>::generator() * &u;
         let (ek, dk) = Paillier::keypair().keys();
@@ -350,7 +350,7 @@ impl PartyPrivate {
     }
 
     // we recommend using safe primes if the code is used in production
-    pub fn refresh_private_key_safe_prime(&self, factor: &Scalar<Secp256k1>, index: usize) -> Keys {
+    pub fn refresh_private_key_safe_prime(&self, factor: &Scalar<Secp256k1>, index: usize) -> Keys<Secp256k1> {
         let u: Scalar<Secp256k1> = &self.u_i + factor;
         let y = Point::<Secp256k1>::generator() * &u;
         let (ek, dk) = Paillier::keypair_safe_primes().keys();
