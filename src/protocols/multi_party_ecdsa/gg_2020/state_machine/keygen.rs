@@ -187,7 +187,7 @@ impl Keygen {
 impl StateMachine for Keygen {
     type MessageBody = ProtocolMessage;
     type Err = Error;
-    type Output = LocalKey;
+    type Output = LocalKey<Secp256k1>;
 
     fn handle_incoming(&mut self, msg: Msg<Self::MessageBody>) -> Result<()> {
         let current_round = self.current_round();
@@ -406,7 +406,7 @@ enum R {
     Round2(Round2),
     Round3(Round3),
     Round4(Round4),
-    Final(LocalKey),
+    Final(LocalKey<Secp256k1>),
     Gone,
 }
 
@@ -496,7 +496,7 @@ pub mod test {
 
     use super::*;
 
-    pub fn simulate_keygen(t: u16, n: u16) -> Vec<LocalKey> {
+    pub fn simulate_keygen(t: u16, n: u16) -> Vec<LocalKey<Secp256k1>> {
         let mut simulation = Simulation::new();
         simulation.enable_benchmarks(true);
 

@@ -31,6 +31,7 @@ use thiserror::Error;
 
 use crate::utilities::mta::MessageA;
 
+use curv::elliptic::curves::secp256_k1::Secp256k1;
 use crate::protocols::multi_party_ecdsa::gg_2020 as gg20;
 use gg20::party_i::{SignBroadcastPhase1, SignDecommitPhase1, SignatureRecid};
 use gg20::state_machine::keygen::LocalKey;
@@ -74,7 +75,7 @@ impl OfflineStage {
     /// party local secret share `local_key`.
     ///
     /// Returns error if given arguments are contradicting.
-    pub fn new(i: u16, s_l: Vec<u16>, local_key: LocalKey) -> Result<Self> {
+    pub fn new(i: u16, s_l: Vec<u16>, local_key: LocalKey<Secp256k1>) -> Result<Self> {
         if s_l.len() < 2 {
             return Err(Error::TooFewParties);
         }
@@ -662,7 +663,7 @@ mod test {
     use gg20::state_machine::keygen::test::simulate_keygen;
 
     fn simulate_offline_stage(
-        local_keys: Vec<LocalKey>,
+        local_keys: Vec<LocalKey<Secp256k1>>,
         s_l: &[u16],
     ) -> Vec<CompletedOfflineStage> {
         let mut simulation = Simulation::new();

@@ -1,6 +1,6 @@
 use curv::cryptographic_primitives::proofs::sigma_dlog::DLogProof;
 use curv::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS;
-use curv::elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar};
+use curv::elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar, Curve};
 use sha2::Sha256;
 
 use serde::{Deserialize, Serialize};
@@ -247,7 +247,7 @@ pub struct Round4 {
 }
 
 impl Round4 {
-    pub fn proceed(self, input: BroadcastMsgs<DLogProof<Secp256k1, Sha256>>) -> Result<LocalKey> {
+    pub fn proceed(self, input: BroadcastMsgs<DLogProof<Secp256k1, Sha256>>) -> Result<LocalKey<Secp256k1>> {
         let params = gg_2020::party_i::Parameters {
             threshold: self.t.into(),
             share_count: self.n.into(),
@@ -305,20 +305,20 @@ impl Round4 {
 
 /// Local secret obtained by party after [keygen](super::Keygen) protocol is completed
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct LocalKey {
+pub struct LocalKey<E: Curve> {
     pub paillier_dk: paillier::DecryptionKey,
-    pub pk_vec: Vec<Point<Secp256k1>>,
+    pub pk_vec: Vec<Point<E>>,
     pub keys_linear: gg_2020::party_i::SharedKeys,
     pub paillier_key_vec: Vec<EncryptionKey>,
-    pub y_sum_s: Point<Secp256k1>,
+    pub y_sum_s: Point<E>,
     pub h1_h2_n_tilde_vec: Vec<DLogStatement>,
-    pub vss_scheme: VerifiableSS<Secp256k1>,
+    pub vss_scheme: VerifiableSS<E>,
     pub i: u16,
     pub t: u16,
     pub n: u16,
 }
 
-impl LocalKey {
+impl LocalKey<Secp256k1> {
     /// Public key of secret shared between parties
     pub fn public_key(&self) -> Point<Secp256k1> {
         self.y_sum_s.clone()
