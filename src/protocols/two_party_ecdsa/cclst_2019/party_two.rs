@@ -199,7 +199,11 @@ impl KeyGenSecondMsg {
             false => flag = false,
             true => flag = flag,
         };
-        assert!(flag);
+
+        if !flag {
+            return Err(ProofError);
+        }
+
         DLogProof::verify(&party_one_d_log_proof)?;
         Ok(KeyGenSecondMsg {})
     }

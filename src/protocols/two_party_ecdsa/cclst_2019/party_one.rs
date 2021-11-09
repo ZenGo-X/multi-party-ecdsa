@@ -340,7 +340,9 @@ impl EphKeyGenSecondMsg {
             false => flag = false,
             true => flag = flag,
         };
-        assert!(flag);
+        if !flag {
+            return Err(ProofError);
+        }
         let delta = ECDDHStatement {
             g1: Point::<Secp256k1>::generator(),
             h1: party_two_public_share.clone(),

@@ -22,7 +22,7 @@ fn get(
         Some(v) => {
             let entry = Entry {
                 key: index.key,
-                value: v.clone().to_string(),
+                value: v.clone(),
             };
             Json(Ok(entry))
         }
@@ -34,7 +34,7 @@ fn get(
 fn set(db_mtx: State<RwLock<HashMap<Key, String>>>, request: Json<Entry>) -> Json<Result<(), ()>> {
     let entry: Entry = request.0;
     let mut hm = db_mtx.write().unwrap();
-    hm.insert(entry.key.clone(), entry.value.clone());
+    hm.insert(entry.key.clone(), entry.value);
     Json(Ok(()))
 }
 
@@ -50,7 +50,7 @@ fn signup_keygen(db_mtx: State<RwLock<HashMap<Key, String>>>) -> Json<Result<Par
     let party_signup = {
         let hm = db_mtx.read().unwrap();
         let value = hm.get(&key).unwrap();
-        let client_signup: PartySignup = serde_json::from_str(&value).unwrap();
+        let client_signup: PartySignup = serde_json::from_str(value).unwrap();
         if client_signup.number < parties {
             PartySignup {
                 number: client_signup.number + 1,
@@ -81,7 +81,7 @@ fn signup_sign(db_mtx: State<RwLock<HashMap<Key, String>>>) -> Json<Result<Party
     let party_signup = {
         let hm = db_mtx.read().unwrap();
         let value = hm.get(&key).unwrap();
-        let client_signup: PartySignup = serde_json::from_str(&value).unwrap();
+        let client_signup: PartySignup = serde_json::from_str(value).unwrap();
         if client_signup.number < threshold + 1 {
             PartySignup {
                 number: client_signup.number + 1,

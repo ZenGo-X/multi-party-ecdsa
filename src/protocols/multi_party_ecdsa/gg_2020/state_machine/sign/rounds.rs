@@ -29,6 +29,7 @@ use gg20::ErrorType;
 type Result<T, E = Error> = std::result::Result<T, E>;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[allow(clippy::upper_case_acronyms)]
 pub struct GWI(pub Point<Secp256k1>);
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct GammaI(pub MessageB);
@@ -341,8 +342,8 @@ impl Round3 {
 
         let delta_inv = SignKeys::phase3_reconstruct_delta(&delta_vec);
         let ttag = self.s_l.len();
-        for i in 0..ttag {
-            PedersenProof::verify(&t_proof_vec[i]).expect("error T proof");
+        for proof in t_proof_vec.iter().take(ttag) {
+            PedersenProof::verify(proof).expect("error T proof");
         }
 
         output.push(Msg {
@@ -411,7 +412,7 @@ impl Round4 {
         let R = SignKeys::phase4(
             &self.delta_inv,
             &b_proof_vec[..],
-            decom_vec.clone(),
+            decom_vec,
             &self.bc_vec,
             usize::from(self.i - 1),
         )
@@ -637,7 +638,7 @@ impl Round7 {
     ) -> Result<(Self, PartialSignature)> {
         let local_signature = LocalSignature::phase7_local_sig(
             &completed_offline_stage.sign_keys.k_i,
-            &message,
+            message,
             &completed_offline_stage.R,
             &completed_offline_stage.sigma_i,
             &completed_offline_stage.local_key.y_sum_s,

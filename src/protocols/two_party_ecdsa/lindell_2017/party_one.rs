@@ -147,14 +147,14 @@ impl KeyGenFirstMsg {
         let pk_commitment_blind_factor = BigInt::sample(SECURITY_BITS);
         let pk_commitment =
             HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
-                &BigInt::from_bytes(&public_share.to_bytes(true).as_ref()),
+                &BigInt::from_bytes(public_share.to_bytes(true).as_ref()),
                 &pk_commitment_blind_factor,
             );
 
         let zk_pok_blind_factor = BigInt::sample(SECURITY_BITS);
         let zk_pok_commitment =
             HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
-                &BigInt::from_bytes(&d_log_proof.pk_t_rand_commitment.to_bytes(true).as_ref()),
+                &BigInt::from_bytes(d_log_proof.pk_t_rand_commitment.to_bytes(true).as_ref()),
                 &zk_pok_blind_factor,
             );
         let ec_key_pair = EcKeyPair {
@@ -187,14 +187,14 @@ impl KeyGenFirstMsg {
         let pk_commitment_blind_factor = BigInt::sample(SECURITY_BITS);
         let pk_commitment =
             HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
-                &BigInt::from_bytes(&public_share.to_bytes(true).as_ref()),
+                &BigInt::from_bytes(public_share.to_bytes(true).as_ref()),
                 &pk_commitment_blind_factor,
             );
 
         let zk_pok_blind_factor = BigInt::sample(SECURITY_BITS);
         let zk_pok_commitment =
             HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
-                &BigInt::from_bytes(&d_log_proof.pk_t_rand_commitment.to_bytes(true).as_ref()),
+                &BigInt::from_bytes(d_log_proof.pk_t_rand_commitment.to_bytes(true).as_ref()),
                 &zk_pok_blind_factor,
             );
 
@@ -261,7 +261,7 @@ impl Party1Private {
         let x1_new = &party_one_private.x1 * factor_fe;
         let c_key_new = Paillier::encrypt_with_chosen_randomness(
             &ek_new,
-            RawPlaintext::from(x1_new.to_bigint().clone()),
+            RawPlaintext::from(x1_new.to_bigint()),
             &randomness,
         )
         .0
@@ -277,7 +277,7 @@ impl Party1Private {
 
         let party_one_private_new = Party1Private {
             x1: x1_new,
-            paillier_priv: dk_new.clone(),
+            paillier_priv: dk_new,
             c_key_randomness: randomness.0,
         };
 
@@ -383,7 +383,7 @@ impl PaillierKeyPair {
             G: Point::<Secp256k1>::generator().to_point(),
             h1: dlog_statement.g.clone(),
             h2: dlog_statement.ni.clone(),
-            N_tilde: dlog_statement.N.clone(),
+            N_tilde: dlog_statement.N,
         };
 
         let pdl_w_slack_witness = PDLwSlackWitness {
@@ -449,28 +449,28 @@ impl EphKeyGenSecondMsg {
         let party_two_d_log_proof = &party_two_second_message.comm_witness.d_log_proof;
         let mut flag = true;
         if party_two_pk_commitment
-            == &HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
-                &BigInt::from_bytes(&party_two_public_share.to_bytes(true).as_ref()),
-                &party_two_pk_commitment_blind_factor,
+            != &HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
+                &BigInt::from_bytes(party_two_public_share.to_bytes(true).as_ref()),
+                party_two_pk_commitment_blind_factor,
             )
         {
-            flag = flag
-        } else {
             flag = false
-        };
+        }
         if party_two_zk_pok_commitment
-            == &HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
+            != &HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
                 &Sha256::new()
                     .chain_points([&party_two_d_log_proof.a1, &party_two_d_log_proof.a2])
                     .result_bigint(),
-                &party_two_zk_pok_blind_factor,
+                party_two_zk_pok_blind_factor,
             )
         {
-            flag = flag
-        } else {
             flag = false
-        };
-        assert!(flag);
+        }
+
+        if !flag {
+            return Err(ProofError);
+        }
+
         let delta = ECDDHStatement {
             g1: Point::<Secp256k1>::generator().to_point(),
             h1: party_two_public_share.clone(),
@@ -510,7 +510,7 @@ impl Signature {
 
         let s = cmp::min(
             s_tag_tag_bn.clone(),
-            Scalar::<Secp256k1>::group_order().clone() - s_tag_tag_bn.clone(),
+            Scalar::<Secp256k1>::group_order().clone() - s_tag_tag_bn,
         );
 
         Signature { s, r: rx }
@@ -556,8 +556,8 @@ impl Signature {
         */
         let is_ry_odd = ry.test_bit(0);
         let mut recid = if is_ry_odd { 1 } else { 0 };
-        if s_tag_tag_bn.clone() > Scalar::<Secp256k1>::group_order() - s_tag_tag_bn.clone() {
-            recid = recid ^ 1;
+        if s_tag_tag_bn > Scalar::<Secp256k1>::group_order() - &s_tag_tag_bn {
+            recid ^= 1;
         }
 
         SignatureRecid { s, r: rx, recid }
@@ -582,7 +582,7 @@ pub fn verify(
     let rx_bytes = &BigInt::to_bytes(&signature.r)[..];
     let u1_plus_u2_bytes = &BigInt::to_bytes(&(u1 + u2).x_coord().unwrap())[..];
 
-    if rx_bytes.ct_eq(&u1_plus_u2_bytes).unwrap_u8() == 1
+    if rx_bytes.ct_eq(u1_plus_u2_bytes).unwrap_u8() == 1
         && signature.s < Scalar::<Secp256k1>::group_order() - signature.s.clone()
     {
         Ok(())
@@ -598,7 +598,7 @@ pub fn generate_h1_h2_n_tilde() -> (BigInt, BigInt, BigInt, BigInt) {
     let one = BigInt::one();
     let phi = (&dk_tilde.p - &one) * (&dk_tilde.q - &one);
     let h1 = BigInt::sample_below(&phi);
-    let s = BigInt::from(2).pow(256 as u32);
+    let s = BigInt::from(2).pow(256_u32);
     let xhi = BigInt::sample_below(&s);
     let h1_inv = BigInt::mod_inv(&h1, &ek_tilde.n).unwrap();
     let h2 = BigInt::mod_pow(&h1_inv, &xhi, &ek_tilde.n);

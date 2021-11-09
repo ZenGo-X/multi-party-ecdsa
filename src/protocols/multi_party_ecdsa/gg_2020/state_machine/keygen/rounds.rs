@@ -33,7 +33,7 @@ impl Round0 {
             party_keys.phase1_broadcast_phase3_proof_of_correct_key_proof_of_correct_h1h2();
 
         output.push(Msg {
-            sender: self.party_i.clone(),
+            sender: self.party_i,
             receiver: None,
             body: bc1.clone(),
         });
@@ -70,7 +70,7 @@ impl Round1 {
         O: Push<Msg<gg_2020::party_i::KeyGenDecommitMessage1>>,
     {
         output.push(Msg {
-            sender: self.party_i.clone(),
+            sender: self.party_i,
             receiver: None,
             body: self.decom1.clone(),
         });
@@ -79,7 +79,7 @@ impl Round1 {
             received_comm: input.into_vec_including_me(self.bc1),
             decom: self.decom1,
 
-            party_i: self.party_i.clone(),
+            party_i: self.party_i,
             t: self.t,
             n: self.n,
         })
@@ -112,8 +112,8 @@ impl Round2 {
         O: Push<Msg<(VerifiableSS<Secp256k1>, Scalar<Secp256k1>)>>,
     {
         let params = gg_2020::party_i::Parameters {
-            threshold: self.t.into(),
-            share_count: self.n.into(),
+            threshold: self.t,
+            share_count: self.n,
         };
         let received_decom = input.into_vec_including_me(self.decom);
 
@@ -127,12 +127,12 @@ impl Round2 {
             .map_err(ProceedError::Round2VerifyCommitments)?;
 
         for (i, share) in vss_result.1.iter().enumerate() {
-            if i + 1 == usize::from(self.party_i.clone()) {
+            if i + 1 == usize::from(self.party_i) {
                 continue;
             }
 
             output.push(Msg {
-                sender: self.party_i.clone(),
+                sender: self.party_i,
                 receiver: Some(i as u16 + 1),
                 body: (vss_result.0.clone(), share.clone()),
             })
@@ -145,9 +145,9 @@ impl Round2 {
             bc_vec: self.received_comm,
 
             own_vss: vss_result.0.clone(),
-            own_share: vss_result.1[usize::from(self.party_i.clone() - 1)].clone(),
+            own_share: vss_result.1[usize::from(self.party_i - 1)].clone(),
 
-            party_i: self.party_i.clone(),
+            party_i: self.party_i,
             t: self.t,
             n: self.n,
         })
@@ -184,8 +184,8 @@ impl Round3 {
         O: Push<Msg<DLogProof<Secp256k1, Sha256>>>,
     {
         let params = gg_2020::party_i::Parameters {
-            threshold: self.t.into(),
-            share_count: self.n.into(),
+            threshold: self.t,
+            share_count: self.n,
         };
         let (vss_schemes, party_shares): (Vec<_>, Vec<_>) = input
             .into_vec_including_me((self.own_vss, self.own_share))
@@ -199,7 +199,7 @@ impl Round3 {
                 &self.y_vec,
                 &party_shares,
                 &vss_schemes,
-                self.party_i.clone() as usize,
+                self.party_i.into(),
             )
             .map_err(ProceedError::Round3VerifyVssConstruct)?;
 
@@ -214,10 +214,10 @@ impl Round3 {
             y_vec: self.y_vec.clone(),
             bc_vec: self.bc_vec,
             shared_keys,
-            own_dlog_proof: dlog_proof.clone(),
+            own_dlog_proof: dlog_proof,
             vss_vec: vss_schemes,
 
-            party_i: self.party_i.clone(),
+            party_i: self.party_i,
             t: self.t,
             n: self.n,
         })
@@ -252,8 +252,8 @@ impl Round4 {
         input: BroadcastMsgs<DLogProof<Secp256k1, Sha256>>,
     ) -> Result<LocalKey<Secp256k1>> {
         let params = gg_2020::party_i::Parameters {
-            threshold: self.t.into(),
-            share_count: self.n.into(),
+            threshold: self.t,
+            share_count: self.n,
         };
         let dlog_proofs = input.into_vec_including_me(self.own_dlog_proof.clone());
 

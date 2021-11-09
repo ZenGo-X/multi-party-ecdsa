@@ -90,7 +90,7 @@ impl OfflineStage {
         {
             // Check if s_l has duplicates
             let mut s_l_sorted = s_l.clone();
-            s_l_sorted.sort();
+            s_l_sorted.sort_unstable();
             let mut s_l_sorted_deduped = s_l_sorted.clone();
             s_l_sorted_deduped.dedup();
 
@@ -462,6 +462,7 @@ impl super::traits::RoundBlame for OfflineStage {
     }
 }
 
+#[allow(clippy::large_enum_variant)]
 enum OfflineR {
     R0(Round0),
     R1(Round1),
@@ -478,6 +479,7 @@ enum OfflineR {
 pub struct OfflineProtocolMessage(OfflineM);
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[allow(clippy::large_enum_variant)]
 enum OfflineM {
     M1((MessageA, SignBroadcastPhase1)),
     M2((GammaI, WI)),
@@ -638,7 +640,7 @@ impl SignManual {
     /// by other parties)
     pub fn complete(self, sigs: &[PartialSignature]) -> Result<SignatureRecid, SignError> {
         self.state
-            .proceed_manual(&sigs)
+            .proceed_manual(sigs)
             .map_err(SignError::CompleteSigning)
     }
 }

@@ -138,7 +138,7 @@ impl GlobalStatePhase5 {
                     bad_signers_vec.push(i)
                 }
 
-                let alpha_beta_vector = if bad_signers_vec.is_empty() {
+                if bad_signers_vec.is_empty() {
                     (0..len - 1)
                         .map(|j| {
                             let ind = if j < i { j } else { j + 1 };
@@ -164,9 +164,7 @@ impl GlobalStatePhase5 {
                         .collect::<Vec<(Scalar<Secp256k1>, Scalar<Secp256k1>)>>()
                 } else {
                     vec![]
-                };
-
-                alpha_beta_vector
+                }
             })
             .collect::<Vec<Vec<(Scalar<Secp256k1>, Scalar<Secp256k1>)>>>();
 
@@ -208,6 +206,7 @@ impl GlobalStatePhase5 {
 
             // compare delta vec to reconstructed delta vec
 
+            #[allow(clippy::needless_range_loop)]
             for i in 0..len {
                 if self.delta_vec[i] != delta_vec_reconstruct[i] {
                     bad_signers_vec.push(i)
@@ -215,7 +214,7 @@ impl GlobalStatePhase5 {
             }
         }
 
-        bad_signers_vec.sort();
+        bad_signers_vec.sort_unstable();
         bad_signers_vec.dedup();
         let err_type = ErrorType {
             error_type: "phase6_blame".to_string(),
@@ -268,8 +267,7 @@ impl GlobalStatePhase6 {
             h2: S.clone(),
         };
         let w = ECDDHWitness { x: sigma_i.clone() };
-        let proof = ECDDHProof::prove(&w, &delta);
-        proof
+        ECDDHProof::prove(&w, &delta)
     }
 
     // TODO: check all parties submitted inputs
@@ -368,8 +366,7 @@ impl GlobalStatePhase6 {
                             let miu: Scalar<Secp256k1> =
                                 Scalar::<Secp256k1>::from(&self.miu_vec[i][j]);
                             let g_miu = Point::<Secp256k1>::generator() * &miu;
-                            let g_ni = g_w_j_ki - &g_miu;
-                            g_ni
+                            g_w_j_ki - &g_miu
                         })
                         .collect::<Vec<Point<Secp256k1>>>()
                 })
@@ -387,6 +384,7 @@ impl GlobalStatePhase6 {
                 })
                 .collect::<Vec<Point<Secp256k1>>>();
 
+            #[allow(clippy::needless_range_loop)]
             for i in 0..len {
                 for j in 0..len - 1 {
                     let ind1 = if j < i { j } else { j + 1 };
@@ -396,6 +394,7 @@ impl GlobalStatePhase6 {
             }
 
             // check zero knowledge proof
+            #[allow(clippy::needless_range_loop)]
             for i in 0..len {
                 let statement = ECDDHStatement {
                     g1: Point::<Secp256k1>::generator().to_point(),
@@ -411,7 +410,7 @@ impl GlobalStatePhase6 {
             }
         }
 
-        bad_signers_vec.sort();
+        bad_signers_vec.sort_unstable();
         bad_signers_vec.dedup();
         let err_type = ErrorType {
             error_type: "phase6_blame".to_string(),

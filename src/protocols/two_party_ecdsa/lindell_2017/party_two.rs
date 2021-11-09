@@ -186,17 +186,15 @@ impl KeyGenSecondMsg {
 
         let mut flag = true;
         if party_one_pk_commitment
-            == &HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
+            != &HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
                 &BigInt::from_bytes(&party_one_public_share.to_bytes(true).as_ref()),
                 &party_one_pk_commitment_blind_factor,
             )
         {
-            flag = flag
-        } else {
             flag = false
-        };
+        }
         if party_one_zk_pok_commitment
-            == &HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
+            != &HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
                 &BigInt::from_bytes(
                     &party_one_d_log_proof
                         .pk_t_rand_commitment
@@ -206,11 +204,13 @@ impl KeyGenSecondMsg {
                 &party_one_zk_pok_blind_factor,
             )
         {
-            flag = flag
-        } else {
             flag = false
-        };
-        assert!(flag);
+        }
+
+        if !flag {
+            return Err(ProofError);
+        }
+
         DLogProof::verify(&party_one_d_log_proof)?;
         Ok(KeyGenSecondMsg {})
     }

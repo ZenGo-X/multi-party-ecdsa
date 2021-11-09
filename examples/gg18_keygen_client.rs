@@ -118,7 +118,7 @@ fn main() {
             let mut template: Vec<u8> = vec![0u8; AES_KEY_BYTES_LEN - key_bytes.len()];
             template.extend_from_slice(&key_bytes[..]);
             enc_keys.push(template);
-            j = j + 1;
+            j += 1;
         }
     }
 
@@ -235,7 +235,7 @@ fn main() {
         PARTIES,
         delay,
         "round5",
-        uuid.clone(),
+        uuid,
     );
 
     let mut j = 0;
@@ -272,6 +272,6 @@ fn main() {
 pub fn signup(client: &Client) -> Result<PartySignup, ()> {
     let key = "signup-keygen".to_string();
 
-    let res_body = postb(&client, "signupkeygen", key).unwrap();
+    let res_body = postb(client, "signupkeygen", key).unwrap();
     serde_json::from_str(&res_body).unwrap()
 }

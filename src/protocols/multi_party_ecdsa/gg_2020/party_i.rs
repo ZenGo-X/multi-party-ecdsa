@@ -239,7 +239,7 @@ impl Keys<Secp256k1> {
             CompositeDLogProof::prove(&dlog_statement_base_h2, &self.xhi_inv);
 
         let com = HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
-            &BigInt::from_bytes(&self.y_i.to_bytes(true).as_ref()),
+            &BigInt::from_bytes(self.y_i.to_bytes(true).as_ref()),
             &blind_factor,
         );
         let bcm1 = KeyGenBroadcastMessage1 {
@@ -296,7 +296,7 @@ impl Keys<Secp256k1> {
                             .composite_dlog_proof_base_h2
                             .verify(&dlog_statement_base_h2)
                             .is_ok();
-                if test_res == false {
+                if !test_res {
                     bad_actors_vec.push(i);
                     false
                 } else {
@@ -338,7 +338,7 @@ impl Keys<Secp256k1> {
                     .validate_share(&secret_shares_vec[i], index.try_into().unwrap())
                     .is_ok()
                     && vss_scheme_vec[i].commitments[0] == y_vec[i];
-                if res == false {
+                if !res {
                     bad_actors_vec.push(i);
                     false
                 } else {
@@ -393,7 +393,7 @@ impl Keys<Secp256k1> {
         index: usize,
         s: &[usize],
     ) -> Point<Secp256k1> {
-        let s: Vec<u16> = s.into_iter().map(|&i| i.try_into().unwrap()).collect();
+        let s: Vec<u16> = s.iter().map(|&i| i.try_into().unwrap()).collect();
         let li = VerifiableSS::<Secp256k1>::map_share_to_new_params(
             &vss_scheme.parameters,
             index.try_into().unwrap(),
@@ -494,7 +494,7 @@ impl PartyPrivate {
             y_i: y,
             dk,
             ek,
-            party_index: index.clone(),
+            party_index: index,
             N_tilde,
             h1,
             h2,
@@ -533,13 +533,13 @@ impl SignKeys {
         s: &[usize],
         vss_scheme: &VerifiableSS<Secp256k1>,
     ) -> Vec<Point<Secp256k1>> {
-        let s: Vec<u16> = s.into_iter().map(|&i| i.try_into().unwrap()).collect();
+        let s: Vec<u16> = s.iter().map(|&i| i.try_into().unwrap()).collect();
         // TODO: check bounds
         (0..s.len())
             .map(|i| {
                 let li = VerifiableSS::<Secp256k1>::map_share_to_new_params(
                     &vss_scheme.parameters,
-                    s[i].try_into().unwrap(),
+                    s[i],
                     s.as_slice(),
                 );
                 &pk_vec[s[i] as usize] * &li
@@ -553,7 +553,7 @@ impl SignKeys {
         index: usize,
         s: &[usize],
     ) -> Self {
-        let s: Vec<u16> = s.into_iter().map(|&i| i.try_into().unwrap()).collect();
+        let s: Vec<u16> = s.iter().map(|&i| i.try_into().unwrap()).collect();
         let li = VerifiableSS::<Secp256k1>::map_share_to_new_params(
             &vss_scheme.parameters,
             index.try_into().unwrap(),
@@ -579,7 +579,7 @@ impl SignKeys {
         let g = Point::<Secp256k1>::generator();
         let g_gamma_i = g * &self.gamma_i;
         let com = HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
-            &BigInt::from_bytes(&g_gamma_i.to_bytes(true).as_ref()),
+            &BigInt::from_bytes(g_gamma_i.to_bytes(true).as_ref()),
             &blind_factor,
         );
 
@@ -632,7 +632,7 @@ impl SignKeys {
         let l: Scalar<Secp256k1> = Scalar::<Secp256k1>::random();
         let h_l = Point::<Secp256k1>::base_point2() * &l;
         let T = g_sigma_i + h_l;
-        let T_zk_proof = PedersenProof::<Secp256k1, Sha256>::prove(&sigma_i, &l);
+        let T_zk_proof = PedersenProof::<Secp256k1, Sha256>::prove(sigma_i, &l);
 
         (T, l, T_zk_proof)
     }
@@ -657,11 +657,11 @@ impl SignKeys {
                 let res = b_proof_vec[j].pk == phase1_decommit_vec[ind].g_gamma_i
                     && HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
                         &BigInt::from_bytes(
-                            &phase1_decommit_vec[ind].g_gamma_i.to_bytes(true).as_ref(),
+                            phase1_decommit_vec[ind].g_gamma_i.to_bytes(true).as_ref(),
                         ),
                         &phase1_decommit_vec[ind].blind_factor,
                     ) == bc1_vec[ind].com;
-                if res == false {
+                if !res {
                     bad_actors_vec.push(ind);
                     false
                 } else {
@@ -717,8 +717,7 @@ impl LocalSignature {
             r: k_enc_randomness.clone(),
         };
 
-        let proof = PDLwSlackProof::prove(&pdl_w_slack_witness, &pdl_w_slack_statement);
-        proof
+        PDLwSlackProof::prove(&pdl_w_slack_witness, &pdl_w_slack_statement)
     }
 
     pub fn phase5_verify_pdl(
@@ -901,7 +900,7 @@ impl LocalSignature {
         let s_tag_bn = Scalar::<Secp256k1>::group_order() - &s_bn;
         if s_bn > s_tag_bn {
             s = Scalar::<Secp256k1>::from(&s_tag_bn);
-            recid = recid ^ 1;
+            recid ^= 1;
         }
         let sig = SignatureRecid { r, s, recid };
         let ver = verify(&sig, &self.y, &self.m).is_ok();

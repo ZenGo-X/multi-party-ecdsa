@@ -113,7 +113,7 @@ fn main() {
         &client,
         party_num_int,
         "round1",
-        serde_json::to_string(&(com.clone(), m_a_k.clone())).unwrap(),
+        serde_json::to_string(&(com.clone(), m_a_k)).unwrap(),
         uuid.clone()
     )
     .is_ok());
@@ -375,8 +375,8 @@ fn main() {
         party_num_int as usize,
         (
             phase_5a_decom.clone(),
-            helgamal_proof.clone(),
-            dlog_proof_rho.clone(),
+            helgamal_proof,
+            dlog_proof_rho,
         ),
         &mut decommit5a_and_elgamal_and_dlog_vec,
     );
@@ -452,7 +452,7 @@ fn main() {
     format_vec_from_reads(
         &round8_ans_vec,
         party_num_int as usize,
-        phase_5d_decom2.clone(),
+        phase_5d_decom2,
         &mut decommit5d_vec,
     );
 
@@ -486,7 +486,7 @@ fn main() {
         THRESHOLD + 1,
         delay,
         "round9",
-        uuid.clone(),
+        uuid,
     );
 
     let mut s_i_vec: Vec<Scalar<Secp256k1>> = Vec::new();
@@ -536,6 +536,6 @@ fn format_vec_from_reads<'a, T: serde::Deserialize<'a> + Clone>(
 pub fn signup(client: &Client) -> Result<PartySignup, ()> {
     let key = "signup-sign".to_string();
 
-    let res_body = postb(&client, "signupsign", key).unwrap();
+    let res_body = postb(client, "signupsign", key).unwrap();
     serde_json::from_str(&res_body).unwrap()
 }

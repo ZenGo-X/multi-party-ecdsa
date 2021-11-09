@@ -170,7 +170,7 @@ impl Keys<Secp256k1> {
             y_i: y,
             dk,
             ek,
-            party_index: index.clone(),
+            party_index: index,
         }
     }
     pub fn create_from(u: Scalar<Secp256k1>, index: usize) -> Keys<Secp256k1> {
@@ -192,7 +192,7 @@ impl Keys<Secp256k1> {
         let blind_factor = BigInt::sample(SECURITY);
         let correct_key_proof = NiCorrectKeyProof::proof(&self.dk, None);
         let com = HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
-            &BigInt::from_bytes(&self.y_i.to_bytes(true).as_ref()),
+            &BigInt::from_bytes(self.y_i.to_bytes(true).as_ref()),
             &blind_factor,
         );
         let bcm1 = KeyGenBroadcastMessage1 {
@@ -207,6 +207,7 @@ impl Keys<Secp256k1> {
         (bcm1, decom1)
     }
 
+    #[allow(clippy::type_complexity)]
     pub fn phase1_verify_com_phase3_verify_correct_key_phase2_distribute(
         &self,
         params: &Parameters,
@@ -220,7 +221,7 @@ impl Keys<Secp256k1> {
         let correct_key_correct_decom_all = (0..bc1_vec.len())
             .map(|i| {
                 HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
-                    &BigInt::from_bytes(&decom_vec[i].y_i.to_bytes(true).as_ref()),
+                    &BigInt::from_bytes(decom_vec[i].y_i.to_bytes(true).as_ref()),
                     &decom_vec[i].blind_factor,
                 ) == bc1_vec[i].com
                     && bc1_vec[i]
@@ -289,7 +290,7 @@ impl Keys<Secp256k1> {
         index: usize,
         s: &[usize],
     ) -> Point<Secp256k1> {
-        let s: Vec<u16> = s.into_iter().map(|&i| i.try_into().unwrap()).collect();
+        let s: Vec<u16> = s.iter().map(|&i| i.try_into().unwrap()).collect();
         let li = VerifiableSS::<Secp256k1>::map_share_to_new_params(
             &vss_scheme.parameters,
             index.try_into().unwrap(),
@@ -364,7 +365,7 @@ impl PartyPrivate {
             y_i: y,
             dk,
             ek,
-            party_index: index.clone(),
+            party_index: index,
         }
     }
 
@@ -399,7 +400,7 @@ impl SignKeys {
         index: usize,
         s: &[usize],
     ) -> Self {
-        let s: Vec<u16> = s.into_iter().map(|&i| i.try_into().unwrap()).collect();
+        let s: Vec<u16> = s.iter().map(|&i| i.try_into().unwrap()).collect();
         let li = VerifiableSS::<Secp256k1>::map_share_to_new_params(
             &vss_scheme.parameters,
             index.try_into().unwrap(),
@@ -425,7 +426,7 @@ impl SignKeys {
         let g = Point::<Secp256k1>::generator();
         let g_gamma_i = g * &self.gamma_i;
         let com = HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
-            &BigInt::from_bytes(&g_gamma_i.to_bytes(true).as_ref()),
+            &BigInt::from_bytes(g_gamma_i.to_bytes(true).as_ref()),
             &blind_factor,
         );
 
@@ -480,7 +481,7 @@ impl SignKeys {
                 b_proof_vec[i].pk == phase1_decommit_vec[i].g_gamma_i
                     && HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
                         &BigInt::from_bytes(
-                            &phase1_decommit_vec[i].g_gamma_i.to_bytes(true).as_ref(),
+                            phase1_decommit_vec[i].g_gamma_i.to_bytes(true).as_ref(),
                         ),
                         &phase1_decommit_vec[i].blind_factor,
                     ) == bc1_vec[i].com
@@ -722,7 +723,7 @@ impl LocalSignature {
         let s_tag_bn = Scalar::<Secp256k1>::group_order() - &s_bn;
         if s_bn > s_tag_bn {
             s = Scalar::<Secp256k1>::from(&s_tag_bn);
-            recid = recid ^ 1;
+            recid ^= 1;
         }
         let sig = SignatureRecid { r, s, recid };
         let ver = verify(&sig, &self.y, &self.m).is_ok();

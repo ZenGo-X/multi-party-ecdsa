@@ -54,7 +54,7 @@ pub fn aes_encrypt(key: &[u8], plaintext: &[u8]) -> AEAD {
     let mut gcm = AesGcm::new(KeySize256, key, &nonce[..], &aad);
     let mut out: Vec<u8> = repeat(0).take(plaintext.len()).collect();
     let mut out_tag: Vec<u8> = repeat(0).take(16).collect();
-    gcm.encrypt(&plaintext[..], &mut out[..], &mut out_tag[..]);
+    gcm.encrypt(plaintext, &mut out[..], &mut out_tag[..]);
     AEAD {
         ciphertext: out.to_vec(),
         tag: out_tag.to_vec(),
@@ -103,11 +103,11 @@ pub fn broadcast(
 ) -> Result<(), ()> {
     let key = format!("{}-{}-{}", party_num, round, sender_uuid);
     let entry = Entry {
-        key: key.clone(),
+        key,
         value: data,
     };
 
-    let res_body = postb(&client, "set", entry).unwrap();
+    let res_body = postb(client, "set", entry).unwrap();
     serde_json::from_str(&res_body).unwrap()
 }
 
@@ -122,11 +122,11 @@ pub fn sendp2p(
     let key = format!("{}-{}-{}-{}", party_from, party_to, round, sender_uuid);
 
     let entry = Entry {
-        key: key.clone(),
+        key,
         value: data,
     };
 
-    let res_body = postb(&client, "set", entry).unwrap();
+    let res_body = postb(client, "set", entry).unwrap();
     serde_json::from_str(&res_body).unwrap()
 }
 
@@ -197,7 +197,7 @@ pub fn check_sig(
 ) {
     use secp256k1::{verify, Message, PublicKey, PublicKeyFormat, Signature};
 
-    let raw_msg = BigInt::to_bytes(&msg);
+    let raw_msg = BigInt::to_bytes(msg);
     let mut msg: Vec<u8> = Vec::new(); // padding
     msg.extend(vec![0u8; 32 - raw_msg.len()]);
     msg.extend(raw_msg.iter());

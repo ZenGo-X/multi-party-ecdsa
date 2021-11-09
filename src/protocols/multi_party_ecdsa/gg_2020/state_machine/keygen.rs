@@ -346,15 +346,14 @@ impl super::traits::RoundBlame for Keygen {
         let store4_blame = self.msgs4.as_ref().map(|s| s.blame()).unwrap_or_default();
 
         let default = (0, vec![]);
-        let res = match &self.round {
-            R::Round0(_) => default.clone(),
+        match &self.round {
+            R::Round0(_) => default,
             R::Round1(_) => store1_blame,
             R::Round2(_) => store2_blame,
             R::Round3(_) => store3_blame,
             R::Round4(_) => store4_blame,
-            R::Final(_) | R::Gone => default.clone(),
-        };
-        res
+            R::Final(_) | R::Gone => default,
+        }
     }
 }
 
