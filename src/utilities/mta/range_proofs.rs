@@ -15,7 +15,7 @@ use curv::elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar};
 use curv::BigInt;
 use sha2::Sha256;
 
-use paillier::{Add, EncryptionKey, Mul, Randomness, RawCiphertext, RawPlaintext};
+use paillier::{EncryptionKey, Randomness};
 use zk_paillier::zkproofs::DLogStatement;
 
 use serde::{Deserialize, Serialize};
@@ -530,32 +530,6 @@ impl BobProofExt {
         true
     }
 
-    fn generate(
-        a_encrypted: &BigInt,
-        mta_encrypted: &BigInt,
-        b: &Scalar<Secp256k1>,
-        beta_prim: &BigInt,
-        alice_ek: &EncryptionKey,
-        dlog_statement: &DLogStatement,
-        r: &Randomness,
-    ) -> BobProofExt {
-        // proving a basic proof (with modified hash)
-        let (bob_proof, u) = BobProof::generate(
-            a_encrypted,
-            mta_encrypted,
-            b,
-            beta_prim,
-            alice_ek,
-            dlog_statement,
-            r,
-            true,
-        );
-
-        BobProofExt {
-            proof: bob_proof,
-            u: u.unwrap(),
-        }
-    }
 }
 
 /// sample random value of an element of a multiplicative group
@@ -584,7 +558,34 @@ impl SampleFromMultiplicativeGroup for BigInt {
 pub(crate) mod tests {
     use super::*;
     use paillier::traits::{Encrypt, EncryptWithChosenRandomness, KeyGeneration};
-    use paillier::{DecryptionKey, Paillier};
+    use paillier::{DecryptionKey, Paillier, Add, Mul, RawCiphertext, RawPlaintext};
+
+    fn generate(
+        a_encrypted: &BigInt,
+        mta_encrypted: &BigInt,
+        b: &Scalar<Secp256k1>,
+        beta_prim: &BigInt,
+        alice_ek: &EncryptionKey,
+        dlog_statement: &DLogStatement,
+        r: &Randomness,
+    ) -> BobProofExt {
+        // proving a basic proof (with modified hash)
+        let (bob_proof, u) = BobProof::generate(
+            a_encrypted,
+            mta_encrypted,
+            b,
+            beta_prim,
+            alice_ek,
+            dlog_statement,
+            r,
+            true,
+        );
+
+        BobProofExt {
+            proof: bob_proof,
+            u: u.unwrap(),
+        }
+    }
 
     pub(crate) fn generate_init() -> (DLogStatement, EncryptionKey, DecryptionKey) {
         let (ek_tilde, dk_tilde) = Paillier::keypair().keys();
@@ -685,7 +686,7 @@ pub(crate) mod tests {
                 // Bob follows MtAwc
                 let ec_gen = Point::<Secp256k1>::generator();
                 let X = ec_gen * &b;
-                let bob_proof = BobProofExt::generate(
+                let bob_proof = generate(
                     &encrypted_a,
                     &mta_out.0.clone().into_owned(),
                     &b,
