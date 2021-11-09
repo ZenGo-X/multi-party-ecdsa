@@ -510,7 +510,10 @@ impl BobProofExt {
             mta_avc_out,
             alice_ek,
             dlog_statement,
-            Some(&BobCheck { u: self.u.clone(), X: X.clone() }),
+            Some(&BobCheck {
+                u: self.u.clone(),
+                X: X.clone(),
+            }),
         ) {
             return false;
         }
@@ -529,7 +532,6 @@ impl BobProofExt {
 
         true
     }
-
 }
 
 /// sample random value of an element of a multiplicative group
@@ -558,7 +560,7 @@ impl SampleFromMultiplicativeGroup for BigInt {
 pub(crate) mod tests {
     use super::*;
     use paillier::traits::{Encrypt, EncryptWithChosenRandomness, KeyGeneration};
-    use paillier::{DecryptionKey, Paillier, Add, Mul, RawCiphertext, RawPlaintext};
+    use paillier::{Add, DecryptionKey, Mul, Paillier, RawCiphertext, RawPlaintext};
 
     fn generate(
         a_encrypted: &BigInt,

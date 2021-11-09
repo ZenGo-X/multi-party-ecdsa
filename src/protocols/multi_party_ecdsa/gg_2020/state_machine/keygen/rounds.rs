@@ -1,6 +1,6 @@
 use curv::cryptographic_primitives::proofs::sigma_dlog::DLogProof;
 use curv::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS;
-use curv::elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar, Curve};
+use curv::elliptic::curves::{secp256_k1::Secp256k1, Curve, Point, Scalar};
 use sha2::Sha256;
 
 use serde::{Deserialize, Serialize};
@@ -247,7 +247,10 @@ pub struct Round4 {
 }
 
 impl Round4 {
-    pub fn proceed(self, input: BroadcastMsgs<DLogProof<Secp256k1, Sha256>>) -> Result<LocalKey<Secp256k1>> {
+    pub fn proceed(
+        self,
+        input: BroadcastMsgs<DLogProof<Secp256k1, Sha256>>,
+    ) -> Result<LocalKey<Secp256k1>> {
         let params = gg_2020::party_i::Parameters {
             threshold: self.t.into(),
             share_count: self.n.into(),
