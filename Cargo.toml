@@ -32,6 +32,7 @@ cclst = ["class_group"]
 [dependencies]
 subtle = { version = "2" }
 serde = { version = "1.0", features = ["derive"] }
+zeroize = "1"
 libsecp256k1 = "0.3.2"
 curv-kzen = { version = "0.9", default-features = false }
 round-based = { version = "0.1.4", features = [] }
