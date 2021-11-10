@@ -74,9 +74,9 @@ impl MessageA {
         .clone()
         .into_owned();
         let alice_range_proofs = dlog_statements
-            .into_iter()
+            .iter()
             .map(|dlog_statement| {
-                AliceProof::generate(&a.to_bigint(), &c_a, alice_ek, dlog_statement, &randomness)
+                AliceProof::generate(&a.to_bigint(), &c_a, alice_ek, dlog_statement, randomness)
             })
             .collect::<Vec<AliceProof>>();
 

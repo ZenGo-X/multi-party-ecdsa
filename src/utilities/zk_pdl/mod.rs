@@ -115,7 +115,7 @@ impl Verifier {
         );
         let c_tag = Paillier::add(&statement.ek, ac, b_enc).0.into_owned();
         let ab_concat = a.clone() + b.clone().shl(a.bit_length());
-        let blindness = BigInt::sample_below(&q);
+        let blindness = BigInt::sample_below(q);
         let c_tag_tag = HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
             &ab_concat, &blindness,
         );
@@ -168,8 +168,8 @@ impl Verifier {
             &prover_second_message.decommit.blindness,
         );
 
-        if &prover_first_message.c_hat == &c_hat_test
-            && &prover_second_message.decommit.q_hat == &state.q_tag
+        if prover_first_message.c_hat == c_hat_test
+            && prover_second_message.decommit.q_hat == state.q_tag
         {
             Ok(())
         } else {
@@ -185,12 +185,12 @@ impl Prover {
         verifier_first_message: &PDLVerifierFirstMessage,
     ) -> (PDLProverFirstMessage, PDLProverState) {
         let c_tag = verifier_first_message.c_tag.clone();
-        let alpha = Paillier::decrypt(&witness.dk, &RawCiphertext::from(c_tag.clone()));
+        let alpha = Paillier::decrypt(&witness.dk, &RawCiphertext::from(c_tag));
         let alpha_fe: Scalar<Secp256k1> = Scalar::<Secp256k1>::from(alpha.0.as_ref());
         let q_hat = &statement.G * alpha_fe;
-        let blindness = BigInt::sample_below(&Scalar::<Secp256k1>::group_order());
+        let blindness = BigInt::sample_below(Scalar::<Secp256k1>::group_order());
         let c_hat = HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
-            &BigInt::from_bytes(&q_hat.to_bytes(true).as_ref()),
+            &BigInt::from_bytes(q_hat.to_bytes(true).as_ref()),
             &blindness,
         );
         // in parallel generate range proof:
@@ -222,7 +222,7 @@ impl Prover {
             );
         let ax1 = &verifier_second_message.a * witness.x.to_bigint();
         let alpha_test = ax1 + &verifier_second_message.b;
-        if &alpha_test == &state.alpha && verifier_first_message.c_tag_tag == c_tag_tag_test {
+        if alpha_test == state.alpha && verifier_first_message.c_tag_tag == c_tag_tag_test {
             Ok(PDLProverSecondMessage {
                 decommit: state.decommit.clone(),
             })
@@ -235,7 +235,7 @@ impl Prover {
 fn generate_range_proof(statement: &PDLStatement, witness: &PDLWitness) -> RangeProofNi {
     RangeProofNi::prove(
         &statement.ek,
-        &Scalar::<Secp256k1>::group_order(),
+        Scalar::<Secp256k1>::group_order(),
         &statement.ciphertext,
         &witness.x.to_bigint(),
         &witness.r,

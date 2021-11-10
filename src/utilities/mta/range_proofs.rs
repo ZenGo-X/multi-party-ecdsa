@@ -49,7 +49,7 @@ impl AliceZkpRound1 {
         let beta = BigInt::from_paillier_key(alice_ek);
         let gamma = BigInt::sample_below(&(q.pow(3) * N_tilde));
         let ro = BigInt::sample_below(&(q * N_tilde));
-        let z = (BigInt::mod_pow(h1, &a, N_tilde) * BigInt::mod_pow(h2, &ro, N_tilde)) % N_tilde;
+        let z = (BigInt::mod_pow(h1, a, N_tilde) * BigInt::mod_pow(h2, &ro, N_tilde)) % N_tilde;
         let u = ((alpha.borrow() * &alice_ek.n + 1)
             * BigInt::mod_pow(&beta, &alice_ek.n, &alice_ek.nn))
             % &alice_ek.nn;
@@ -83,7 +83,7 @@ impl AliceZkpRound2 {
         r: &BigInt,
     ) -> Self {
         Self {
-            s: (BigInt::mod_pow(r, &e, &alice_ek.n) * round1.beta.borrow()) % &alice_ek.n,
+            s: (BigInt::mod_pow(r, e, &alice_ek.n) * round1.beta.borrow()) % &alice_ek.n,
             s1: (e * a) + round1.alpha.borrow(),
             s2: (e * round1.ro.borrow()) + round1.gamma.borrow(),
         }
@@ -132,7 +132,7 @@ impl AliceProof {
             % N_tilde;
 
         let gs1 = (self.s1.borrow() * N + 1) % NN;
-        let cipher_e_inv = BigInt::mod_inv(&BigInt::mod_pow(&cipher, &self.e, NN), NN);
+        let cipher_e_inv = BigInt::mod_inv(&BigInt::mod_pow(cipher, &self.e, NN), NN);
         let cipher_e_inv = match cipher_e_inv {
             None => return false,
             Some(c) => c,
@@ -168,7 +168,7 @@ impl AliceProof {
             alice_ek,
             dlog_statement,
             a,
-            &Scalar::<Secp256k1>::group_order(),
+            Scalar::<Secp256k1>::group_order(),
         );
 
         let Gen = alice_ek.n.borrow() + 1;
@@ -427,7 +427,7 @@ impl BobProof {
             b,
             beta_prim,
             a_encrypted,
-            &Scalar::<Secp256k1>::group_order(),
+            Scalar::<Secp256k1>::group_order(),
         );
 
         let Gen = alice_ek.n.borrow() + 1;

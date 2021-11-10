@@ -187,8 +187,8 @@ impl KeyGenSecondMsg {
         let mut flag = true;
         if party_one_pk_commitment
             != &HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
-                &BigInt::from_bytes(&party_one_public_share.to_bytes(true).as_ref()),
-                &party_one_pk_commitment_blind_factor,
+                &BigInt::from_bytes(party_one_public_share.to_bytes(true).as_ref()),
+                party_one_pk_commitment_blind_factor,
             )
         {
             flag = false
@@ -196,12 +196,12 @@ impl KeyGenSecondMsg {
         if party_one_zk_pok_commitment
             != &HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
                 &BigInt::from_bytes(
-                    &party_one_d_log_proof
+                    party_one_d_log_proof
                         .pk_t_rand_commitment
                         .to_bytes(true)
                         .as_ref(),
                 ),
-                &party_one_zk_pok_blind_factor,
+                party_one_zk_pok_blind_factor,
             )
         {
             flag = false
@@ -211,7 +211,7 @@ impl KeyGenSecondMsg {
             return Err(ProofError);
         }
 
-        DLogProof::verify(&party_one_d_log_proof)?;
+        DLogProof::verify(party_one_d_log_proof)?;
         Ok(KeyGenSecondMsg {})
     }
 }
@@ -259,7 +259,7 @@ impl Party2Private {
             c: ciphertext.clone(),
             range_proofs: vec![],
         };
-        let (a, b, _, _) = MessageB::b(&self.x2, &ek, message_a, &[]).unwrap();
+        let (a, b, _, _) = MessageB::b(&self.x2, ek, message_a, &[]).unwrap();
         (a, b)
     }
 }
@@ -272,8 +272,8 @@ impl PaillierPublic {
         paillier_public: &PaillierPublic,
         q1: &Point<Secp256k1>,
     ) -> Result<(), ()> {
-        if &pdl_w_slack_statement.ek != &paillier_public.ek
-            || &pdl_w_slack_statement.ciphertext != &paillier_public.encrypted_secret_share
+        if pdl_w_slack_statement.ek != paillier_public.ek
+            || pdl_w_slack_statement.ciphertext != paillier_public.encrypted_secret_share
             || &pdl_w_slack_statement.Q != q1
         {
             return Err(());
@@ -284,11 +284,11 @@ impl PaillierPublic {
             ni: pdl_w_slack_statement.h2.clone(),
         };
         if composite_dlog_proof.verify(&dlog_statement).is_ok()
-            && pdl_w_slack_proof.verify(&pdl_w_slack_statement).is_ok()
+            && pdl_w_slack_proof.verify(pdl_w_slack_statement).is_ok()
         {
-            return Ok(());
+            Ok(())
         } else {
-            return Err(());
+            Err(())
         }
     }
 
@@ -300,7 +300,7 @@ impl PaillierPublic {
         if ek.n.bit_length() < PAILLIER_KEY_SIZE - 1 {
             return Err(IncorrectProof);
         };
-        proof.verify(&ek, zk_paillier::zkproofs::SALT_STRING)
+        proof.verify(ek, zk_paillier::zkproofs::SALT_STRING)
     }
 }
 
@@ -330,7 +330,7 @@ impl EphKeyGenFirstMsg {
         let pk_commitment_blind_factor = BigInt::sample(SECURITY_BITS);
         let pk_commitment =
             HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
-                &BigInt::from_bytes(&public_share.to_bytes(true).as_ref()),
+                &BigInt::from_bytes(public_share.to_bytes(true).as_ref()),
                 &pk_commitment_blind_factor,
             );
 
@@ -393,16 +393,16 @@ impl PartialSig {
         //compute r = k2* R1
         let r = ephemeral_other_public_share * &ephemeral_local_share.secret_share;
 
-        let rx = r.x_coord().unwrap().mod_floor(&q);
+        let rx = r.x_coord().unwrap().mod_floor(q);
         let rho = BigInt::sample_below(&q.pow(2));
-        let k2_inv = BigInt::mod_inv(&ephemeral_local_share.secret_share.to_bigint(), &q).unwrap();
-        let partial_sig = rho * q + BigInt::mod_mul(&k2_inv, message, &q);
+        let k2_inv = BigInt::mod_inv(&ephemeral_local_share.secret_share.to_bigint(), q).unwrap();
+        let partial_sig = rho * q + BigInt::mod_mul(&k2_inv, message, q);
 
         let c1 = Paillier::encrypt(ek, RawPlaintext::from(partial_sig));
         let v = BigInt::mod_mul(
             &k2_inv,
-            &BigInt::mod_mul(&rx, &local_share.x2.to_bigint(), &q),
-            &q,
+            &BigInt::mod_mul(&rx, &local_share.x2.to_bigint(), q),
+            q,
         );
         let c2 = Paillier::mul(
             ek,

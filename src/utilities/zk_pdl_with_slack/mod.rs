@@ -93,11 +93,11 @@ impl PDLwSlackProof {
         );
 
         let e = Sha256::new()
-            .chain_bigint(&BigInt::from_bytes(&statement.G.to_bytes(true).as_ref()))
-            .chain_bigint(&BigInt::from_bytes(&statement.Q.to_bytes(true).as_ref()))
+            .chain_bigint(&BigInt::from_bytes(statement.G.to_bytes(true).as_ref()))
+            .chain_bigint(&BigInt::from_bytes(statement.Q.to_bytes(true).as_ref()))
             .chain_bigint(&statement.ciphertext)
             .chain_bigint(&z)
-            .chain_bigint(&BigInt::from_bytes(&u1.to_bytes(true).as_ref()))
+            .chain_bigint(&BigInt::from_bytes(u1.to_bytes(true).as_ref()))
             .chain_bigint(&u2)
             .chain_bigint(&u3)
             .result_bigint();
@@ -119,11 +119,11 @@ impl PDLwSlackProof {
 
     pub fn verify(&self, statement: &PDLwSlackStatement) -> Result<(), ()> {
         let e = Sha256::new()
-            .chain_bigint(&BigInt::from_bytes(&statement.G.to_bytes(true).as_ref()))
-            .chain_bigint(&BigInt::from_bytes(&statement.Q.to_bytes(true).as_ref()))
+            .chain_bigint(&BigInt::from_bytes(statement.G.to_bytes(true).as_ref()))
+            .chain_bigint(&BigInt::from_bytes(statement.Q.to_bytes(true).as_ref()))
             .chain_bigint(&statement.ciphertext)
             .chain_bigint(&self.z)
-            .chain_bigint(&BigInt::from_bytes(&self.u1.to_bytes(true).as_ref()))
+            .chain_bigint(&BigInt::from_bytes(self.u1.to_bytes(true).as_ref()))
             .chain_bigint(&self.u2)
             .chain_bigint(&self.u3)
             .result_bigint();
@@ -164,7 +164,7 @@ impl PDLwSlackProof {
             &(-&e),
         );
 
-        if &self.u1 == &u1_test && &self.u2 == &u2_test && &self.u3 == &u3_test {
+        if self.u1 == u1_test && self.u2 == u2_test && self.u3 == u3_test {
             Ok(())
         } else {
             Err(())
@@ -179,17 +179,16 @@ pub fn commitment_unknown_order(
     x: &BigInt,
     r: &BigInt,
 ) -> BigInt {
-    let h1_x = BigInt::mod_pow(h1, &x, &N_tilde);
+    let h1_x = BigInt::mod_pow(h1, x, N_tilde);
     let h2_r = {
         if r < &BigInt::zero() {
-            let h2_inv = BigInt::mod_inv(h2, &N_tilde).unwrap();
-            BigInt::mod_pow(&h2_inv, &(-r), &N_tilde)
+            let h2_inv = BigInt::mod_inv(h2, N_tilde).unwrap();
+            BigInt::mod_pow(&h2_inv, &(-r), N_tilde)
         } else {
-            BigInt::mod_pow(h2, &r, &N_tilde)
+            BigInt::mod_pow(h2, r, N_tilde)
         }
     };
-    let com = BigInt::mod_mul(&h1_x, &h2_r, &N_tilde);
-    com
+    BigInt::mod_mul(&h1_x, &h2_r, N_tilde)
 }
 
 #[cfg(test)]
