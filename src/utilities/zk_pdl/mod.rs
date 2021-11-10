@@ -34,6 +34,15 @@ use serde::{Deserialize, Serialize};
 use sha2::Sha256;
 use zk_paillier::zkproofs::IncorrectProof;
 use zk_paillier::zkproofs::RangeProofNi;
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum ZkPdlError {
+    #[error("zk pdl message2 failed")]
+    Message2,
+    #[error("zk pdl finalize failed")]
+    Finalize,
+}
 
 #[derive(Clone)]
 pub struct PDLStatement {
@@ -142,19 +151,19 @@ impl Verifier {
         prover_first_messasge: &PDLProverFirstMessage,
         statement: &PDLStatement,
         state: &mut PDLVerifierState,
-    ) -> Result<PDLVerifierSecondMessage, ()> {
+    ) -> Result<PDLVerifierSecondMessage, ZkPdlError> {
         let decommit_message = PDLVerifierSecondMessage {
             a: state.a.clone(),
             b: state.b.clone(),
             blindness: state.blindness.clone(),
         };
         let range_proof_is_ok =
-            verify_range_proof(&statement, &prover_first_messasge.range_proof).is_ok();
+            verify_range_proof(statement, &prover_first_messasge.range_proof).is_ok();
         state.c_hat = prover_first_messasge.c_hat.clone();
         if range_proof_is_ok {
             Ok(decommit_message)
         } else {
-            Err(())
+            Err(ZkPdlError::Message2)
         }
     }
 
@@ -162,9 +171,9 @@ impl Verifier {
         prover_first_message: &PDLProverFirstMessage,
         prover_second_message: &PDLProverSecondMessage,
         state: &PDLVerifierState,
-    ) -> Result<(), ()> {
+    ) -> Result<(), ZkPdlError> {
         let c_hat_test = HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
-            &BigInt::from_bytes(&prover_second_message.decommit.q_hat.to_bytes(true).as_ref()),
+            &BigInt::from_bytes(prover_second_message.decommit.q_hat.to_bytes(true).as_ref()),
             &prover_second_message.decommit.blindness,
         );
 
@@ -173,7 +182,7 @@ impl Verifier {
         {
             Ok(())
         } else {
-            Err(())
+            Err(ZkPdlError::Finalize)
         }
     }
 }
@@ -209,7 +218,7 @@ impl Prover {
         verifier_second_message: &PDLVerifierSecondMessage,
         witness: &PDLWitness,
         state: &PDLProverState,
-    ) -> Result<PDLProverSecondMessage, ()> {
+    ) -> Result<PDLProverSecondMessage, ZkPdlError> {
         let ab_concat = &verifier_second_message.a
             + verifier_second_message
                 .b
@@ -227,7 +236,7 @@ impl Prover {
                 decommit: state.decommit.clone(),
             })
         } else {
-            Err(())
+            Err(ZkPdlError::Message2)
         }
     }
 }

@@ -29,6 +29,13 @@ use curv::BigInt;
 use paillier::EncryptionKey;
 use serde::{Deserialize, Serialize};
 use sha2::Sha256;
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum ZkPdlWithSlackError {
+    #[error("zk pdl with slack verification failed")]
+    Verify
+}
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct PDLwSlackStatement {
@@ -117,7 +124,7 @@ impl PDLwSlackProof {
         }
     }
 
-    pub fn verify(&self, statement: &PDLwSlackStatement) -> Result<(), ()> {
+    pub fn verify(&self, statement: &PDLwSlackStatement) -> Result<(), ZkPdlWithSlackError> {
         let e = Sha256::new()
             .chain_bigint(&BigInt::from_bytes(statement.G.to_bytes(true).as_ref()))
             .chain_bigint(&BigInt::from_bytes(statement.Q.to_bytes(true).as_ref()))
@@ -167,7 +174,7 @@ impl PDLwSlackProof {
         if self.u1 == u1_test && self.u2 == u2_test && self.u3 == u3_test {
             Ok(())
         } else {
-            Err(())
+            Err(ZkPdlWithSlackError::Verify)
         }
     }
 }

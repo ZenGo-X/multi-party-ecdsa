@@ -41,6 +41,13 @@ use crate::utilities::mta::{MessageA, MessageB};
 use crate::utilities::zk_pdl_with_slack::PDLwSlackProof;
 use crate::utilities::zk_pdl_with_slack::PDLwSlackStatement;
 use zk_paillier::zkproofs::{CompositeDLogProof, DLogStatement};
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum PartyTwoError {
+    #[error("party two pdl verify failed (lindell 2017)")]
+    PdlVerify,
+}
 
 const PAILLIER_KEY_SIZE: usize = 2048;
 //****************** Begin: Party Two structs ******************//
@@ -271,12 +278,12 @@ impl PaillierPublic {
         pdl_w_slack_proof: &PDLwSlackProof,
         paillier_public: &PaillierPublic,
         q1: &Point<Secp256k1>,
-    ) -> Result<(), ()> {
+    ) -> Result<(), PartyTwoError> {
         if pdl_w_slack_statement.ek != paillier_public.ek
             || pdl_w_slack_statement.ciphertext != paillier_public.encrypted_secret_share
             || &pdl_w_slack_statement.Q != q1
         {
-            return Err(());
+            return Err(PartyTwoError::PdlVerify)
         }
         let dlog_statement = DLogStatement {
             N: pdl_w_slack_statement.N_tilde.clone(),
@@ -288,7 +295,7 @@ impl PaillierPublic {
         {
             Ok(())
         } else {
-            Err(())
+            Err(PartyTwoError::PdlVerify)
         }
     }
 
