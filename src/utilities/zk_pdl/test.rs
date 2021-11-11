@@ -16,11 +16,11 @@ fn test_zk_pdl() {
 
     let (ek, dk) = Paillier::keypair().keys();
     let randomness = Randomness::sample(&ek);
-    let x: Scalar<Secp256k1> = Scalar::<Secp256k1>::random();
+    let x = Scalar::<Secp256k1>::random();
     let x: Scalar<Secp256k1> =
         Scalar::<Secp256k1>::from(&x.to_bigint().div_floor(&BigInt::from(3)));
 
-    let Q = Point::<Secp256k1>::generator() * &x;
+    let Q = Point::generator() * &x;
 
     let c = Paillier::encrypt_with_chosen_randomness(
         &ek,
@@ -33,7 +33,7 @@ fn test_zk_pdl() {
         ciphertext: c,
         ek,
         Q,
-        G: Point::<Secp256k1>::generator().to_point(),
+        G: Point::generator().to_point(),
     };
     let witness = PDLWitness {
         x,

@@ -46,7 +46,7 @@ fn main() {
     let data = fs::read_to_string(env::args().nth(2).unwrap())
         .expect("Unable to load keys, did you run keygen first? ");
     let (party_keys, shared_keys, party_id, vss_scheme_vec, paillier_key_vector, y_sum): (
-        Keys<Secp256k1>,
+        Keys,
         SharedKeys,
         u16,
         Vec<VerifiableSS<Secp256k1>>,
@@ -373,11 +373,7 @@ fn main() {
     format_vec_from_reads(
         &round6_ans_vec,
         party_num_int as usize,
-        (
-            phase_5a_decom.clone(),
-            helgamal_proof,
-            dlog_proof_rho,
-        ),
+        (phase_5a_decom.clone(), helgamal_proof, dlog_proof_rho),
         &mut decommit5a_and_elgamal_and_dlog_vec,
     );
     let decommit5a_and_elgamal_and_dlog_vec_includes_i =
@@ -480,14 +476,8 @@ fn main() {
         uuid.clone()
     )
     .is_ok());
-    let round9_ans_vec = poll_for_broadcasts(
-        &client,
-        party_num_int,
-        THRESHOLD + 1,
-        delay,
-        "round9",
-        uuid,
-    );
+    let round9_ans_vec =
+        poll_for_broadcasts(&client, party_num_int, THRESHOLD + 1, delay, "round9", uuid);
 
     let mut s_i_vec: Vec<Scalar<Secp256k1>> = Vec::new();
     format_vec_from_reads(&round9_ans_vec, party_num_int as usize, s_i, &mut s_i_vec);

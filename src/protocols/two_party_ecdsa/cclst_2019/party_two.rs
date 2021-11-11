@@ -125,8 +125,8 @@ pub struct EphKeyGenSecondMsg {
 
 impl KeyGenFirstMsg {
     pub fn create() -> (KeyGenFirstMsg, EcKeyPair) {
-        let base = Point::<Secp256k1>::generator();
-        let secret_share: Scalar<Secp256k1> = Scalar::<Secp256k1>::random();
+        let base = Point::generator();
+        let secret_share = Scalar::<Secp256k1>::random();
         let public_share = base * &secret_share;
         let d_log_proof = DLogProof::prove(&secret_share);
         let ec_key_pair = EcKeyPair {
@@ -145,7 +145,7 @@ impl KeyGenFirstMsg {
     pub fn create_with_fixed_secret_share(
         secret_share: Scalar<Secp256k1>,
     ) -> (KeyGenFirstMsg, EcKeyPair) {
-        let base = Point::<Secp256k1>::generator();
+        let base = Point::generator();
         let public_share = base * &secret_share;
         let d_log_proof = DLogProof::prove(&secret_share);
         let ec_key_pair = EcKeyPair {
@@ -252,13 +252,13 @@ impl Party2Public {
 
 impl EphKeyGenFirstMsg {
     pub fn create_commitments() -> (EphKeyGenFirstMsg, EphCommWitness, EphEcKeyPair) {
-        let base = Point::<Secp256k1>::generator();
+        let base = Point::generator();
 
-        let secret_share: Scalar<Secp256k1> = Scalar::<Secp256k1>::random();
+        let secret_share = Scalar::<Secp256k1>::random();
 
         let public_share = base.scalar_mul(&secret_share.get_element());
 
-        let h: Point<Secp256k1> = Point::<Secp256k1>::base_point2();
+        let h = Point::<Secp256k1>::base_point2();
         let w = ECDDHWitness {
             x: secret_share.clone(),
         };
@@ -313,7 +313,7 @@ impl EphKeyGenSecondMsg {
         party_one_first_message: &Party1EphKeyGenFirstMsg,
     ) -> Result<EphKeyGenSecondMsg, ProofError> {
         let delta = ECDDHStatement {
-            g1: Point::<Secp256k1>::generator(),
+            g1: Point::generator(),
             h1: party_one_first_message.public_share.clone(),
             g2: Point::<Secp256k1>::base_point2(),
             h2: party_one_first_message.c.clone(),
@@ -343,7 +343,7 @@ impl PartialSig {
             .invert(&q)
             .unwrap();
         let k2_inv_m = BigInt::mod_mul(&k2_inv, message, &q);
-        let k2_inv_m_fe: Scalar<Secp256k1> = Scalar::<Secp256k1>::from(&k2_inv_m);
+        let k2_inv_m_fe = Scalar::<Secp256k1>::from(&k2_inv_m);
         let c1 = encrypt(&party_two_public.group, &party_two_public.ek, &k2_inv_m_fe);
         let v = BigInt::mod_mul(&k2_inv, &local_share.x2.to_bigint(), &q);
         let v = BigInt::mod_mul(&v, &rx, &q);

@@ -445,8 +445,8 @@ impl BobProof {
         let mut check_u = None;
         let e = if check {
             let (X, u) = {
-                let ec_gen = Point::<Secp256k1>::generator();
-                let alpha: Scalar<Secp256k1> = Scalar::<Secp256k1>::from(&round1.alpha);
+                let ec_gen = Point::generator();
+                let alpha = Scalar::<Secp256k1>::from(&round1.alpha);
                 (ec_gen * b, ec_gen * alpha)
             };
             check_u = Some(u.clone());
@@ -520,9 +520,9 @@ impl BobProofExt {
 
         // fiddle with EC points
         let (x1, x2) = {
-            let ec_gen = Point::<Secp256k1>::generator();
-            let s1: Scalar<Secp256k1> = Scalar::<Secp256k1>::from(&self.proof.s1);
-            let e: Scalar<Secp256k1> = Scalar::<Secp256k1>::from(&self.proof.e);
+            let ec_gen = Point::generator();
+            let s1 = Scalar::<Secp256k1>::from(&self.proof.s1);
+            let e = Scalar::<Secp256k1>::from(&self.proof.e);
             (ec_gen * s1, (X * &e) + &self.u)
         };
 
@@ -686,7 +686,7 @@ pub(crate) mod tests {
                 ));
 
                 // Bob follows MtAwc
-                let ec_gen = Point::<Secp256k1>::generator();
+                let ec_gen = Point::generator();
                 let X = ec_gen * &b;
                 let bob_proof = generate(
                     &encrypted_a,

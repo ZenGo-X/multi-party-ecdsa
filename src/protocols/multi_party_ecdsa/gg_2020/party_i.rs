@@ -56,7 +56,7 @@ pub struct Parameters {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct Keys<E: Curve> {
+pub struct Keys<E: Curve = Secp256k1> {
     pub u_i: Scalar<E>,
     pub y_i: Point<E>,
     pub dk: DecryptionKey,
@@ -155,10 +155,10 @@ pub fn generate_h1_h2_N_tilde() -> (BigInt, BigInt, BigInt, BigInt, BigInt) {
     (ek_tilde.n, h1, h2, xhi, xhi_inv)
 }
 
-impl Keys<Secp256k1> {
+impl Keys {
     pub fn create(index: usize) -> Self {
         let u = Scalar::<Secp256k1>::random();
-        let y = Point::<Secp256k1>::generator() * &u;
+        let y = Point::generator() * &u;
         let (ek, dk) = Paillier::keypair().keys();
         let (N_tilde, h1, h2, xhi, xhi_inv) = generate_h1_h2_N_tilde();
 
@@ -177,9 +177,9 @@ impl Keys<Secp256k1> {
     }
 
     // we recommend using safe primes if the code is used in production
-    pub fn create_safe_prime(index: usize) -> Keys<Secp256k1> {
-        let u: Scalar<Secp256k1> = Scalar::<Secp256k1>::random();
-        let y = Point::<Secp256k1>::generator() * &u;
+    pub fn create_safe_prime(index: usize) -> Self {
+        let u = Scalar::<Secp256k1>::random();
+        let y = Point::generator() * &u;
 
         let (ek, dk) = Paillier::keypair_safe_primes().keys();
         let (N_tilde, h1, h2, xhi, xhi_inv) = generate_h1_h2_N_tilde();
@@ -197,8 +197,8 @@ impl Keys<Secp256k1> {
             xhi_inv,
         }
     }
-    pub fn create_from(u: Scalar<Secp256k1>, index: usize) -> Keys<Secp256k1> {
-        let y = Point::<Secp256k1>::generator() * &u;
+    pub fn create_from(u: Scalar<Secp256k1>, index: usize) -> Self {
+        let y = Point::generator() * &u;
         let (ek, dk) = Paillier::keypair().keys();
         let (N_tilde, h1, h2, xhi, xhi_inv) = generate_h1_h2_N_tilde();
 
@@ -439,7 +439,7 @@ impl Keys<Secp256k1> {
 }
 
 impl PartyPrivate {
-    pub fn set_private(key: Keys<Secp256k1>, shared_key: SharedKeys) -> Self {
+    pub fn set_private(key: Keys, shared_key: SharedKeys) -> Self {
         Self {
             u_i: key.u_i,
             x_i: shared_key.x_i,
@@ -448,7 +448,7 @@ impl PartyPrivate {
     }
 
     pub fn y_i(&self) -> Point<Secp256k1> {
-        let g = Point::<Secp256k1>::generator();
+        let g = Point::generator();
         g * &self.u_i
     }
 
@@ -456,9 +456,9 @@ impl PartyPrivate {
         Paillier::decrypt(&self.dk, &RawCiphertext::from(ciphertext))
     }
 
-    pub fn refresh_private_key(&self, factor: &Scalar<Secp256k1>, index: usize) -> Keys<Secp256k1> {
+    pub fn refresh_private_key(&self, factor: &Scalar<Secp256k1>, index: usize) -> Keys {
         let u: Scalar<Secp256k1> = &self.u_i + factor;
-        let y = Point::<Secp256k1>::generator() * &u;
+        let y = Point::generator() * &u;
         let (ek, dk) = Paillier::keypair().keys();
 
         let (N_tilde, h1, h2, xhi, xhi_inv) = generate_h1_h2_N_tilde();
@@ -478,13 +478,9 @@ impl PartyPrivate {
     }
 
     // we recommend using safe primes if the code is used in production
-    pub fn refresh_private_key_safe_prime(
-        &self,
-        factor: &Scalar<Secp256k1>,
-        index: usize,
-    ) -> Keys<Secp256k1> {
+    pub fn refresh_private_key_safe_prime(&self, factor: &Scalar<Secp256k1>, index: usize) -> Keys {
         let u: Scalar<Secp256k1> = &self.u_i + factor;
-        let y = Point::<Secp256k1>::generator() * &u;
+        let y = Point::generator() * &u;
         let (ek, dk) = Paillier::keypair_safe_primes().keys();
 
         let (N_tilde, h1, h2, xhi, xhi_inv) = generate_h1_h2_N_tilde();
@@ -560,11 +556,11 @@ impl SignKeys {
             s.as_slice(),
         );
         let w_i = li * private_x_i;
-        let g = Point::<Secp256k1>::generator();
+        let g = Point::generator();
         let g_w_i = g * &w_i;
-        let gamma_i: Scalar<Secp256k1> = Scalar::<Secp256k1>::random();
+        let gamma_i = Scalar::<Secp256k1>::random();
         let g_gamma_i = g * &gamma_i;
-        let k_i: Scalar<Secp256k1> = Scalar::<Secp256k1>::random();
+        let k_i = Scalar::<Secp256k1>::random();
         Self {
             w_i,
             g_w_i,
@@ -576,7 +572,7 @@ impl SignKeys {
 
     pub fn phase1_broadcast(&self) -> (SignBroadcastPhase1, SignDecommitPhase1) {
         let blind_factor = BigInt::sample(SECURITY);
-        let g = Point::<Secp256k1>::generator();
+        let g = Point::generator();
         let g_gamma_i = g * &self.gamma_i;
         let com = HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
             &BigInt::from_bytes(g_gamma_i.to_bytes(true).as_ref()),
@@ -628,8 +624,8 @@ impl SignKeys {
         Scalar<Secp256k1>,
         PedersenProof<Secp256k1, Sha256>,
     ) {
-        let g_sigma_i = Point::<Secp256k1>::generator() * sigma_i;
-        let l: Scalar<Secp256k1> = Scalar::<Secp256k1>::random();
+        let g_sigma_i = Point::generator() * sigma_i;
+        let l = Scalar::<Secp256k1>::random();
         let h_l = Point::<Secp256k1>::base_point2() * &l;
         let T = g_sigma_i + h_l;
         let T_zk_proof = PedersenProof::<Secp256k1, Sha256>::prove(sigma_i, &l);
@@ -768,10 +764,8 @@ impl LocalSignature {
     pub fn phase5_check_R_dash_sum(R_dash_vec: &[Point<Secp256k1>]) -> Result<(), Error> {
         let sum = R_dash_vec
             .iter()
-            .fold(Point::<Secp256k1>::generator().to_point(), |acc, x| acc + x);
-        match sum - &Point::<Secp256k1>::generator().to_point()
-            == Point::<Secp256k1>::generator().to_point()
-        {
+            .fold(Point::generator().to_point(), |acc, x| acc + x);
+        match sum - &Point::generator().to_point() == Point::generator().to_point() {
             true => Ok(()),
             false => Err(Phase5BadSum),
         }
@@ -787,7 +781,7 @@ impl LocalSignature {
         let delta = HomoElGamalStatement {
             G: R.clone(),
             H: Point::<Secp256k1>::base_point2().clone(),
-            Y: Point::<Secp256k1>::generator().to_point(),
+            Y: Point::generator().to_point(),
             D: T.clone(),
             E: S.clone(),
         };
@@ -812,7 +806,7 @@ impl LocalSignature {
             let delta = HomoElGamalStatement {
                 G: R_vec[i].clone(),
                 H: Point::<Secp256k1>::base_point2().clone(),
-                Y: Point::<Secp256k1>::generator().to_point(),
+                Y: Point::generator().to_point(),
                 D: T_vec[i].clone(),
                 E: S_vec[i].clone(),
             };
@@ -840,8 +834,8 @@ impl LocalSignature {
     ) -> Result<(), Error> {
         let sum_plus_g = S_vec
             .iter()
-            .fold(Point::<Secp256k1>::generator().to_point(), |acc, x| acc + x);
-        let sum = sum_plus_g - &Point::<Secp256k1>::generator().to_point();
+            .fold(Point::generator().to_point(), |acc, x| acc + x);
+        let sum = sum_plus_g - &Point::generator().to_point();
 
         match &sum == pubkey_y {
             true => Ok(()),
@@ -856,8 +850,8 @@ impl LocalSignature {
         sigma_i: &Scalar<Secp256k1>,
         pubkey: &Point<Secp256k1>,
     ) -> Self {
-        let m_fe: Scalar<Secp256k1> = Scalar::<Secp256k1>::from(message);
-        let r: Scalar<Secp256k1> = Scalar::<Secp256k1>::from(
+        let m_fe = Scalar::<Secp256k1>::from(message);
+        let r = Scalar::<Secp256k1>::from(
             &R.x_coord()
                 .unwrap()
                 .mod_floor(Scalar::<Secp256k1>::group_order()),
@@ -876,7 +870,7 @@ impl LocalSignature {
         let mut s = s_vec.iter().fold(self.s_i.clone(), |acc, x| acc + x);
         let s_bn = s.to_bigint();
 
-        let r: Scalar<Secp256k1> = Scalar::<Secp256k1>::from(
+        let r = Scalar::<Secp256k1>::from(
             &self
                 .R
                 .x_coord()
@@ -914,11 +908,11 @@ impl LocalSignature {
 
 pub fn verify(sig: &SignatureRecid, y: &Point<Secp256k1>, message: &BigInt) -> Result<(), Error> {
     let b = sig.s.invert().unwrap();
-    let a: Scalar<Secp256k1> = Scalar::<Secp256k1>::from(message);
+    let a = Scalar::<Secp256k1>::from(message);
     let u1 = a * &b;
     let u2 = &sig.r * &b;
 
-    let g = Point::<Secp256k1>::generator();
+    let g = Point::generator();
     let gu1 = g * u1;
     let yu2 = y * &u2;
     // can be faster using shamir trick

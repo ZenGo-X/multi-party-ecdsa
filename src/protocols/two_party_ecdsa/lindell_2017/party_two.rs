@@ -40,8 +40,8 @@ use crate::utilities::mta::{MessageA, MessageB};
 
 use crate::utilities::zk_pdl_with_slack::PDLwSlackProof;
 use crate::utilities::zk_pdl_with_slack::PDLwSlackStatement;
-use zk_paillier::zkproofs::{CompositeDLogProof, DLogStatement};
 use thiserror::Error;
+use zk_paillier::zkproofs::{CompositeDLogProof, DLogStatement};
 
 #[derive(Error, Debug)]
 pub enum PartyTwoError {
@@ -139,8 +139,8 @@ pub struct EphKeyGenSecondMsg {
 
 impl KeyGenFirstMsg {
     pub fn create() -> (KeyGenFirstMsg, EcKeyPair) {
-        let base = Point::<Secp256k1>::generator();
-        let secret_share: Scalar<Secp256k1> = Scalar::<Secp256k1>::random();
+        let base = Point::generator();
+        let secret_share = Scalar::<Secp256k1>::random();
         let public_share = base * &secret_share;
         let d_log_proof = DLogProof::prove(&secret_share);
         let ec_key_pair = EcKeyPair {
@@ -159,7 +159,7 @@ impl KeyGenFirstMsg {
     pub fn create_with_fixed_secret_share(
         secret_share: Scalar<Secp256k1>,
     ) -> (KeyGenFirstMsg, EcKeyPair) {
-        let base = Point::<Secp256k1>::generator();
+        let base = Point::generator();
         let public_share = base * &secret_share;
         let d_log_proof = DLogProof::prove(&secret_share);
         let ec_key_pair = EcKeyPair {
@@ -239,7 +239,7 @@ impl Party2Private {
     }
 
     pub fn update_private_key(party_two_private: &Party2Private, factor: &BigInt) -> Party2Private {
-        let factor_fe: Scalar<Secp256k1> = Scalar::<Secp256k1>::from(factor);
+        let factor_fe = Scalar::<Secp256k1>::from(factor);
         Party2Private {
             x2: &party_two_private.x2 * &factor_fe,
         }
@@ -283,7 +283,7 @@ impl PaillierPublic {
             || pdl_w_slack_statement.ciphertext != paillier_public.encrypted_secret_share
             || &pdl_w_slack_statement.Q != q1
         {
-            return Err(PartyTwoError::PdlVerify)
+            return Err(PartyTwoError::PdlVerify);
         }
         let dlog_statement = DLogStatement {
             N: pdl_w_slack_statement.N_tilde.clone(),
@@ -313,9 +313,9 @@ impl PaillierPublic {
 
 impl EphKeyGenFirstMsg {
     pub fn create_commitments() -> (EphKeyGenFirstMsg, EphCommWitness, EphEcKeyPair) {
-        let base = Point::<Secp256k1>::generator();
+        let base = Point::generator();
 
-        let secret_share: Scalar<Secp256k1> = Scalar::<Secp256k1>::random();
+        let secret_share = Scalar::<Secp256k1>::random();
 
         let public_share = base * &secret_share;
 
@@ -377,7 +377,7 @@ impl EphKeyGenSecondMsg {
         party_one_first_message: &Party1EphKeyGenFirstMsg,
     ) -> Result<EphKeyGenSecondMsg, ProofError> {
         let delta = ECDDHStatement {
-            g1: Point::<Secp256k1>::generator().to_point(),
+            g1: Point::generator().to_point(),
             h1: party_one_first_message.public_share.clone(),
             g2: Point::<Secp256k1>::base_point2().clone(),
             h2: party_one_first_message.c.clone(),

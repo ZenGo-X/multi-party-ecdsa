@@ -4,9 +4,9 @@ use curv::elliptic::curves::{secp256_k1::Secp256k1, Scalar};
 
 #[test]
 fn test_mta() {
-    let alice_input: Scalar<Secp256k1> = Scalar::<Secp256k1>::random();
+    let alice_input = Scalar::<Secp256k1>::random();
     let (dlog_statement, ek_alice, dk_alice) = generate_init();
-    let bob_input: Scalar<Secp256k1> = Scalar::<Secp256k1>::random();
+    let bob_input = Scalar::<Secp256k1>::random();
     let (m_a, _) = MessageA::a(&alice_input, &ek_alice, &[dlog_statement.clone()]);
     let (m_b, beta, _, _) = MessageB::b(&bob_input, &ek_alice, m_a, &[dlog_statement]).unwrap();
     let alpha = m_b

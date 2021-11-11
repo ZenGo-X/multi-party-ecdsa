@@ -119,7 +119,7 @@ impl GlobalStatePhase5 {
 
         // check commitment to g_gamma
         for i in 0..len {
-            if self.g_gamma_vec[i] != Point::<Secp256k1>::generator() * &self.gamma_vec[i] {
+            if self.g_gamma_vec[i] != Point::generator() * &self.gamma_vec[i] {
                 bad_signers_vec.push(i)
             }
         }
@@ -261,9 +261,9 @@ impl GlobalStatePhase6 {
         S: &Point<Secp256k1>,
     ) -> ECDDHProof<Secp256k1, Sha256> {
         let delta = ECDDHStatement {
-            g1: Point::<Secp256k1>::generator().to_point(),
+            g1: Point::generator().to_point(),
             g2: R.clone(),
-            h1: Point::<Secp256k1>::generator() * sigma_i,
+            h1: Point::generator() * sigma_i,
             h2: S.clone(),
         };
         let w = ECDDHWitness { x: sigma_i.clone() };
@@ -365,7 +365,7 @@ impl GlobalStatePhase6 {
                             let g_w_j_ki = g_w_j * k_i;
                             let miu: Scalar<Secp256k1> =
                                 Scalar::<Secp256k1>::from(&self.miu_vec[i][j]);
-                            let g_miu = Point::<Secp256k1>::generator() * &miu;
+                            let g_miu = Point::generator() * &miu;
                             g_w_j_ki - &g_miu
                         })
                         .collect::<Vec<Point<Secp256k1>>>()
@@ -378,7 +378,7 @@ impl GlobalStatePhase6 {
                 .map(|i| {
                     let g_wi_ki = &self.g_w_vec[i] * &self.k_vec[i];
                     let sum = self.miu_vec[i].iter().fold(g_wi_ki, |acc, x| {
-                        acc + (Point::<Secp256k1>::generator() * &Scalar::<Secp256k1>::from(&*x))
+                        acc + (Point::generator() * &Scalar::<Secp256k1>::from(&*x))
                     });
                     sum
                 })
@@ -397,7 +397,7 @@ impl GlobalStatePhase6 {
             #[allow(clippy::needless_range_loop)]
             for i in 0..len {
                 let statement = ECDDHStatement {
-                    g1: Point::<Secp256k1>::generator().to_point(),
+                    g1: Point::generator().to_point(),
                     g2: R.clone(),
                     h1: g_sigma_i_vec[i].clone(),
                     h2: self.S_vec[i].clone(),

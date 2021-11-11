@@ -135,9 +135,9 @@ pub struct EphKeyGenSecondMsg {}
 
 impl KeyGenFirstMsg {
     pub fn create_commitments() -> (KeyGenFirstMsg, CommWitness, EcKeyPair) {
-        let base = Point::<Secp256k1>::generator();
+        let base = Point::generator();
 
-        let secret_share: Scalar<Secp256k1> = Scalar::<Secp256k1>::random();
+        let secret_share = Scalar::<Secp256k1>::random();
         //in Lindell's protocol range proof works only for x1<q/3
         let secret_share: Scalar<Secp256k1> =
             Scalar::<Secp256k1>::from(&secret_share.to_bigint().div_floor(&BigInt::from(3)));
@@ -179,7 +179,7 @@ impl KeyGenFirstMsg {
     pub fn create_commitments_with_fixed_secret_share(
         secret_share: Scalar<Secp256k1>,
     ) -> (KeyGenFirstMsg, CommWitness, EcKeyPair) {
-        let base = Point::<Secp256k1>::generator();
+        let base = Point::generator();
         let public_share = base.scalar_mul(&secret_share.get_element());
 
         let d_log_proof = DLogProof::prove(&secret_share);
@@ -275,10 +275,10 @@ impl HSMCL {
 
 impl EphKeyGenFirstMsg {
     pub fn create() -> (EphKeyGenFirstMsg, EphEcKeyPair) {
-        let base = Point::<Secp256k1>::generator();
-        let secret_share: Scalar<Secp256k1> = Scalar::<Secp256k1>::random();
+        let base = Point::generator();
+        let secret_share = Scalar::<Secp256k1>::random();
         let public_share = &base * &secret_share;
-        let h: Point<Secp256k1> = Point::<Secp256k1>::base_point2();
+        let h = Point::<Secp256k1>::base_point2();
         let w = ECDDHWitness {
             x: secret_share.clone(),
         };
@@ -344,7 +344,7 @@ impl EphKeyGenSecondMsg {
             return Err(ProofError);
         }
         let delta = ECDDHStatement {
-            g1: Point::<Secp256k1>::generator(),
+            g1: Point::generator(),
             h1: party_two_public_share.clone(),
             g2: Point::<Secp256k1>::base_point2(),
             h2: party_two_second_message.comm_witness.c.clone(),
@@ -398,13 +398,13 @@ pub fn verify(
     pubkey: &Point<Secp256k1>,
     message: &BigInt,
 ) -> Result<(), Error> {
-    let s_fe: Scalar<Secp256k1> = Scalar::<Secp256k1>::from(&signature.s);
-    let rx_fe: Scalar<Secp256k1> = Scalar::<Secp256k1>::from(&signature.r);
+    let s_fe = Scalar::<Secp256k1>::from(&signature.s);
+    let rx_fe = Scalar::<Secp256k1>::from(&signature.r);
 
     let s_inv_fe = s_fe.invert();
     let e_fe: Scalar<Secp256k1> =
         Scalar::<Secp256k1>::from(&message.mod_floor(Scalar::<Secp256k1>::group_order()));
-    let u1 = Point::<Secp256k1>::generator() * e_fe * s_inv_fe;
+    let u1 = Point::generator() * e_fe * s_inv_fe;
     let u2 = *pubkey * rx_fe * s_inv_fe;
 
     // second condition is against malleability

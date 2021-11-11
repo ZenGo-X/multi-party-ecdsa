@@ -136,9 +136,9 @@ pub struct EphKeyGenSecondMsg {}
 
 impl KeyGenFirstMsg {
     pub fn create_commitments() -> (KeyGenFirstMsg, CommWitness, EcKeyPair) {
-        let base = Point::<Secp256k1>::generator();
+        let base = Point::generator();
 
-        let secret_share: Scalar<Secp256k1> = Scalar::<Secp256k1>::random();
+        let secret_share = Scalar::<Secp256k1>::random();
 
         let public_share = base * &secret_share;
 
@@ -179,7 +179,7 @@ impl KeyGenFirstMsg {
     pub fn create_commitments_with_fixed_secret_share(
         secret_share: Scalar<Secp256k1>,
     ) -> (KeyGenFirstMsg, CommWitness, EcKeyPair) {
-        let base = Point::<Secp256k1>::generator();
+        let base = Point::generator();
         let public_share = base * &secret_share;
 
         let d_log_proof = DLogProof::<Secp256k1, Sha256>::prove(&secret_share);
@@ -257,7 +257,7 @@ impl Party1Private {
     ) {
         let (ek_new, dk_new) = Paillier::keypair().keys();
         let randomness = Randomness::sample(&ek_new);
-        let factor_fe: Scalar<Secp256k1> = Scalar::<Secp256k1>::from(&*factor);
+        let factor_fe = Scalar::<Secp256k1>::from(&*factor);
         let x1_new = &party_one_private.x1 * factor_fe;
         let c_key_new = Paillier::encrypt_with_chosen_randomness(
             &ek_new,
@@ -379,8 +379,8 @@ impl PaillierKeyPair {
         let pdl_w_slack_statement = PDLwSlackStatement {
             ciphertext: paillier_key_pair.encrypted_share.clone(),
             ek: paillier_key_pair.ek.clone(),
-            Q: Point::<Secp256k1>::generator() * &party1_private.x1,
-            G: Point::<Secp256k1>::generator().to_point(),
+            Q: Point::generator() * &party1_private.x1,
+            G: Point::generator().to_point(),
             h1: dlog_statement.g.clone(),
             h2: dlog_statement.ni.clone(),
             N_tilde: dlog_statement.N,
@@ -402,8 +402,8 @@ impl PaillierKeyPair {
 
 impl EphKeyGenFirstMsg {
     pub fn create() -> (EphKeyGenFirstMsg, EphEcKeyPair) {
-        let base = Point::<Secp256k1>::generator();
-        let secret_share: Scalar<Secp256k1> = Scalar::<Secp256k1>::random();
+        let base = Point::generator();
+        let secret_share = Scalar::<Secp256k1>::random();
         let public_share = &*base * &secret_share;
         let h = Point::<Secp256k1>::base_point2();
 
@@ -472,7 +472,7 @@ impl EphKeyGenSecondMsg {
         }
 
         let delta = ECDDHStatement {
-            g1: Point::<Secp256k1>::generator().to_point(),
+            g1: Point::generator().to_point(),
             h1: party_two_public_share.clone(),
             g2: Point::<Secp256k1>::base_point2().clone(),
             h2: party_two_second_message.comm_witness.c.clone(),
@@ -504,7 +504,7 @@ impl Signature {
             &RawCiphertext::from(partial_sig_c3),
         )
         .0;
-        let s_tag_fe: Scalar<Secp256k1> = Scalar::<Secp256k1>::from(s_tag.as_ref());
+        let s_tag_fe = Scalar::<Secp256k1>::from(s_tag.as_ref());
         let s_tag_tag = s_tag_fe * k1_inv;
         let s_tag_tag_bn = s_tag_tag.to_bigint();
 
@@ -540,7 +540,7 @@ impl Signature {
             &RawCiphertext::from(partial_sig_c3),
         )
         .0;
-        let s_tag_fe: Scalar<Secp256k1> = Scalar::<Secp256k1>::from(s_tag.as_ref());
+        let s_tag_fe = Scalar::<Secp256k1>::from(s_tag.as_ref());
         let s_tag_tag = s_tag_fe * k1_inv;
         let s_tag_tag_bn = s_tag_tag.to_bigint();
         let s = cmp::min(
@@ -569,13 +569,13 @@ pub fn verify(
     pubkey: &Point<Secp256k1>,
     message: &BigInt,
 ) -> Result<(), Error> {
-    let s_fe: Scalar<Secp256k1> = Scalar::<Secp256k1>::from(&signature.s);
-    let rx_fe: Scalar<Secp256k1> = Scalar::<Secp256k1>::from(&signature.r);
+    let s_fe = Scalar::<Secp256k1>::from(&signature.s);
+    let rx_fe = Scalar::<Secp256k1>::from(&signature.r);
 
     let s_inv_fe = s_fe.invert().unwrap();
     let e_fe: Scalar<Secp256k1> =
         Scalar::<Secp256k1>::from(&message.mod_floor(Scalar::<Secp256k1>::group_order()));
-    let u1 = Point::<Secp256k1>::generator() * e_fe * &s_inv_fe;
+    let u1 = Point::generator() * e_fe * &s_inv_fe;
     let u2 = &*pubkey * rx_fe * &s_inv_fe;
 
     // second condition is against malleability
