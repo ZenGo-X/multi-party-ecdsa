@@ -24,7 +24,7 @@ fn test_zk_pdl() {
 
     let c = Paillier::encrypt_with_chosen_randomness(
         &ek,
-        RawPlaintext::from(x.to_bigint().clone()),
+        RawPlaintext::from(x.to_bigint()),
         &randomness,
     )
     .0

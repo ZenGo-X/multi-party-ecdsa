@@ -751,7 +751,7 @@ mod test {
         simulate_signing(offline_stage, b"ZenGo");
         let offline_stage = simulate_offline_stage(local_keys.clone(), &[1, 3]);
         simulate_signing(offline_stage, b"ZenGo");
-        let offline_stage = simulate_offline_stage(local_keys.clone(), &[2, 3]);
+        let offline_stage = simulate_offline_stage(local_keys, &[2, 3]);
         simulate_signing(offline_stage, b"ZenGo");
     }
 

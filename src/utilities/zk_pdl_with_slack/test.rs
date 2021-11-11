@@ -17,7 +17,7 @@ fn test_zk_pdl_with_slack() {
     let one = BigInt::one();
     let phi = (&dk_tilde.p - &one) * (&dk_tilde.q - &one);
     let h1 = BigInt::sample_below(&phi);
-    let S = BigInt::from(2).pow(256 as u32);
+    let S = BigInt::from(2).pow(256_u32);
     let xhi = BigInt::sample_below(&S);
     let h1_inv = BigInt::mod_inv(&h1, &ek_tilde.n).unwrap();
     let h2 = BigInt::mod_pow(&h1_inv, &xhi, &ek_tilde.n);
@@ -40,7 +40,7 @@ fn test_zk_pdl_with_slack() {
 
     let c = Paillier::encrypt_with_chosen_randomness(
         &ek,
-        RawPlaintext::from(x.to_bigint().clone()),
+        RawPlaintext::from(x.to_bigint()),
         &randomness,
     )
     .0
@@ -77,7 +77,7 @@ fn test_zk_pdl_with_slack_soundness() {
     let one = BigInt::one();
     let phi = (&dk_tilde.p - &one) * (&dk_tilde.q - &one);
     let h1 = BigInt::sample_below(&phi);
-    let S = BigInt::from(2).pow(256 as u32);
+    let S = BigInt::from(2).pow(256_u32);
     let xhi = BigInt::sample_below(&S);
     let h1_inv = BigInt::mod_inv(&h1, &ek_tilde.n).unwrap();
     let h2 = BigInt::mod_pow(&h1_inv, &xhi, &ek_tilde.n);
@@ -101,7 +101,7 @@ fn test_zk_pdl_with_slack_soundness() {
     // here we encrypt x + 1 instead of x:
     let c = Paillier::encrypt_with_chosen_randomness(
         &ek,
-        RawPlaintext::from(x.to_bigint().clone() + BigInt::one()),
+        RawPlaintext::from(x.to_bigint() + BigInt::one()),
         &randomness,
     )
     .0

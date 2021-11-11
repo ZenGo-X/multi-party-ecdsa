@@ -438,9 +438,9 @@ fn sign(
             .map(|j| {
                 let ind1 = if j < i { j } else { j + 1 };
                 let ind2 = if j < i { i - 1 } else { i };
-                let beta = beta_vec_all[ind1][ind2].clone();
+                
 
-                beta
+                beta_vec_all[ind1][ind2].clone()
             })
             .collect::<Vec<Scalar<Secp256k1>>>();
 
@@ -457,16 +457,12 @@ fn sign(
 
         let mut sigma = sign_keys_vec[i].phase2_sigma_i(&miu_vec_all[i], &ni_vec);
         // test wrong delta corruption
-        if corrupt_step == 5 {
-            if corrupted_parties.iter().find(|&&x| x == i).is_some() {
-                delta = &delta + &delta;
-            }
+        if corrupt_step == 5 && corrupted_parties.iter().any(|&x| x == i) {
+            delta = &delta + &delta;
         }
         // test wrong sigma corruption
-        if corrupt_step == 6 {
-            if corrupted_parties.iter().find(|&&x| x == i).is_some() {
-                sigma = &sigma + &sigma;
-            }
+        if corrupt_step == 6 && corrupted_parties.iter().any(|&x| x == i) {
+            sigma = &sigma + &sigma;
         }
         delta_vec.push(delta);
         sigma_vec.push(sigma);
@@ -683,7 +679,7 @@ fn sign(
     // test corrupted local s
     if corrupt_step == 7 {
         for i in 0..s_vec.len() {
-            if corrupted_parties.iter().find(|&&x| x == i).is_some() {
+            if corrupted_parties.iter().any(|&x| x == i) {
                 s_vec[i] = &s_vec[i] + &s_vec[i];
             }
         }
@@ -709,7 +705,7 @@ fn sign(
 
     let sig = sig.unwrap();
     check_sig(&sig.r, &sig.s, &local_sig_vec[0].m, &y);
-    return Ok(sig);
+    Ok(sig)
 }
 
 pub fn check_sig(
@@ -720,7 +716,7 @@ pub fn check_sig(
 ) {
     use secp256k1::{verify, Message, PublicKey, PublicKeyFormat, Signature};
 
-    let raw_msg = BigInt::to_bytes(&msg);
+    let raw_msg = BigInt::to_bytes(msg);
     let mut msg: Vec<u8> = Vec::new(); // padding
     msg.extend(vec![0u8; 32 - raw_msg.len()]);
     msg.extend(raw_msg.iter());

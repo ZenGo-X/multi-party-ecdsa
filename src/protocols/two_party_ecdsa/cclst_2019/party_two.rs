@@ -178,33 +178,33 @@ impl KeyGenSecondMsg {
         let party_one_d_log_proof = &party_one_second_message.comm_witness.d_log_proof;
 
         let mut flag = true;
-        match party_one_pk_commitment
-            == &HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
-                &BigInt::from_bytes(&party_one_public_share.to_bytes(true).as_ref()),
-                &party_one_pk_commitment_blind_factor,
-            ) {
-            false => flag = false,
-            true => flag = flag,
-        };
-        match party_one_zk_pok_commitment
-            == &HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
+        if party_one_pk_commitment
+            != &HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
+                &BigInt::from_bytes(party_one_public_share.to_bytes(true).as_ref()),
+                party_one_pk_commitment_blind_factor,
+            )
+        {
+            flag = false
+        }
+        if party_one_zk_pok_commitment
+            != &HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
                 &BigInt::from_bytes(
-                    &party_one_d_log_proof
+                    party_one_d_log_proof
                         .pk_t_rand_commitment
                         .to_bytes(true)
                         .as_ref(),
                 ),
-                &party_one_zk_pok_blind_factor,
-            ) {
-            false => flag = false,
-            true => flag = flag,
-        };
+                party_one_zk_pok_blind_factor,
+            )
+        {
+            flag = false
+        }
 
         if !flag {
             return Err(ProofError);
         }
 
-        DLogProof::verify(&party_one_d_log_proof)?;
+        DLogProof::verify(party_one_d_log_proof)?;
         Ok(KeyGenSecondMsg {})
     }
 }
@@ -229,7 +229,7 @@ impl Party2Public {
         hsmcl_public: &HSMCLPublic,
         seed: &BigInt,
         party1_ec_pubkey: &Point<Secp256k1>,
-    ) -> Result<Self, ()> {
+    ) -> Result<Self, ProofError> {
         let setup_verify = hsmcl_public.cl_group.setup_verify(seed);
 
         let proof_verify = hsmcl_public.proof.verify(
@@ -238,13 +238,14 @@ impl Party2Public {
             &hsmcl_public.encrypted_share,
             party1_ec_pubkey,
         );
-        match proof_verify.is_ok() && setup_verify.is_ok() {
-            true => Ok(Party2Public {
+        if proof_verify.is_ok() && setup_verify.is_ok() {
+            Ok(Party2Public {
                 group: hsmcl_public.cl_group.clone(),
                 ek: hsmcl_public.cl_pub_key.clone(),
                 encrypted_secret_share: hsmcl_public.encrypted_share.clone(),
-            }),
-            false => Err(()),
+            })
+        } else {
+            Err(ProofError)
         }
     }
 }
@@ -274,7 +275,7 @@ impl EphKeyGenFirstMsg {
         let pk_commitment_blind_factor = BigInt::sample(SECURITY_BITS);
         let pk_commitment =
             HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
-                &BigInt::from_bytes(&public_share.to_bytes(true).as_ref()),
+                &BigInt::from_bytes(public_share.to_bytes(true).as_ref()),
                 &pk_commitment_blind_factor,
             );
 
@@ -337,14 +338,14 @@ impl PartialSig {
         let r: Point<Secp256k1> =
             ephemeral_other_public_share * &ephemeral_local_share.secret_share;
 
-        let rx = r.x_coord().unwrap().mod_floor(&q);
+        let rx = r.x_coord().unwrap().mod_floor(q);
         let k2 = &ephemeral_local_share.secret_share.to_bigint();
-        let k2_inv = BigInt::mod_inv(&k2, q).unwrap();
-        let k2_inv_m = BigInt::mod_mul(&k2_inv, message, &q);
+        let k2_inv = BigInt::mod_inv(k2, q).unwrap();
+        let k2_inv_m = BigInt::mod_mul(&k2_inv, message, q);
         let k2_inv_m_fe = Scalar::<Secp256k1>::from(&k2_inv_m);
         let c1 = encrypt(&party_two_public.group, &party_two_public.ek, &k2_inv_m_fe);
-        let v = BigInt::mod_mul(&k2_inv, &local_share.x2.to_bigint(), &q);
-        let v = BigInt::mod_mul(&v, &rx, &q);
+        let v = BigInt::mod_mul(&k2_inv, &local_share.x2.to_bigint(), q);
+        let v = BigInt::mod_mul(&v, &rx, q);
 
         let c2 = eval_scal(&party_two_public.encrypted_secret_share, &v);
         let c3 = eval_sum(&c1.0, &c2);

@@ -149,14 +149,14 @@ impl KeyGenFirstMsg {
         let pk_commitment_blind_factor = BigInt::sample(SECURITY_BITS);
         let pk_commitment =
             HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
-                &BigInt::from_bytes(&public_share.to_bytes(true).as_ref()),
+                &BigInt::from_bytes(public_share.to_bytes(true).as_ref()),
                 &pk_commitment_blind_factor,
             );
 
         let zk_pok_blind_factor = BigInt::sample(SECURITY_BITS);
         let zk_pok_commitment =
             HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
-                &BigInt::from_bytes(&d_log_proof.pk_t_rand_commitment.to_bytes(true).as_ref()),
+                &BigInt::from_bytes(d_log_proof.pk_t_rand_commitment.to_bytes(true).as_ref()),
                 &zk_pok_blind_factor,
             );
         let ec_key_pair = EcKeyPair {
@@ -189,14 +189,14 @@ impl KeyGenFirstMsg {
         let pk_commitment_blind_factor = BigInt::sample(SECURITY_BITS);
         let pk_commitment =
             HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
-                &BigInt::from_bytes(&public_share.to_bytes(true).as_ref()),
+                &BigInt::from_bytes(public_share.to_bytes(true).as_ref()),
                 &pk_commitment_blind_factor,
             );
 
         let zk_pok_blind_factor = BigInt::sample(SECURITY_BITS);
         let zk_pok_commitment =
             HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
-                &BigInt::from_bytes(&d_log_proof.pk_t_rand_commitment.to_bytes(true).as_ref()),
+                &BigInt::from_bytes(d_log_proof.pk_t_rand_commitment.to_bytes(true).as_ref()),
                 &zk_pok_blind_factor,
             );
 
@@ -252,7 +252,7 @@ impl HSMCL {
         keygen: &EcKeyPair,
         seed: &BigInt,
     ) -> (HSMCL, HSMCLPublic) {
-        let cl_group = CLGroup::new_from_setup(&1348, &seed);
+        let cl_group = CLGroup::new_from_setup(&1348, seed);
         let (secret_key, public_key) = cl_group.keygen();
         let (ciphertext, proof) = verifiably_encrypt(
             &cl_group,
@@ -264,13 +264,13 @@ impl HSMCL {
             HSMCL {
                 cl_group: cl_group.clone(),
                 public: public_key.clone(),
-                secret: secret_key.clone(),
+                secret: secret_key,
                 encrypted_share: ciphertext.clone(),
             },
             HSMCLPublic {
-                cl_pub_key: public_key.clone(),
+                cl_pub_key: public_key,
                 proof,
-                encrypted_share: ciphertext.clone(),
+                encrypted_share: ciphertext,
                 cl_group,
             },
         )
@@ -326,8 +326,8 @@ impl EphKeyGenSecondMsg {
         let mut flag = true;
         if party_two_pk_commitment
             != &HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
-                &BigInt::from_bytes(&party_two_public_share.to_bytes(true).as_ref()),
-                &party_two_pk_commitment_blind_factor,
+                &BigInt::from_bytes(party_two_public_share.to_bytes(true).as_ref()),
+                party_two_pk_commitment_blind_factor,
             )
         {
             flag = false
@@ -337,7 +337,7 @@ impl EphKeyGenSecondMsg {
                 &Sha256::new()
                     .chain_points([&party_two_d_log_proof.a1, &party_two_d_log_proof.a2])
                     .result_bigint(),
-                &party_two_zk_pok_blind_factor,
+                party_two_zk_pok_blind_factor,
             )
         {
             flag = false
@@ -372,7 +372,7 @@ impl Signature {
             .unwrap()
             .mod_floor(Scalar::<Secp256k1>::group_order());
         let k1 = &ephemeral_local_share.secret_share.to_bigint();
-        let k1_inv = BigInt::mod_inv(&k1, Scalar::<Secp256k1>::group_order()).unwrap();
+        let k1_inv = BigInt::mod_inv(k1, Scalar::<Secp256k1>::group_order()).unwrap();
         let s_tag = decrypt(
             &hsmcl.cl_group,
             &party_one_private.hsmcl_priv,
@@ -381,11 +381,11 @@ impl Signature {
         let s_tag_tag = BigInt::mod_mul(
             &k1_inv,
             &s_tag.to_bigint(),
-            &Scalar::<Secp256k1>::group_order(),
+            Scalar::<Secp256k1>::group_order(),
         );
         let s = cmp::min(
             s_tag_tag.clone(),
-            Scalar::<Secp256k1>::group_order().clone() - s_tag_tag.clone(),
+            Scalar::<Secp256k1>::group_order().clone() - s_tag_tag,
         );
         Signature { s, r: rx }
     }
@@ -409,7 +409,7 @@ pub fn verify(
     let rx_bytes = &BigInt::to_bytes(&signature.r)[..];
     let u1_plus_u2_bytes = &BigInt::to_bytes(&(u1 + u2).x_coord().unwrap())[..];
 
-    if rx_bytes.ct_eq(&u1_plus_u2_bytes).unwrap_u8() == 1
+    if rx_bytes.ct_eq(u1_plus_u2_bytes).unwrap_u8() == 1
         && signature.s < Scalar::<Secp256k1>::group_order() - signature.s.clone()
     {
         Ok(())
