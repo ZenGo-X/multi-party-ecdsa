@@ -34,7 +34,7 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum ZkPdlWithSlackError {
     #[error("zk pdl with slack verification failed")]
-    Verify
+    Verify,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

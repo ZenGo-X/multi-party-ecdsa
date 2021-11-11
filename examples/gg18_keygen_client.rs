@@ -229,14 +229,8 @@ fn main() {
         uuid.clone()
     )
     .is_ok());
-    let round5_ans_vec = poll_for_broadcasts(
-        &client,
-        party_num_int,
-        PARTIES,
-        delay,
-        "round5",
-        uuid,
-    );
+    let round5_ans_vec =
+        poll_for_broadcasts(&client, party_num_int, PARTIES, delay, "round5", uuid);
 
     let mut j = 0;
     let mut dlog_proof_vec: Vec<DLogProof<Secp256k1, Sha256>> = Vec::new();

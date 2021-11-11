@@ -102,10 +102,7 @@ pub fn broadcast(
     sender_uuid: String,
 ) -> Result<(), ()> {
     let key = format!("{}-{}-{}", party_num, round, sender_uuid);
-    let entry = Entry {
-        key,
-        value: data,
-    };
+    let entry = Entry { key, value: data };
 
     let res_body = postb(client, "set", entry).unwrap();
     serde_json::from_str(&res_body).unwrap()
@@ -121,10 +118,7 @@ pub fn sendp2p(
 ) -> Result<(), ()> {
     let key = format!("{}-{}-{}-{}", party_from, party_to, round, sender_uuid);
 
-    let entry = Entry {
-        key,
-        value: data,
-    };
+    let entry = Entry { key, value: data };
 
     let res_body = postb(client, "set", entry).unwrap();
     serde_json::from_str(&res_body).unwrap()
