@@ -15,9 +15,11 @@ struct Cli {
     address: surf::Url,
     #[structopt(short, long, default_value = "default-keygen")]
     room: String,
-    #[structopt(short, long, default_value = "./local-share.json")]
+    #[structopt(short, long)]
     output: PathBuf,
 
+    #[structopt(short, long)]
+    index: u16,
     #[structopt(short, long)]
     threshold: u16,
     #[structopt(short, long)]
@@ -34,20 +36,15 @@ async fn main() -> Result<()> {
         .await
         .context("cannot create output file")?;
 
-    let (i, incoming, outgoing) = join_computation(args.address, &args.room)
+    let (_i, incoming, outgoing) = join_computation(args.address, &args.room)
         .await
         .context("join computation")?;
-
-    ensure!(
-        i <= args.number_of_parties,
-        "too many parties have joined the computation"
-    );
 
     let incoming = incoming.fuse();
     tokio::pin!(incoming);
     tokio::pin!(outgoing);
 
-    let keygen = Keygen::new(i, args.threshold, args.number_of_parties)?;
+    let keygen = Keygen::new(args.index, args.threshold, args.number_of_parties)?;
     let output = AsyncProtocol::new(keygen, incoming, outgoing)
         .run()
         .await

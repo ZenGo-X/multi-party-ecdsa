@@ -134,6 +134,7 @@ enum Cmd {
 }
 
 #[tokio::main]
+#[allow(dead_code)]
 async fn main() -> Result<()> {
     let args: Cli = Cli::from_args();
     let client = SmClient::new(args.address, &args.room).context("create SmClient")?;
