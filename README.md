@@ -34,7 +34,64 @@ The library implements four different protocols for threshold ECDSA. The protoco
 |Castagnos et. al. 19 [3]| Currently enabled as a feature in this library. To Enable, build with `--features=cclst`. to Test, use `cargo test --features=cclst -- --test-threads=1` |
 | Gennaro, Goldfeder 20 [4] | A full threshold protocol that supports identifying malicious parties. If signing fails - a list of malicious parties is returned. The protocol requires only a broadcast channel (all messages are broadcasted)|
 
-## Run Demo
+## Run GG20 Demo
+
+In the following steps we will generate 2-of-3 threshold signing key and sign a message with 2 parties.
+
+### Setup
+
+1. You need [Rust](https://rustup.rs/) and [GMP library](https://gmplib.org) (optionally) to be installed on your computer.
+2. - Run `cargo build --release --examples`
+   - Don't have GMP installed? Use this command instead: 
+     ```bash
+     cargo build --release --examples --no-default-features --features curv-kzen/num-bigint
+     ```
+     But keep in mind that it will be less efficient.
+
+   Either of commands will produce binaries into `./target/release/examples/` folder.
+3. `cd ./target/release/examples/`
+
+### Start an SM server
+
+`./gg20_sm_manager`
+
+That will start an HTTP server on `http://127.0.0.1:8000`. Other parties will use that server in order to communicate with
+each other. Note that communication channels are neither encrypted nor authenticated. In production, you must encrypt and
+authenticate parties messages.
+
+### Run Keygen
+
+Open 3 terminal tabs for each party. Run:
+
+1. `./gg20_keygen -t 1 -n 3 -i 1 --output local-share1.json`
+2. `./gg20_keygen -t 1 -n 3 -i 2 --output local-share2.json`
+3. `./gg20_keygen -t 1 -n 3 -i 3 --output local-share3.json`
+
+Each command corresponds to one party. Once keygen is completed, you'll have 3 new files:
+`local-share1.json`, `local-share2.json`, `local-share3.json` corresponding to local secret
+share of each party.
+
+### Run Signing
+
+Since we use 2-of-3 scheme (`t=1 n=3`), any two parties can sign a message. Run:
+
+1. `./gg20_signing -p 1,2 -d "hello" -l local-share1.json`
+2. `./gg20_signing -p 1,2 -d "hello" -l local-share2.json`
+
+Each party will produce a resulting signature. `-p 1,2` specifies indexes of parties
+who attends in signing (each party has an associated index given at keygen, see argument 
+`-i`), `-l file.json` sets a path to a file with secret local share, and `-d "hello"`
+is a message being signed.
+
+### Running Demo on different computers
+
+While previous steps show how to run keygen & signing on local computer, you actually can
+run each party on dedicated machine. To do this, you should ensure that parties can reach
+SM Server, and specify its address via command line argument, eg:
+
+`./gg20_keygen --address http://10.0.1.9:8000/ ...`
+
+## Run GG18 Demo
 
 The following steps are for setup, key generation with `n` parties and signing with `t+1` parties.
 
