@@ -1,10 +1,11 @@
 #![feature(proc_macro_hygiene, decl_macro)]
+#[macro_use] extern crate rocket;
 
 use std::collections::HashMap;
 use std::fs;
 use std::sync::RwLock;
 
-use rocket::{post, routes, State};
+use rocket::{post, routes, State, launch, Rocket};
 use rocket::serde::json::Json;
 
 use uuid::Uuid;
@@ -103,7 +104,8 @@ fn signup_sign(db_mtx: &State<RwLock<HashMap<Key, String>>>) -> Json<Result<Part
 
 //refcell, arc
 
-fn main() {
+#[launch]
+fn rocket() -> _ {
     // let mut my_config = Config::development();
     // my_config.set_port(18001);
     let db: HashMap<Key, String> = HashMap::new();
@@ -141,5 +143,4 @@ fn main() {
     rocket::build()
         .mount("/", routes![get, set, signup_keygen, signup_sign])
         .manage(db_mtx)
-        .launch();
 }
