@@ -1,7 +1,7 @@
 use std::{env, iter::repeat, thread, time, time::Duration};
 
 use aes_gcm::{Aes256Gcm, Nonce};
-use aes_gcm::aead::{NewAead, Aead};
+use aes_gcm::aead::{NewAead, Aead, Payload};
 
 use curv::{
     arithmetic::traits::Converter,
@@ -62,10 +62,15 @@ pub fn aes_encrypt(key: &[u8], plaintext: &[u8]) -> AEAD {
 
     let nonce = Nonce::from_slice(rand_string.as_bytes()); // 12-Bytes; unique per message
 
-    let ciphertext = cipher.encrypt(nonce, plaintext.as_ref())
-        .expect("encryption failure!"); // NOTE: handle this error to avoid panics!
-
     let out_tag: Vec<u8> = repeat(0).take(16).collect();
+
+    let text_payload = Payload {
+        msg: plaintext,
+        aad: &out_tag[..]
+    };
+
+    let ciphertext = cipher.encrypt(nonce, text_payload)
+        .expect("encryption failure!"); // NOTE: handle this error to avoid panics!
 
     AEAD {
         ciphertext: ciphertext,
@@ -87,8 +92,14 @@ pub fn aes_decrypt(key: &[u8], aead_pack: AEAD) -> Vec<u8> {
     let nonce = Nonce::from_slice(rand_string.as_bytes()); // 12-Bytes; unique per message
 
     let gcm = Aes256Gcm::new(aes_key);
-    let out = gcm.decrypt(nonce, &aead_pack.ciphertext[..]).unwrap();
-    out
+
+    let text_payload = Payload {
+        msg: &aead_pack.ciphertext[..],
+        aad: &aead_pack.tag[..]
+    };
+
+    let out = gcm.decrypt(nonce, text_payload);
+    out.unwrap_or_default()
 }
 
 pub fn postb<T>(client: &Client, path: &str, body: T) -> Option<String>

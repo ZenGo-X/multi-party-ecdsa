@@ -1,11 +1,10 @@
 #![feature(proc_macro_hygiene, decl_macro)]
-#[macro_use] extern crate rocket;
 
 use std::collections::HashMap;
 use std::fs;
 use std::sync::RwLock;
 
-use rocket::{post, routes, State, launch, Rocket};
+use rocket::{post, routes, State, launch};
 use rocket::serde::json::Json;
 
 use uuid::Uuid;
