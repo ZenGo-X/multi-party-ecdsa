@@ -5,7 +5,8 @@ use std::fs;
 use std::sync::RwLock;
 
 use rocket::{post, routes, State};
-use rocket_contrib::json::Json;
+use rocket::serde::json::Json;
+
 use uuid::Uuid;
 
 mod common;
@@ -31,7 +32,7 @@ fn get(
 }
 
 #[post("/set", format = "json", data = "<request>")]
-fn set(db_mtx: State<RwLock<HashMap<Key, String>>>, request: Json<Entry>) -> Json<Result<(), ()>> {
+fn set(db_mtx: &State<RwLock<HashMap<Key, String>>>, request: Json<Entry>) -> Json<Result<(), ()>> {
     let entry: Entry = request.0;
     let mut hm = db_mtx.write().unwrap();
     hm.insert(entry.key.clone(), entry.value.clone());
@@ -39,7 +40,7 @@ fn set(db_mtx: State<RwLock<HashMap<Key, String>>>, request: Json<Entry>) -> Jso
 }
 
 #[post("/signupkeygen", format = "json")]
-fn signup_keygen(db_mtx: State<RwLock<HashMap<Key, String>>>) -> Json<Result<PartySignup, ()>> {
+fn signup_keygen(db_mtx: &State<RwLock<HashMap<Key, String>>>) -> Json<Result<PartySignup, ()>> {
     let data = fs::read_to_string("params.json")
         .expect("Unable to read params, make sure config file is present in the same folder ");
     let params: Params = serde_json::from_str(&data).unwrap();
@@ -70,7 +71,7 @@ fn signup_keygen(db_mtx: State<RwLock<HashMap<Key, String>>>) -> Json<Result<Par
 }
 
 #[post("/signupsign", format = "json")]
-fn signup_sign(db_mtx: State<RwLock<HashMap<Key, String>>>) -> Json<Result<PartySignup, ()>> {
+fn signup_sign(db_mtx: &State<RwLock<HashMap<Key, String>>>) -> Json<Result<PartySignup, ()>> {
     //read parameters:
     let data = fs::read_to_string("params.json")
         .expect("Unable to read params, make sure config file is present in the same folder ");

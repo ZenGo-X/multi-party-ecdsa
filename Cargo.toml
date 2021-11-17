@@ -61,12 +61,9 @@ optional = true
 
 [dev-dependencies]
 criterion = "0.3"
-#rust-crypto = "0.2"
 aes-gcm = "0.9.4"
 hex = "0.4"
-rocket = { version = "0.5.0-rc.1" }
-#rocket = { version = "0.5.0-rc.1", default-features = false }
-rocket_contrib = "0.4.10"
+rocket = { version = "0.5.0-rc.1", features = ["json"] }
 reqwest = { version = "0.9", default-features = false }
 uuid = { version = "0.8", features = ["v4"] }
 serde_json = "1.0"
