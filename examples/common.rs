@@ -1,16 +1,23 @@
 use std::{env, iter::repeat, thread, time, time::Duration};
-
+/*
 use crypto::{
     aead::{AeadDecryptor, AeadEncryptor},
     aes::KeySize::KeySize256,
     aes_gcm::AesGcm,
 };
+*/
+use aes_gcm::{Aes256Gcm, Nonce};
+use aes_gcm::aead::{NewAead, Aead};
+
+
 use curv::{
     arithmetic::traits::Converter,
     elliptic::curves::secp256_k1::{FE, GE},
     elliptic::curves::traits::{ECPoint, ECScalar},
     BigInt,
 };
+use rand::distributions::Alphanumeric;
+use rand::{Rng, thread_rng};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
@@ -50,25 +57,44 @@ pub struct Params {
 
 #[allow(dead_code)]
 pub fn aes_encrypt(key: &[u8], plaintext: &[u8]) -> AEAD {
-    let nonce: Vec<u8> = repeat(3).take(12).collect();
-    let aad: [u8; 0] = [];
-    let mut gcm = AesGcm::new(KeySize256, key, &nonce[..], &aad);
-    let mut out: Vec<u8> = repeat(0).take(plaintext.len()).collect();
-    let mut out_tag: Vec<u8> = repeat(0).take(16).collect();
-    gcm.encrypt(&plaintext[..], &mut out[..], &mut out_tag[..]);
+
+    let aes_key = aes_gcm::Key::from_slice(key);
+    let cipher = Aes256Gcm::new(aes_key);
+
+    let rand_string: String = thread_rng()
+        .sample_iter(&Alphanumeric)
+        .take(12)
+        .map(char::from)
+        .collect();
+
+    let nonce = Nonce::from_slice(rand_string.as_bytes()); // 12-Bytes; unique per message
+
+    let ciphertext = cipher.encrypt(nonce, plaintext.as_ref())
+        .expect("encryption failure!"); // NOTE: handle this error to avoid panics!
+
+    let out_tag: Vec<u8> = repeat(0).take(16).collect();
+
     AEAD {
-        ciphertext: out.to_vec(),
+        ciphertext: ciphertext,
         tag: out_tag.to_vec(),
     }
 }
 
 #[allow(dead_code)]
 pub fn aes_decrypt(key: &[u8], aead_pack: AEAD) -> Vec<u8> {
-    let mut out: Vec<u8> = repeat(0).take(aead_pack.ciphertext.len()).collect();
-    let nonce: Vec<u8> = repeat(3).take(12).collect();
-    let aad: [u8; 0] = [];
-    let mut gcm = AesGcm::new(KeySize256, key, &nonce[..], &aad);
-    gcm.decrypt(&aead_pack.ciphertext[..], &mut out, &aead_pack.tag[..]);
+
+    let aes_key = aes_gcm::Key::from_slice(key);
+
+    let rand_string: String = thread_rng()
+        .sample_iter(&Alphanumeric)
+        .take(12)
+        .map(char::from)
+        .collect();
+
+    let nonce = Nonce::from_slice(rand_string.as_bytes()); // 12-Bytes; unique per message
+
+    let gcm = Aes256Gcm::new(aes_key);
+    let out = gcm.decrypt(nonce, &aead_pack.ciphertext[..]).unwrap();
     out
 }
 

@@ -13,7 +13,7 @@ use common::{Entry, Index, Key, Params, PartySignup};
 
 #[post("/get", format = "json", data = "<request>")]
 fn get(
-    db_mtx: State<RwLock<HashMap<Key, String>>>,
+    db_mtx: &State<RwLock<HashMap<Key, String>>>,
     request: Json<Index>,
 ) -> Json<Result<Entry, ()>> {
     let index: Index = request.0;
@@ -137,7 +137,7 @@ fn main() {
         hm.insert(sign_key, serde_json::to_string(&party_signup_sign).unwrap());
     }
     /////////////////////////////////////////////////////////////////
-    rocket::ignite()
+    rocket::build()
         .mount("/", routes![get, set, signup_keygen, signup_sign])
         .manage(db_mtx)
         .launch();
