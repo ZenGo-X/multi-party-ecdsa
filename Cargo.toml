@@ -54,7 +54,6 @@ optional = true
 
 [dev-dependencies]
 criterion = "0.3"
-#rust-crypto = "0.2"
 aes-gcm = "0.9.4"
 hex = "0.4"
 tokio = { version = "1", default-features = false, features = ["macros"] }

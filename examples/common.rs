@@ -1,14 +1,7 @@
 use std::{env, iter::repeat, thread, time, time::Duration};
-/*
-use crypto::{
-    aead::{AeadDecryptor, AeadEncryptor},
-    aes::KeySize::KeySize256,
-    aes_gcm::AesGcm,
-};
-*/
+
 use aes_gcm::{Aes256Gcm, Nonce};
 use aes_gcm::aead::{NewAead, Aead};
-
 
 use curv::{
     arithmetic::traits::Converter,
