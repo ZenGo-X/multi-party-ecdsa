@@ -54,19 +54,14 @@ pub fn aes_encrypt(key: &[u8], plaintext: &[u8]) -> AEAD {
     let aes_key = aes_gcm::Key::from_slice(key);
     let cipher = Aes256Gcm::new(aes_key);
 
-    let rand_string: String = thread_rng()
-        .sample_iter(&Alphanumeric)
-        .take(12)
-        .map(char::from)
-        .collect();
-
-    let nonce = Nonce::from_slice(rand_string.as_bytes()); // 12-Bytes; unique per message
+    let nonce_vector: Vec<u8> = repeat(3).take(12).collect();
+    let nonce = Nonce::from_slice(nonce_vector.as_slice());
 
     let out_tag: Vec<u8> = repeat(0).take(16).collect();
 
     let text_payload = Payload {
         msg: plaintext,
-        aad: &out_tag[..]
+        aad: &out_tag.as_slice()
     };
 
     let ciphertext = cipher.encrypt(nonce, text_payload)
@@ -83,19 +78,14 @@ pub fn aes_decrypt(key: &[u8], aead_pack: AEAD) -> Vec<u8> {
 
     let aes_key = aes_gcm::Key::from_slice(key);
 
-    let rand_string: String = thread_rng()
-        .sample_iter(&Alphanumeric)
-        .take(12)
-        .map(char::from)
-        .collect();
-
-    let nonce = Nonce::from_slice(rand_string.as_bytes()); // 12-Bytes; unique per message
+    let nonce_vector: Vec<u8> = repeat(3).take(12).collect();
+    let nonce = Nonce::from_slice(nonce_vector.as_slice());
 
     let gcm = Aes256Gcm::new(aes_key);
 
     let text_payload = Payload {
-        msg: &aead_pack.ciphertext[..],
-        aad: &aead_pack.tag[..]
+        msg: &aead_pack.ciphertext.as_slice(),
+        aad: &aead_pack.tag.as_slice()
     };
 
     let out = gcm.decrypt(nonce, text_payload);
