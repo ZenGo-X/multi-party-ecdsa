@@ -84,8 +84,8 @@ pub fn aes_decrypt(key: &[u8], aead_pack: AEAD) -> Vec<u8> {
     let gcm = Aes256Gcm::new(aes_key);
 
     let text_payload = Payload {
-        msg: &aead_pack.ciphertext.as_slice(),
-        aad: &aead_pack.tag.as_slice()
+        msg: aead_pack.ciphertext.as_slice(),
+        aad: aead_pack.tag.as_slice()
     };
 
     let out = gcm.decrypt(nonce, text_payload);
