@@ -8,8 +8,7 @@ use curv::{
     elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar},
     BigInt,
 };
-use rand::distributions::Alphanumeric;
-use rand::{Rng, thread_rng};
+
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
@@ -64,7 +63,7 @@ pub fn aes_encrypt(key: &[u8], plaintext: &[u8]) -> AEAD {
     };
 
     let ciphertext = cipher.encrypt(nonce, text_payload)
-        .expect("encryption failure!"); // NOTE: handle this error to avoid panics!
+        .expect("encryption failure!");
 
     AEAD {
         ciphertext: ciphertext,
@@ -88,7 +87,7 @@ pub fn aes_decrypt(key: &[u8], aead_pack: AEAD) -> Vec<u8> {
     };
 
     let out = gcm.decrypt(nonce, text_payload);
-    out.unwrap_or_default()
+    out.unwrap()
 }
 
 pub fn postb<T>(client: &Client, path: &str, body: T) -> Option<String>
