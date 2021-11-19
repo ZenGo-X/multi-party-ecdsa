@@ -438,7 +438,6 @@ fn sign(
             .map(|j| {
                 let ind1 = if j < i { j } else { j + 1 };
                 let ind2 = if j < i { i - 1 } else { i };
-                
 
                 beta_vec_all[ind1][ind2].clone()
             })

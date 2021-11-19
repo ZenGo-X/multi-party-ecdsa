@@ -265,8 +265,8 @@ impl Keys {
     ) -> Result<(VerifiableSS<Secp256k1>, Vec<Scalar<Secp256k1>>, usize), ErrorType> {
         let mut bad_actors_vec = Vec::new();
         // test length:
-        assert_eq!(decom_vec.len() as u16, params.share_count);
-        assert_eq!(bc1_vec.len() as u16, params.share_count);
+        assert_eq!(decom_vec.len(), usize::from(params.share_count));
+        assert_eq!(bc1_vec.len(), usize::from(params.share_count));
         // test paillier correct key, h1,h2 correct generation and test decommitments
         let correct_key_correct_decom_all = (0..bc1_vec.len())
             .map(|i| {
@@ -328,9 +328,9 @@ impl Keys {
         index: usize,
     ) -> Result<(SharedKeys, DLogProof<Secp256k1, Sha256>), ErrorType> {
         let mut bad_actors_vec = Vec::new();
-        assert_eq!(y_vec.len() as u16, params.share_count);
-        assert_eq!(secret_shares_vec.len() as u16, params.share_count);
-        assert_eq!(vss_scheme_vec.len() as u16, params.share_count);
+        assert_eq!(y_vec.len(), usize::from(params.share_count));
+        assert_eq!(secret_shares_vec.len(), usize::from(params.share_count));
+        assert_eq!(vss_scheme_vec.len(), usize::from(params.share_count));
 
         let correct_ss_verify = (0..y_vec.len())
             .map(|i| {
@@ -409,8 +409,8 @@ impl Keys {
         vss_vec: &[VerifiableSS<Secp256k1>],
     ) -> Result<(), ErrorType> {
         let mut bad_actors_vec = Vec::new();
-        assert_eq!(y_vec.len() as u16, params.share_count);
-        assert_eq!(dlog_proofs_vec.len() as u16, params.share_count);
+        assert_eq!(y_vec.len(), usize::from(params.share_count));
+        assert_eq!(dlog_proofs_vec.len(), usize::from(params.share_count));
         let xi_commitments = Keys::get_commitments_to_xi(vss_vec);
         let xi_dlog_verify = (0..y_vec.len())
             .map(|i| {

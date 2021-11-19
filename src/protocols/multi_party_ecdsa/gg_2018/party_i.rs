@@ -219,18 +219,16 @@ impl Keys {
         assert_eq!(decom_vec.len(), usize::from(params.share_count));
         assert_eq!(bc1_vec.len(), usize::from(params.share_count));
         // test paillier correct key and test decommitments
-        let correct_key_correct_decom_all = (0..bc1_vec.len())
-            .map(|i| {
-                HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
-                    &BigInt::from_bytes(decom_vec[i].y_i.to_bytes(true).as_ref()),
-                    &decom_vec[i].blind_factor,
-                ) == bc1_vec[i].com
-                    && bc1_vec[i]
-                        .correct_key_proof
-                        .verify(&bc1_vec[i].e, zk_paillier::zkproofs::SALT_STRING)
-                        .is_ok()
-            })
-            .all(|x| x);
+        let correct_key_correct_decom_all = (0..bc1_vec.len()).all(|i| {
+            HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
+                &BigInt::from_bytes(decom_vec[i].y_i.to_bytes(true).as_ref()),
+                &decom_vec[i].blind_factor,
+            ) == bc1_vec[i].com
+                && bc1_vec[i]
+                    .correct_key_proof
+                    .verify(&bc1_vec[i].e, zk_paillier::zkproofs::SALT_STRING)
+                    .is_ok()
+        });
 
         let (vss_scheme, secret_shares) =
             VerifiableSS::share(params.threshold, params.share_count, &self.u_i);
@@ -253,14 +251,12 @@ impl Keys {
         assert_eq!(secret_shares_vec.len(), usize::from(params.share_count));
         assert_eq!(vss_scheme_vec.len(), usize::from(params.share_count));
 
-        let correct_ss_verify = (0..y_vec.len())
-            .map(|i| {
-                vss_scheme_vec[i]
-                    .validate_share(&secret_shares_vec[i], index.try_into().unwrap())
-                    .is_ok()
-                    && vss_scheme_vec[i].commitments[0] == y_vec[i]
-            })
-            .all(|x| x);
+        let correct_ss_verify = (0..y_vec.len()).all(|i| {
+            vss_scheme_vec[i]
+                .validate_share(&secret_shares_vec[i], index)
+                .is_ok()
+                && vss_scheme_vec[i].commitments[0] == y_vec[i]
+        });
 
         if correct_ss_verify {
             let y: Point<Secp256k1> = y_vec.iter().sum();
@@ -293,10 +289,6 @@ impl Keys {
     ) -> Point<Secp256k1> {
         let li =
             VerifiableSS::<Secp256k1>::map_share_to_new_params(&vss_scheme.parameters, index, s);
-            &vss_scheme.parameters,
-            index.try_into().unwrap(),
-            s.as_slice(),
-        );
         comm * &li
     }
 
@@ -307,9 +299,9 @@ impl Keys {
     ) -> Result<(), Error> {
         assert_eq!(y_vec.len(), usize::from(params.share_count));
         assert_eq!(dlog_proofs_vec.len(), usize::from(params.share_count));
-        let xi_dlog_verify = (0..y_vec.len())
-            .map(|i| DLogProof::verify(&dlog_proofs_vec[i]).is_ok())
-            .all(|x| x);
+
+        let xi_dlog_verify =
+            (0..y_vec.len()).all(|i| DLogProof::verify(&dlog_proofs_vec[i]).is_ok());
 
         if xi_dlog_verify {
             Ok(())
@@ -329,8 +321,7 @@ impl PartyPrivate {
     }
 
     pub fn y_i(&self) -> Point<Secp256k1> {
-        let g = Point::generator();
-        g * &self.u_i
+        Point::generator() * &self.u_i
     }
 
     pub fn decrypt(&self, ciphertext: BigInt) -> RawPlaintext {
@@ -469,17 +460,13 @@ impl SignKeys {
         // note: b_proof_vec is populated using the results
         //from the MtAwc, which is handling the proof of knowledge verification of gamma_i such that
         // Gamme_i = gamma_i * G in the verify_proofs_get_alpha()
-        let test_b_vec_and_com = (0..b_proof_vec.len())
-            .map(|i| {
-                b_proof_vec[i].pk == phase1_decommit_vec[i].g_gamma_i
-                    && HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
-                        &BigInt::from_bytes(
-                            phase1_decommit_vec[i].g_gamma_i.to_bytes(true).as_ref(),
-                        ),
-                        &phase1_decommit_vec[i].blind_factor,
-                    ) == bc1_vec[i].com
-            })
-            .all(|x| x);
+        let test_b_vec_and_com = (0..b_proof_vec.len()).all(|i| {
+            b_proof_vec[i].pk == phase1_decommit_vec[i].g_gamma_i
+                && HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
+                    &BigInt::from_bytes(phase1_decommit_vec[i].g_gamma_i.to_bytes(true).as_ref()),
+                    &phase1_decommit_vec[i].blind_factor,
+                ) == bc1_vec[i].com
+        });
 
         if test_b_vec_and_com {
             Ok({
@@ -583,28 +570,26 @@ impl LocalSignature {
         assert_eq!(decom_vec.len(), com_vec.len());
 
         let g = Point::generator();
-        let test_com_elgamal = (0..com_vec.len())
-            .map(|i| {
-                let delta = HomoElGamalStatement {
-                    G: decom_vec[i].A_i.clone(),
-                    H: R.clone(),
-                    Y: g.to_point(),
-                    D: decom_vec[i].V_i.clone(),
-                    E: decom_vec[i].B_i.clone(),
-                };
+        let test_com_elgamal = (0..com_vec.len()).all(|i| {
+            let delta = HomoElGamalStatement {
+                G: decom_vec[i].A_i.clone(),
+                H: R.clone(),
+                Y: g.to_point(),
+                D: decom_vec[i].V_i.clone(),
+                E: decom_vec[i].B_i.clone(),
+            };
 
-                let input_hash = Sha256::new()
-                    .chain_points([&decom_vec[i].V_i, &decom_vec[i].A_i, &decom_vec[i].B_i])
-                    .result_bigint();
+            let input_hash = Sha256::new()
+                .chain_points([&decom_vec[i].V_i, &decom_vec[i].A_i, &decom_vec[i].B_i])
+                .result_bigint();
 
-                HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
-                    &input_hash,
-                    &decom_vec[i].blind_factor,
-                ) == com_vec[i].com
-                    && elgamal_proofs[i].verify(&delta).is_ok()
-                    && DLogProof::verify(&dlog_proofs_rho[i]).is_ok()
-            })
-            .all(|x| x);
+            HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
+                &input_hash,
+                &decom_vec[i].blind_factor,
+            ) == com_vec[i].com
+                && elgamal_proofs[i].verify(&delta).is_ok()
+                && DLogProof::verify(&dlog_proofs_rho[i]).is_ok()
+        });
 
         let v_iter = (0..com_vec.len()).map(|i| &decom_vec[i].V_i);
         let a_iter = (0..com_vec.len()).map(|i| &decom_vec[i].A_i);
@@ -659,21 +644,19 @@ impl LocalSignature {
         assert_eq!(decom_vec2.len(), decom_vec1.len());
         assert_eq!(decom_vec2.len(), com_vec2.len());
 
-        let test_com = (0..com_vec2.len())
-            .map(|i| {
-                let input_hash = Sha256::new()
-                    .chain_points([&decom_vec2[i].u_i, &decom_vec2[i].t_i])
-                    .result_bigint();
-                HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
-                    &input_hash,
-                    &decom_vec2[i].blind_factor,
-                ) == com_vec2[i].com
-            })
-            .all(|x| x);
+        let test_com = (0..com_vec2.len()).all(|i| {
+            let input_hash = Sha256::new()
+                .chain_points([&decom_vec2[i].u_i, &decom_vec2[i].t_i])
+                .result_bigint();
+            HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
+                &input_hash,
+                &decom_vec2[i].blind_factor,
+            ) == com_vec2[i].com
+        });
 
-        let t_iter = (0..com_vec2.len()).map(|i| &decom_vec2[i].t_i);
-        let u_iter = (0..com_vec2.len()).map(|i| &decom_vec2[i].u_i);
-        let b_iter = (0..decom_vec1.len()).map(|i| &decom_vec1[i].B_i);
+        let t_iter = decom_vec2.iter().map(|decom| &decom.t_i);
+        let u_iter = decom_vec2.iter().map(|decom| &decom.u_i);
+        let b_iter = decom_vec1.iter().map(|decom| &decom.B_i);
 
         let g = Point::generator();
         let biased_sum_tb = g + t_iter.chain(b_iter).sum::<Point<Secp256k1>>();
