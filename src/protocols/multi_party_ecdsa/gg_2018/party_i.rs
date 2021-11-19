@@ -15,6 +15,9 @@
 
     @license GPL-3.0+ <https://github.com/KZen-networks/multi-party-ecdsa/blob/master/LICENSE>
 */
+
+use std::convert::TryFrom;
+
 use centipede::juggling::proof_system::{Helgamalsegmented, Witness};
 use centipede::juggling::segmentation::Msegmentation;
 use curv::arithmetic::traits::*;
@@ -24,17 +27,15 @@ use curv::cryptographic_primitives::hashing::{Digest, DigestExt};
 use curv::cryptographic_primitives::proofs::sigma_correct_homomorphic_elgamal_enc::*;
 use curv::cryptographic_primitives::proofs::sigma_dlog::DLogProof;
 use curv::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS;
-use curv::elliptic::curves::{secp256_k1::Secp256k1, Curve, Point, Scalar};
+use curv::elliptic::curves::{Curve, Point, Scalar, Secp256k1};
 use curv::BigInt;
-use sha2::Sha256;
-
-use std::convert::TryInto;
-
 use paillier::{
     Decrypt, DecryptionKey, EncryptionKey, KeyGeneration, Paillier, RawCiphertext, RawPlaintext,
 };
-use serde::{Deserialize, Serialize};
+use sha2::Sha256;
 use zk_paillier::zkproofs::NiCorrectKeyProof;
+
+use serde::{Deserialize, Serialize};
 
 use crate::Error::{self, InvalidCom, InvalidKey, InvalidSS, InvalidSig};
 
