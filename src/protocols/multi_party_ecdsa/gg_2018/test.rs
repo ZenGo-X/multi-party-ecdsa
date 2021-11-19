@@ -68,7 +68,6 @@ fn keygen_t_n_parties(
         threshold: t,
         share_count: n,
     };
-    let (t, n) = (t as usize, n as usize);
     let party_keys_vec = (0..n).map(Keys::create).collect::<Vec<Keys>>();
 
     let (bc1_vec, decom_vec): (Vec<_>, Vec<_>) = party_keys_vec
@@ -76,7 +75,7 @@ fn keygen_t_n_parties(
         .map(|k| k.phase1_broadcast_phase3_proof_of_correct_key())
         .unzip();
 
-    let y_vec = (0..n)
+    let y_vec = (0..usize::from(n))
         .map(|i| decom_vec[i].y_i.clone())
         .collect::<Vec<Point<Secp256k1>>>();
     let mut y_vec_iter = y_vec.iter();
@@ -106,13 +105,10 @@ fn keygen_t_n_parties(
 
     let vss_scheme_for_test = vss_scheme_vec.clone();
 
-    let party_shares = (0..n)
+    let party_shares = (0..usize::from(n))
         .map(|i| {
-            (0..n)
-                .map(|j| {
-                    let vec_j = &secret_shares_vec[j];
-                    vec_j[i].clone()
-                })
+            (0..usize::from(n))
+                .map(|j| secret_shares_vec[j][i].clone())
                 .collect::<Vec<Scalar<Secp256k1>>>()
         })
         .collect::<Vec<Vec<Scalar<Secp256k1>>>>();
@@ -133,20 +129,23 @@ fn keygen_t_n_parties(
         dlog_proof_vec.push(dlog_proof);
     }
 
-    let pk_vec = (0..n)
-        .map(|i| dlog_proof_vec[i].pk.clone())
+    let pk_vec = dlog_proof_vec
+        .iter()
+        .map(|dlog_proof| dlog_proof.pk.clone())
         .collect::<Vec<Point<Secp256k1>>>();
 
     //both parties run:
     Keys::verify_dlog_proofs(&parames, &dlog_proof_vec, &y_vec).expect("bad dlog proof");
 
     //test
-    let xi_vec = (0..=t)
-        .map(|i| shared_keys_vec[i].x_i.clone())
+    let xi_vec = shared_keys_vec
+        .iter()
+        .take(usize::from(t + 1))
+        .map(|shared_keys| shared_keys.x_i.clone())
         .collect::<Vec<Scalar<Secp256k1>>>();
     let x = vss_scheme_for_test[0]
         .clone()
-        .reconstruct(&index_vec[0..=t], &xi_vec);
+        .reconstruct(&index_vec[0..=usize::from(t)], &xi_vec);
     let sum_u_i = party_keys_vec
         .iter()
         .fold(Scalar::<Secp256k1>::zero(), |acc, x| acc + &x.u_i);
@@ -161,7 +160,7 @@ fn keygen_t_n_parties(
     )
 }
 
-fn sign(t: u16, n: u16, ttag: u16, s: Vec<usize>) {
+fn sign(t: u16, n: u16, ttag: u16, s: Vec<u16>) {
     // full key gen emulation
     let (party_keys_vec, shared_keys_vec, _pk_vec, y, vss_scheme) = keygen_t_n_parties(t, n);
 
@@ -179,7 +178,7 @@ fn sign(t: u16, n: u16, ttag: u16, s: Vec<usize>) {
     // create a vector of signing keys, one for each party.
     // throughout i will index parties
     let sign_keys_vec = (0..ttag)
-        .map(|i| SignKeys::create(&private_vec[s[i]], &vss_scheme, s[i], &s))
+        .map(|i| SignKeys::create(&private_vec[usize::from(s[i])], &vss_scheme, s[i], &s))
         .collect::<Vec<SignKeys>>();
 
     // each party computes [Ci,Di] = com(g^gamma_i) and broadcast the commitments
@@ -192,7 +191,7 @@ fn sign(t: u16, n: u16, ttag: u16, s: Vec<usize>) {
     let m_a_vec: Vec<_> = sign_keys_vec
         .iter()
         .enumerate()
-        .map(|(i, k)| MessageA::a(&k.k_i, &party_keys_vec[s[i]].ek, &[]).0)
+        .map(|(i, k)| MessageA::a(&k.k_i, &party_keys_vec[usize::from(s[i])].ek, &[]).0)
         .collect();
 
     // each party i sends responses to m_a_vec she received (one response with input gamma_i and one with w_i)
@@ -215,14 +214,14 @@ fn sign(t: u16, n: u16, ttag: u16, s: Vec<usize>) {
 
             let (m_b_gamma, beta_gamma, _, _) = MessageB::b(
                 &key.gamma_i,
-                &party_keys_vec[s[ind]].ek,
+                &party_keys_vec[usize::from(s[ind])].ek,
                 m_a_vec[ind].clone(),
                 &[],
             )
             .unwrap();
             let (m_b_w, beta_wi, _, _) = MessageB::b(
                 &key.w_i,
-                &party_keys_vec[s[ind]].ek,
+                &party_keys_vec[usize::from(s[ind])].ek,
                 m_a_vec[ind].clone(),
                 &[],
             )
@@ -259,11 +258,17 @@ fn sign(t: u16, n: u16, ttag: u16, s: Vec<usize>) {
             let m_b = m_b_gamma_vec_i[j].clone();
 
             let alpha_ij_gamma = m_b
-                .verify_proofs_get_alpha(&party_keys_vec[s[ind]].dk, &sign_keys_vec[ind].k_i)
+                .verify_proofs_get_alpha(
+                    &party_keys_vec[usize::from(s[ind])].dk,
+                    &sign_keys_vec[ind].k_i,
+                )
                 .expect("wrong dlog or m_b");
             let m_b = m_b_w_vec_i[j].clone();
             let alpha_ij_wi = m_b
-                .verify_proofs_get_alpha(&party_keys_vec[s[ind]].dk, &sign_keys_vec[ind].k_i)
+                .verify_proofs_get_alpha(
+                    &party_keys_vec[usize::from(s[ind])].dk,
+                    &sign_keys_vec[ind].k_i,
+                )
                 .expect("wrong dlog or m_b");
 
             // since we actually run two MtAwc each party needs to make sure that the values B are the same as the public values

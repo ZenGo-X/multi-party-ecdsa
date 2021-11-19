@@ -53,7 +53,7 @@ pub struct Keys<E: Curve = Secp256k1> {
     pub y_i: Point<E>,
     pub dk: DecryptionKey,
     pub ek: EncryptionKey,
-    pub party_index: usize,
+    pub party_index: u16,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -145,7 +145,7 @@ pub struct SignatureRecid {
 }
 
 impl Keys {
-    pub fn create(index: usize) -> Self {
+    pub fn create(index: u16) -> Self {
         let u = Scalar::<Secp256k1>::random();
         let y = Point::generator() * &u;
         let (ek, dk) = Paillier::keypair().keys();
@@ -160,7 +160,7 @@ impl Keys {
     }
 
     // we recommend using safe primes if the code is used in production
-    pub fn create_safe_prime(index: usize) -> Keys {
+    pub fn create_safe_prime(index: u16) -> Keys {
         let u = Scalar::<Secp256k1>::random();
         let y = Point::generator() * &u;
 
@@ -174,7 +174,7 @@ impl Keys {
             party_index: index,
         }
     }
-    pub fn create_from(u: Scalar<Secp256k1>, index: usize) -> Keys {
+    pub fn create_from(u: Scalar<Secp256k1>, index: u16) -> Keys {
         let y = Point::generator() * &u;
         let (ek, dk) = Paillier::keypair().keys();
 
@@ -214,10 +214,10 @@ impl Keys {
         params: &Parameters,
         decom_vec: &[KeyGenDecommitMessage1],
         bc1_vec: &[KeyGenBroadcastMessage1],
-    ) -> Result<(VerifiableSS<Secp256k1>, Vec<Scalar<Secp256k1>>, usize), Error> {
+    ) -> Result<(VerifiableSS<Secp256k1>, Vec<Scalar<Secp256k1>>, u16), Error> {
         // test length:
-        assert_eq!(decom_vec.len() as u16, params.share_count);
-        assert_eq!(bc1_vec.len() as u16, params.share_count);
+        assert_eq!(decom_vec.len(), usize::from(params.share_count));
+        assert_eq!(bc1_vec.len(), usize::from(params.share_count));
         // test paillier correct key and test decommitments
         let correct_key_correct_decom_all = (0..bc1_vec.len())
             .map(|i| {
@@ -247,11 +247,11 @@ impl Keys {
         y_vec: &[Point<Secp256k1>],
         secret_shares_vec: &[Scalar<Secp256k1>],
         vss_scheme_vec: &[VerifiableSS<Secp256k1>],
-        index: usize,
+        index: u16,
     ) -> Result<(SharedKeys, DLogProof<Secp256k1, Sha256>), Error> {
-        assert_eq!(y_vec.len() as u16, params.share_count);
-        assert_eq!(secret_shares_vec.len() as u16, params.share_count);
-        assert_eq!(vss_scheme_vec.len() as u16, params.share_count);
+        assert_eq!(y_vec.len(), usize::from(params.share_count));
+        assert_eq!(secret_shares_vec.len(), usize::from(params.share_count));
+        assert_eq!(vss_scheme_vec.len(), usize::from(params.share_count));
 
         let correct_ss_verify = (0..y_vec.len())
             .map(|i| {
@@ -276,10 +276,10 @@ impl Keys {
         vss_scheme_vec: &[VerifiableSS<Secp256k1>],
     ) -> Vec<Point<Secp256k1>> {
         let len = vss_scheme_vec.len();
-        (1..=len)
+        (1..=u16::try_from(len).unwrap())
             .map(|i| {
                 (0..len)
-                    .map(|j| vss_scheme_vec[j].get_point_commitment(i.try_into().unwrap()))
+                    .map(|j| vss_scheme_vec[j].get_point_commitment(i))
                     .sum()
             })
             .collect::<Vec<Point<Secp256k1>>>()
@@ -288,11 +288,11 @@ impl Keys {
     pub fn update_commitments_to_xi(
         comm: &Point<Secp256k1>,
         vss_scheme: &VerifiableSS<Secp256k1>,
-        index: usize,
-        s: &[usize],
+        index: u16,
+        s: &[u16],
     ) -> Point<Secp256k1> {
-        let s: Vec<u16> = s.iter().map(|&i| i.try_into().unwrap()).collect();
-        let li = VerifiableSS::<Secp256k1>::map_share_to_new_params(
+        let li =
+            VerifiableSS::<Secp256k1>::map_share_to_new_params(&vss_scheme.parameters, index, s);
             &vss_scheme.parameters,
             index.try_into().unwrap(),
             s.as_slice(),
@@ -305,8 +305,8 @@ impl Keys {
         dlog_proofs_vec: &[DLogProof<Secp256k1, Sha256>],
         y_vec: &[Point<Secp256k1>],
     ) -> Result<(), Error> {
-        assert_eq!(y_vec.len() as u16, params.share_count);
-        assert_eq!(dlog_proofs_vec.len() as u16, params.share_count);
+        assert_eq!(y_vec.len(), usize::from(params.share_count));
+        assert_eq!(dlog_proofs_vec.len(), usize::from(params.share_count));
         let xi_dlog_verify = (0..y_vec.len())
             .map(|i| DLogProof::verify(&dlog_proofs_vec[i]).is_ok())
             .all(|x| x);
@@ -337,7 +337,7 @@ impl PartyPrivate {
         Paillier::decrypt(&self.dk, &RawCiphertext::from(ciphertext))
     }
 
-    pub fn refresh_private_key(&self, factor: &Scalar<Secp256k1>, index: usize) -> Keys {
+    pub fn refresh_private_key(&self, factor: &Scalar<Secp256k1>, index: u16) -> Keys {
         let u: Scalar<Secp256k1> = &self.u_i + factor;
         let y = Point::generator() * &u;
         let (ek, dk) = Paillier::keypair().keys();
@@ -352,7 +352,7 @@ impl PartyPrivate {
     }
 
     // we recommend using safe primes if the code is used in production
-    pub fn refresh_private_key_safe_prime(&self, factor: &Scalar<Secp256k1>, index: usize) -> Keys {
+    pub fn refresh_private_key_safe_prime(&self, factor: &Scalar<Secp256k1>, index: u16) -> Keys {
         let u: Scalar<Secp256k1> = &self.u_i + factor;
         let y = Point::generator() * &u;
         let (ek, dk) = Paillier::keypair_safe_primes().keys();
@@ -394,15 +394,11 @@ impl SignKeys {
     pub fn create(
         private: &PartyPrivate,
         vss_scheme: &VerifiableSS<Secp256k1>,
-        index: usize,
-        s: &[usize],
+        index: u16,
+        s: &[u16],
     ) -> Self {
-        let s: Vec<u16> = s.iter().map(|&i| i.try_into().unwrap()).collect();
-        let li = VerifiableSS::<Secp256k1>::map_share_to_new_params(
-            &vss_scheme.parameters,
-            index.try_into().unwrap(),
-            s.as_slice(),
-        );
+        let li =
+            VerifiableSS::<Secp256k1>::map_share_to_new_params(&vss_scheme.parameters, index, s);
         let w_i = li * &private.x_i;
         let g = Point::generator();
         let g_w_i = g * &w_i;
