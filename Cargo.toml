@@ -61,7 +61,7 @@ optional = true
 
 [dev-dependencies]
 criterion = "0.3"
-rust-crypto = "0.2"
+aes-gcm = "0.9"
 hex = "0.4"
 rocket = { version = "0.4.2", default-features = false }
 rocket_contrib = "0.4.2"
