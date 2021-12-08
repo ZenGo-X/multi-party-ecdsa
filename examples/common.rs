@@ -1,7 +1,8 @@
-use std::{env, iter::repeat, thread, time, time::Duration};
+use std::{env, thread, time, time::Duration};
 
 use aes_gcm::aead::{Aead, NewAead};
 use aes_gcm::{Aes256Gcm, Nonce};
+use rand::Rng;
 
 use curv::{
     arithmetic::traits::Converter,
@@ -48,7 +49,11 @@ pub struct Params {
 
 #[allow(dead_code)]
 pub fn aes_encrypt(key: &[u8], plaintext: &[u8]) -> AEAD {
-    let nonce: Vec<u8> = repeat(3).take(12).collect();
+    // 96 bit (12 byte) unique nonce per message
+    let nonce: Vec<u8> = (1..=12)
+        .into_iter()
+        .map(|_| rand::thread_rng().gen::<u8>())
+        .collect();
     let cipher_nonce = Nonce::from_slice(&nonce);
     let cipher = Aes256Gcm::new(aes_gcm::Key::from_slice(key));
     let ciphertext = cipher.encrypt(cipher_nonce, plaintext).unwrap();
