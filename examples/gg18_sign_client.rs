@@ -85,13 +85,13 @@ fn main() {
     );
 
     let mut j = 0;
-    let mut signers_vec: Vec<usize> = Vec::new();
+    let mut signers_vec: Vec<u16> = Vec::new();
     for i in 1..=THRESHOLD + 1 {
         if i == party_num_int {
-            signers_vec.push((party_id - 1) as usize);
+            signers_vec.push(party_id - 1);
         } else {
             let signer_j: u16 = serde_json::from_str(&round0_ans_vec[j]).unwrap();
-            signers_vec.push((signer_j - 1) as usize);
+            signers_vec.push(signer_j - 1);
             j += 1;
         }
     }
@@ -100,8 +100,8 @@ fn main() {
 
     let sign_keys = SignKeys::create(
         &private,
-        &vss_scheme_vec[signers_vec[(party_num_int - 1) as usize]],
-        signers_vec[(party_num_int - 1) as usize],
+        &vss_scheme_vec[usize::from(signers_vec[usize::from(party_num_int - 1)])],
+        signers_vec[usize::from(party_num_int - 1)],
         &signers_vec,
     );
 
@@ -157,14 +157,14 @@ fn main() {
         if i != party_num_int {
             let (m_b_gamma, beta_gamma, _, _) = MessageB::b(
                 &sign_keys.gamma_i,
-                &paillier_key_vector[signers_vec[(i - 1) as usize]],
+                &paillier_key_vector[usize::from(signers_vec[usize::from(i - 1)])],
                 m_a_vec[j].clone(),
                 &[],
             )
             .unwrap();
             let (m_b_w, beta_wi, _, _) = MessageB::b(
                 &sign_keys.w_i,
-                &paillier_key_vector[signers_vec[(i - 1) as usize]],
+                &paillier_key_vector[usize::from(signers_vec[usize::from(i - 1)])],
                 m_a_vec[j].clone(),
                 &[],
             )
@@ -233,9 +233,9 @@ fn main() {
             alpha_vec.push(alpha_ij_gamma.0);
             miu_vec.push(alpha_ij_wi.0);
             let g_w_i = Keys::update_commitments_to_xi(
-                &xi_com_vec[signers_vec[(i - 1) as usize]],
-                &vss_scheme_vec[signers_vec[(i - 1) as usize]],
-                signers_vec[(i - 1) as usize],
+                &xi_com_vec[usize::from(signers_vec[usize::from(i - 1)])],
+                &vss_scheme_vec[usize::from(signers_vec[usize::from(i - 1)])],
+                signers_vec[usize::from(i - 1)],
                 &signers_vec,
             );
             assert_eq!(m_b.b_proof.pk, g_w_i);
@@ -297,8 +297,8 @@ fn main() {
         decommit,
         &mut decommit_vec,
     );
-    let decomm_i = decommit_vec.remove((party_num_int - 1) as usize);
-    bc1_vec.remove((party_num_int - 1) as usize);
+    let decomm_i = decommit_vec.remove(usize::from(party_num_int - 1));
+    bc1_vec.remove(usize::from(party_num_int - 1));
     let b_proof_vec = (0..m_b_gamma_rec_vec.len())
         .map(|i| &m_b_gamma_rec_vec[i].b_proof)
         .collect::<Vec<&DLogProof<Secp256k1, Sha256>>>();
@@ -378,8 +378,8 @@ fn main() {
     );
     let decommit5a_and_elgamal_and_dlog_vec_includes_i =
         decommit5a_and_elgamal_and_dlog_vec.clone();
-    decommit5a_and_elgamal_and_dlog_vec.remove((party_num_int - 1) as usize);
-    commit5a_vec.remove((party_num_int - 1) as usize);
+    decommit5a_and_elgamal_and_dlog_vec.remove(usize::from(party_num_int - 1));
+    commit5a_vec.remove(usize::from(party_num_int - 1));
     let phase_5a_decomm_vec = (0..THRESHOLD)
         .map(|i| decommit5a_and_elgamal_and_dlog_vec[i as usize].0.clone())
         .collect::<Vec<Phase5ADecom1>>();
@@ -482,7 +482,7 @@ fn main() {
     let mut s_i_vec: Vec<Scalar<Secp256k1>> = Vec::new();
     format_vec_from_reads(&round9_ans_vec, party_num_int as usize, s_i, &mut s_i_vec);
 
-    s_i_vec.remove((party_num_int - 1) as usize);
+    s_i_vec.remove(usize::from(party_num_int - 1));
     let sig = local_sig
         .output_signature(&s_i_vec)
         .expect("verification failed");

@@ -53,7 +53,7 @@ fn main() {
     };
     println!("number: {:?}, uuid: {:?}", party_num_int, uuid);
 
-    let party_keys = Keys::create(party_num_int as usize);
+    let party_keys = Keys::create(party_num_int);
     let (bc_i, decom_i) = party_keys.phase1_broadcast_phase3_proof_of_correct_key();
 
     // send commitment to ephemeral public keys, get round 1 commitments of other parties
@@ -216,7 +216,7 @@ fn main() {
             &point_vec,
             &party_shares,
             &vss_scheme_vec,
-            party_num_int as usize,
+            party_num_int,
         )
         .expect("invalid vss");
 
