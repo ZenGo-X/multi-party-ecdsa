@@ -22,6 +22,6 @@ mod test;
 
 #[derive(Clone, Debug)]
 pub struct ErrorType {
-    error_type: String,
-    bad_actors: Vec<usize>,
+    pub error_type: String,
+    pub bad_actors: Vec<usize>,
 }
