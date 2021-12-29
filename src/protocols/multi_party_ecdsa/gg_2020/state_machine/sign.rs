@@ -36,7 +36,7 @@ use gg20::party_i::{SignBroadcastPhase1, SignDecommitPhase1, SignatureRecid};
 use gg20::state_machine::keygen::LocalKey;
 
 mod fmt;
-mod rounds;
+pub mod rounds;
 
 use crate::utilities::zk_pdl_with_slack::PDLwSlackProof;
 use curv::BigInt;
