@@ -315,6 +315,7 @@ impl Keys {
         let err_type = ErrorType {
             error_type: "invalid key".to_string(),
             bad_actors: bad_actors_vec,
+            data: Vec::new(),
         };
 
         let (vss_scheme, secret_shares) = VerifiableSS::share(
@@ -360,6 +361,7 @@ impl Keys {
         let err_type = ErrorType {
             error_type: "invalid vss".to_string(),
             bad_actors: bad_actors_vec,
+            data: Vec::new(),
         };
 
         if correct_ss_verify {
@@ -430,6 +432,7 @@ impl Keys {
         let err_type = ErrorType {
             error_type: "bad dlog proof".to_string(),
             bad_actors: bad_actors_vec,
+            data: Vec::new(),
         };
 
         if xi_dlog_verify {
@@ -643,6 +646,7 @@ impl SignKeys {
         let err_type = ErrorType {
             error_type: "bad gamma_i decommit".to_string(),
             bad_actors: bad_actors_vec,
+            data: Vec::new(),
         };
 
         if test_b_vec_and_com {
@@ -724,6 +728,7 @@ impl LocalSignature {
         let err_type = ErrorType {
             error_type: "bad gamma_i decommit".to_string(),
             bad_actors: bad_actors_vec,
+            data: Vec::new(),
         };
         if proofs_verification {
             Ok(())
@@ -791,6 +796,7 @@ impl LocalSignature {
                 let err_type = ErrorType {
                     error_type: "phase6".to_string(),
                     bad_actors: bad_actors_vec,
+                    data: Vec::new(),
                 };
                 Err(err_type)
             }

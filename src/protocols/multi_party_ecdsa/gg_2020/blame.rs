@@ -219,6 +219,7 @@ impl GlobalStatePhase5 {
         let err_type = ErrorType {
             error_type: "phase6_blame".to_string(),
             bad_actors: bad_signers_vec,
+            data: Vec::new()
         };
         Err(err_type)
     }
@@ -410,6 +411,7 @@ impl GlobalStatePhase6 {
         let err_type = ErrorType {
             error_type: "phase6_blame".to_string(),
             bad_actors: bad_signers_vec,
+            data: Vec::new()
         };
         Err(err_type)
     }
@@ -444,6 +446,7 @@ impl GlobalStatePhase7 {
         let err_type = ErrorType {
             error_type: "phase7_blame".to_string(),
             bad_actors: bad_signers_vec,
+            data: Vec::new()
         };
         Err(err_type)
     }
