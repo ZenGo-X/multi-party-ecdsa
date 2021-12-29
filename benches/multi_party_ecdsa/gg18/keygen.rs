@@ -34,7 +34,9 @@ mod bench {
             share_count: n,
         };
         let (t, n) = (t as usize, n as usize);
-        let party_keys_vec = (0..n).map(|i| Keys::create(i as u16)).collect::<Vec<Keys>>();
+        let party_keys_vec = (0..n)
+            .map(|i| Keys::create(i as u16))
+            .collect::<Vec<Keys>>();
 
         let mut bc1_vec = Vec::new();
         let mut decom_vec = Vec::new();
