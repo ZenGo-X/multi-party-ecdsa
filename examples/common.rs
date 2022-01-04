@@ -1,7 +1,10 @@
-use std::{env, iter::repeat, thread, time, time::Duration};
+#![allow(dead_code)]
 
+use std::{env, thread, time, time::Duration};
+
+use aes_gcm::aead::{Aead, NewAead};
 use aes_gcm::{Aes256Gcm, Nonce};
-use aes_gcm::aead::{NewAead, Aead, Payload};
+use rand::{rngs::OsRng, RngCore};
 
 use curv::{
     arithmetic::traits::Converter,
@@ -48,45 +51,30 @@ pub struct Params {
 
 #[allow(dead_code)]
 pub fn aes_encrypt(key: &[u8], plaintext: &[u8]) -> AEAD {
-
     let aes_key = aes_gcm::Key::from_slice(key);
     let cipher = Aes256Gcm::new(aes_key);
 
-    let nonce_vector: Vec<u8> = repeat(3).take(12).collect();
-    let nonce = Nonce::from_slice(nonce_vector.as_slice());
+    let mut nonce = [0u8; 12];
+    OsRng.fill_bytes(&mut nonce);
+    let nonce = Nonce::from_slice(&nonce);
 
-    let out_tag: Vec<u8> = repeat(0).take(16).collect();
-
-    let text_payload = Payload {
-        msg: plaintext,
-        aad: &out_tag.as_slice()
-    };
-
-    let ciphertext = cipher.encrypt(nonce, text_payload)
+    let ciphertext = cipher
+        .encrypt(nonce, plaintext)
         .expect("encryption failure!");
 
     AEAD {
         ciphertext: ciphertext,
-        tag: out_tag.to_vec(),
+        tag: nonce.to_vec(),
     }
 }
 
 #[allow(dead_code)]
 pub fn aes_decrypt(key: &[u8], aead_pack: AEAD) -> Vec<u8> {
-
     let aes_key = aes_gcm::Key::from_slice(key);
-
-    let nonce_vector: Vec<u8> = repeat(3).take(12).collect();
-    let nonce = Nonce::from_slice(nonce_vector.as_slice());
-
+    let nonce = Nonce::from_slice(&aead_pack.tag);
     let gcm = Aes256Gcm::new(aes_key);
 
-    let text_payload = Payload {
-        msg: aead_pack.ciphertext.as_slice(),
-        aad: aead_pack.tag.as_slice()
-    };
-
-    let out = gcm.decrypt(nonce, text_payload);
+    let out = gcm.decrypt(nonce, aead_pack.ciphertext.as_slice());
     out.unwrap()
 }
 
