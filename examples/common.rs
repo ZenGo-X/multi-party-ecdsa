@@ -1,15 +1,17 @@
-use std::{env, iter::repeat, thread, time, time::Duration};
+#![allow(dead_code)]
 
-use crypto::{
-    aead::{AeadDecryptor, AeadEncryptor},
-    aes::KeySize::KeySize256,
-    aes_gcm::AesGcm,
-};
+use std::{env, thread, time, time::Duration};
+
+use aes_gcm::aead::{Aead, NewAead};
+use aes_gcm::{Aes256Gcm, Nonce};
+use rand::{rngs::OsRng, RngCore};
+
 use curv::{
     arithmetic::traits::Converter,
     elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar},
     BigInt,
 };
+
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
@@ -49,26 +51,31 @@ pub struct Params {
 
 #[allow(dead_code)]
 pub fn aes_encrypt(key: &[u8], plaintext: &[u8]) -> AEAD {
-    let nonce: Vec<u8> = repeat(3).take(12).collect();
-    let aad: [u8; 0] = [];
-    let mut gcm = AesGcm::new(KeySize256, key, &nonce[..], &aad);
-    let mut out: Vec<u8> = repeat(0).take(plaintext.len()).collect();
-    let mut out_tag: Vec<u8> = repeat(0).take(16).collect();
-    gcm.encrypt(plaintext, &mut out[..], &mut out_tag[..]);
+    let aes_key = aes_gcm::Key::from_slice(key);
+    let cipher = Aes256Gcm::new(aes_key);
+
+    let mut nonce = [0u8; 12];
+    OsRng.fill_bytes(&mut nonce);
+    let nonce = Nonce::from_slice(&nonce);
+
+    let ciphertext = cipher
+        .encrypt(nonce, plaintext)
+        .expect("encryption failure!");
+
     AEAD {
-        ciphertext: out.to_vec(),
-        tag: out_tag.to_vec(),
+        ciphertext: ciphertext,
+        tag: nonce.to_vec(),
     }
 }
 
 #[allow(dead_code)]
 pub fn aes_decrypt(key: &[u8], aead_pack: AEAD) -> Vec<u8> {
-    let mut out: Vec<u8> = repeat(0).take(aead_pack.ciphertext.len()).collect();
-    let nonce: Vec<u8> = repeat(3).take(12).collect();
-    let aad: [u8; 0] = [];
-    let mut gcm = AesGcm::new(KeySize256, key, &nonce[..], &aad);
-    gcm.decrypt(&aead_pack.ciphertext[..], &mut out, &aead_pack.tag[..]);
-    out
+    let aes_key = aes_gcm::Key::from_slice(key);
+    let nonce = Nonce::from_slice(&aead_pack.tag);
+    let gcm = Aes256Gcm::new(aes_key);
+
+    let out = gcm.decrypt(nonce, aead_pack.ciphertext.as_slice());
+    out.unwrap()
 }
 
 pub fn postb<T>(client: &Client, path: &str, body: T) -> Option<String>

@@ -54,7 +54,7 @@ optional = true
 
 [dev-dependencies]
 criterion = "0.3"
-rust-crypto = "0.2"
+aes-gcm = "0.9.4"
 hex = "0.4"
 tokio = { version = "1", default-features = false, features = ["macros"] }
 futures = "0.3"
@@ -62,7 +62,7 @@ rocket = { version = "0.5.0-rc.1", default-features = false, features = ["json"]
 reqwest = { version = "0.9", default-features = false }
 uuid = { version = "0.8", features = ["v4"] }
 serde_json = "1.0"
-rand = "0.7"
+rand = "0.8"
 surf = "2"
 async-sse = "5"
 anyhow = "1"
