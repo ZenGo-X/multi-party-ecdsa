@@ -1,4 +1,4 @@
-use anyhow::{anyhow, ensure, Context, Result};
+use anyhow::{anyhow, Context, Result};
 use futures::StreamExt;
 use std::path::PathBuf;
 use structopt::StructOpt;
