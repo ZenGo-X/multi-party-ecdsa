@@ -56,18 +56,23 @@ optional = true
 criterion = "0.3"
 rust-crypto = "0.2"
 hex = "0.4"
-rocket = { version = "0.4.2", default-features = false }
-rocket_contrib = "0.4.2"
+tokio = { version = "1", default-features = false, features = ["macros"] }
+futures = "0.3"
+rocket = { version = "0.5.0-rc.1", default-features = false, features = ["json"] }
 reqwest = { version = "0.9", default-features = false }
 uuid = { version = "0.8", features = ["v4"] }
 serde_json = "1.0"
 rand = "0.7"
+surf = "2"
+async-sse = "5"
+anyhow = "1"
+structopt = "0.3"
 
 thiserror = "1.0.23"
 round-based = { version = "0.1.4", features = ["dev"] }
 
 [[example]]
-name = "sm_manager"
+name = "gg18_sm_manager"
 
 [[example]]
 name = "gg18_sign_client"
