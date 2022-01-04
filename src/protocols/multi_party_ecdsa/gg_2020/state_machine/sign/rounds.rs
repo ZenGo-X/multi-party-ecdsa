@@ -6,8 +6,9 @@ use std::iter;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use curv::elliptic::curves::secp256_k1::{FE, GE};
+use curv::elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar};
 use curv::BigInt;
+use sha2::Sha256;
 
 use round_based::containers::push::Push;
 use round_based::containers::{self, BroadcastMsgs, P2PMsgs, Store};
@@ -28,23 +29,24 @@ use gg20::ErrorType;
 type Result<T, E = Error> = std::result::Result<T, E>;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct GWI(pub GE);
+#[allow(clippy::upper_case_acronyms)]
+pub struct GWI(pub Point<Secp256k1>);
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct GammaI(pub MessageB);
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct WI(pub MessageB);
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct DeltaI(FE);
+pub struct DeltaI(Scalar<Secp256k1>);
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct TI(pub GE);
+pub struct TI(pub Point<Secp256k1>);
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct TIProof(pub PedersenProof<GE>);
+pub struct TIProof(pub PedersenProof<Secp256k1, Sha256>);
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct RDash(GE);
+pub struct RDash(Point<Secp256k1>);
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct SI(pub GE);
+pub struct SI(pub Point<Secp256k1>);
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct HEGProof(pub HomoELGamalProof<GE>);
+pub struct HEGProof(pub HomoELGamalProof<Secp256k1, Sha256>);
 
 pub struct Round0 {
     /// Index of this party
@@ -59,7 +61,7 @@ pub struct Round0 {
     pub s_l: Vec<u16>,
 
     /// Party local secret share
-    pub local_key: LocalKey,
+    pub local_key: LocalKey<Secp256k1>,
 }
 
 impl Round0 {
@@ -109,7 +111,7 @@ impl Round0 {
 pub struct Round1 {
     i: u16,
     s_l: Vec<u16>,
-    local_key: LocalKey,
+    local_key: LocalKey<Secp256k1>,
     m_a: (MessageA, BigInt),
     sign_keys: SignKeys,
     phase1_com: SignBroadcastPhase1,
@@ -206,11 +208,11 @@ impl Round1 {
 pub struct Round2 {
     i: u16,
     s_l: Vec<u16>,
-    local_key: LocalKey,
+    local_key: LocalKey<Secp256k1>,
     sign_keys: SignKeys,
     m_a: (MessageA, BigInt),
-    beta_vec: Vec<FE>,
-    ni_vec: Vec<FE>,
+    beta_vec: Vec<Scalar<Secp256k1>>,
+    ni_vec: Vec<Scalar<Secp256k1>>,
     bc_vec: Vec<SignBroadcastPhase1>,
     m_a_vec: Vec<MessageA>,
     phase1_decom: SignDecommitPhase1,
@@ -267,7 +269,11 @@ impl Round2 {
         output.push(Msg {
             sender: self.i,
             receiver: None,
-            body: (DeltaI(delta_i), TI(t_i), TIProof(t_i_proof.clone())),
+            body: (
+                DeltaI(delta_i.clone()),
+                TI(t_i.clone()),
+                TIProof(t_i_proof.clone()),
+            ),
         });
 
         Ok(Round3 {
@@ -300,17 +306,17 @@ impl Round2 {
 pub struct Round3 {
     i: u16,
     s_l: Vec<u16>,
-    local_key: LocalKey,
+    local_key: LocalKey<Secp256k1>,
     sign_keys: SignKeys,
     m_a: (MessageA, BigInt),
     mb_gamma_s: Vec<MessageB>,
     bc_vec: Vec<SignBroadcastPhase1>,
     m_a_vec: Vec<MessageA>,
-    delta_i: FE,
-    t_i: GE,
-    l_i: FE,
-    sigma_i: FE,
-    t_i_proof: PedersenProof<GE>,
+    delta_i: Scalar<Secp256k1>,
+    t_i: Point<Secp256k1>,
+    l_i: Scalar<Secp256k1>,
+    sigma_i: Scalar<Secp256k1>,
+    t_i_proof: PedersenProof<Secp256k1, Sha256>,
 
     phase1_decom: SignDecommitPhase1,
 }
@@ -325,15 +331,19 @@ impl Round3 {
         O: Push<Msg<SignDecommitPhase1>>,
     {
         let (delta_vec, t_vec, t_proof_vec) = input
-            .into_vec_including_me((DeltaI(self.delta_i), TI(self.t_i), TIProof(self.t_i_proof)))
+            .into_vec_including_me((
+                DeltaI(self.delta_i),
+                TI(self.t_i.clone()),
+                TIProof(self.t_i_proof),
+            ))
             .into_iter()
             .map(|(delta_i, t_i, t_i_proof)| (delta_i.0, t_i.0, t_i_proof.0))
             .unzip3();
 
         let delta_inv = SignKeys::phase3_reconstruct_delta(&delta_vec);
         let ttag = self.s_l.len();
-        for i in 0..ttag {
-            PedersenProof::verify(&t_proof_vec[i]).expect("error T proof");
+        for proof in t_proof_vec.iter().take(ttag) {
+            PedersenProof::verify(proof).expect("error T proof");
         }
 
         output.push(Msg {
@@ -372,17 +382,17 @@ impl Round3 {
 pub struct Round4 {
     i: u16,
     s_l: Vec<u16>,
-    local_key: LocalKey,
+    local_key: LocalKey<Secp256k1>,
     sign_keys: SignKeys,
     m_a: (MessageA, BigInt),
     mb_gamma_s: Vec<MessageB>,
     bc_vec: Vec<SignBroadcastPhase1>,
     m_a_vec: Vec<MessageA>,
-    t_i: GE,
-    l_i: FE,
-    sigma_i: FE,
-    delta_inv: FE,
-    t_vec: Vec<GE>,
+    t_i: Point<Secp256k1>,
+    l_i: Scalar<Secp256k1>,
+    sigma_i: Scalar<Secp256k1>,
+    delta_inv: Scalar<Secp256k1>,
+    t_vec: Vec<Point<Secp256k1>>,
     phase1_decom: SignDecommitPhase1,
 }
 
@@ -402,12 +412,12 @@ impl Round4 {
         let R = SignKeys::phase4(
             &self.delta_inv,
             &b_proof_vec[..],
-            decom_vec.clone(),
+            decom_vec,
             &self.bc_vec,
             usize::from(self.i - 1),
         )
         .expect(""); //TODO: propagate the error
-        let R_dash = R * self.sign_keys.k_i;
+        let R_dash = &R * &self.sign_keys.k_i;
 
         // each party sends first message to all other parties
         let mut phase5_proofs_vec = Vec::new();
@@ -436,7 +446,7 @@ impl Round4 {
         output.push(Msg {
             sender: self.i,
             receiver: None,
-            body: (RDash(R_dash), phase5_proofs_vec.clone()),
+            body: (RDash(R_dash.clone()), phase5_proofs_vec.clone()),
         });
 
         Ok(Round5 {
@@ -467,15 +477,15 @@ impl Round4 {
 pub struct Round5 {
     i: u16,
     s_l: Vec<u16>,
-    local_key: LocalKey,
+    local_key: LocalKey<Secp256k1>,
     sign_keys: SignKeys,
-    t_vec: Vec<GE>,
+    t_vec: Vec<Point<Secp256k1>>,
     m_a_vec: Vec<MessageA>,
-    t_i: GE,
-    l_i: FE,
-    sigma_i: FE,
-    R: GE,
-    R_dash: GE,
+    t_i: Point<Secp256k1>,
+    l_i: Scalar<Secp256k1>,
+    sigma_i: Scalar<Secp256k1>,
+    R: Point<Secp256k1>,
+    R_dash: Point<Secp256k1>,
     phase5_proofs_vec: Vec<PDLwSlackProof>,
 }
 
@@ -554,8 +564,8 @@ impl Round5 {
 }
 
 pub struct Round6 {
-    S_i: GE,
-    homo_elgamal_proof: HomoELGamalProof<GE>,
+    S_i: Point<Secp256k1>,
+    homo_elgamal_proof: HomoELGamalProof<Secp256k1, Sha256>,
     s_l: Vec<u16>,
     /// Round 6 guards protocol output until final checks are taken the place
     protocol_output: CompletedOfflineStage,
@@ -600,21 +610,21 @@ impl Round6 {
 #[derive(Clone)]
 pub struct CompletedOfflineStage {
     i: u16,
-    local_key: LocalKey,
+    local_key: LocalKey<Secp256k1>,
     sign_keys: SignKeys,
-    t_vec: Vec<GE>,
-    R: GE,
-    sigma_i: FE,
+    t_vec: Vec<Point<Secp256k1>>,
+    R: Point<Secp256k1>,
+    sigma_i: Scalar<Secp256k1>,
 }
 
 impl CompletedOfflineStage {
-    pub fn public_key(&self) -> &GE {
+    pub fn public_key(&self) -> &Point<Secp256k1> {
         &self.local_key.y_sum_s
     }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct PartialSignature(FE);
+pub struct PartialSignature(Scalar<Secp256k1>);
 
 #[derive(Clone)]
 pub struct Round7 {
@@ -628,7 +638,7 @@ impl Round7 {
     ) -> Result<(Self, PartialSignature)> {
         let local_signature = LocalSignature::phase7_local_sig(
             &completed_offline_stage.sign_keys.k_i,
-            &message,
+            message,
             &completed_offline_stage.R,
             &completed_offline_stage.sigma_i,
             &completed_offline_stage.local_key.y_sum_s,
@@ -638,7 +648,7 @@ impl Round7 {
     }
 
     pub fn proceed_manual(self, sigs: &[PartialSignature]) -> Result<SignatureRecid> {
-        let sigs = sigs.iter().map(|s_i| s_i.0).collect::<Vec<_>>();
+        let sigs = sigs.iter().map(|s_i| s_i.0.clone()).collect::<Vec<_>>();
         self.local_signature
             .output_signature(&sigs)
             .map_err(Error::Round7)

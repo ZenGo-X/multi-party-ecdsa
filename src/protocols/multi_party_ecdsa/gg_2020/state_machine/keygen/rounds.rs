@@ -1,8 +1,8 @@
 use curv::cryptographic_primitives::proofs::sigma_dlog::DLogProof;
 use curv::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS;
-use curv::elliptic::curves::secp256_k1::{FE, GE};
+use curv::elliptic::curves::{secp256_k1::Secp256k1, Curve, Point, Scalar};
+use sha2::Sha256;
 
-use derivative::Derivative;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -16,7 +16,6 @@ use crate::protocols::multi_party_ecdsa::gg_2020::party_i::{
     KeyGenBroadcastMessage1, KeyGenDecommitMessage1, Keys,
 };
 use crate::protocols::multi_party_ecdsa::gg_2020::{self, ErrorType};
-use curv::elliptic::curves::traits::ECPoint;
 
 pub struct Round0 {
     pub party_i: u16,
@@ -34,7 +33,7 @@ impl Round0 {
             party_keys.phase1_broadcast_phase3_proof_of_correct_key_proof_of_correct_h1h2();
 
         output.push(Msg {
-            sender: self.party_i.clone(),
+            sender: self.party_i,
             receiver: None,
             body: bc1.clone(),
         });
@@ -71,7 +70,7 @@ impl Round1 {
         O: Push<Msg<gg_2020::party_i::KeyGenDecommitMessage1>>,
     {
         output.push(Msg {
-            sender: self.party_i.clone(),
+            sender: self.party_i,
             receiver: None,
             body: self.decom1.clone(),
         });
@@ -80,7 +79,7 @@ impl Round1 {
             received_comm: input.into_vec_including_me(self.bc1),
             decom: self.decom1,
 
-            party_i: self.party_i.clone(),
+            party_i: self.party_i,
             t: self.t,
             n: self.n,
         })
@@ -110,11 +109,11 @@ impl Round2 {
         mut output: O,
     ) -> Result<Round3>
     where
-        O: Push<Msg<(VerifiableSS<GE>, FE)>>,
+        O: Push<Msg<(VerifiableSS<Secp256k1>, Scalar<Secp256k1>)>>,
     {
         let params = gg_2020::party_i::Parameters {
-            threshold: self.t.into(),
-            share_count: self.n.into(),
+            threshold: self.t,
+            share_count: self.n,
         };
         let received_decom = input.into_vec_including_me(self.decom);
 
@@ -128,12 +127,12 @@ impl Round2 {
             .map_err(ProceedError::Round2VerifyCommitments)?;
 
         for (i, share) in vss_result.1.iter().enumerate() {
-            if i + 1 == usize::from(self.party_i.clone()) {
+            if i + 1 == usize::from(self.party_i) {
                 continue;
             }
 
             output.push(Msg {
-                sender: self.party_i.clone(),
+                sender: self.party_i,
                 receiver: Some(i as u16 + 1),
                 body: (vss_result.0.clone(), share.clone()),
             })
@@ -146,9 +145,9 @@ impl Round2 {
             bc_vec: self.received_comm,
 
             own_vss: vss_result.0.clone(),
-            own_share: vss_result.1[usize::from(self.party_i.clone() - 1)].clone(),
+            own_share: vss_result.1[usize::from(self.party_i - 1)].clone(),
 
-            party_i: self.party_i.clone(),
+            party_i: self.party_i,
             t: self.t,
             n: self.n,
         })
@@ -164,11 +163,11 @@ impl Round2 {
 pub struct Round3 {
     keys: gg_2020::party_i::Keys,
 
-    y_vec: Vec<GE>,
+    y_vec: Vec<Point<Secp256k1>>,
     bc_vec: Vec<gg_2020::party_i::KeyGenBroadcastMessage1>,
 
-    own_vss: VerifiableSS<GE>,
-    own_share: FE,
+    own_vss: VerifiableSS<Secp256k1>,
+    own_share: Scalar<Secp256k1>,
 
     party_i: u16,
     t: u16,
@@ -176,13 +175,17 @@ pub struct Round3 {
 }
 
 impl Round3 {
-    pub fn proceed<O>(self, input: P2PMsgs<(VerifiableSS<GE>, FE)>, mut output: O) -> Result<Round4>
+    pub fn proceed<O>(
+        self,
+        input: P2PMsgs<(VerifiableSS<Secp256k1>, Scalar<Secp256k1>)>,
+        mut output: O,
+    ) -> Result<Round4>
     where
-        O: Push<Msg<DLogProof<GE>>>,
+        O: Push<Msg<DLogProof<Secp256k1, Sha256>>>,
     {
         let params = gg_2020::party_i::Parameters {
-            threshold: self.t.into(),
-            share_count: self.n.into(),
+            threshold: self.t,
+            share_count: self.n,
         };
         let (vss_schemes, party_shares): (Vec<_>, Vec<_>) = input
             .into_vec_including_me((self.own_vss, self.own_share))
@@ -196,7 +199,7 @@ impl Round3 {
                 &self.y_vec,
                 &party_shares,
                 &vss_schemes,
-                self.party_i.clone() as usize,
+                self.party_i.into(),
             )
             .map_err(ProceedError::Round3VerifyVssConstruct)?;
 
@@ -211,10 +214,10 @@ impl Round3 {
             y_vec: self.y_vec.clone(),
             bc_vec: self.bc_vec,
             shared_keys,
-            own_dlog_proof: dlog_proof.clone(),
+            own_dlog_proof: dlog_proof,
             vss_vec: vss_schemes,
 
-            party_i: self.party_i.clone(),
+            party_i: self.party_i,
             t: self.t,
             n: self.n,
         })
@@ -222,18 +225,21 @@ impl Round3 {
     pub fn is_expensive(&self) -> bool {
         true
     }
-    pub fn expects_messages(i: u16, n: u16) -> Store<P2PMsgs<(VerifiableSS<GE>, FE)>> {
+    pub fn expects_messages(
+        i: u16,
+        n: u16,
+    ) -> Store<P2PMsgs<(VerifiableSS<Secp256k1>, Scalar<Secp256k1>)>> {
         containers::P2PMsgsStore::new(i, n)
     }
 }
 
 pub struct Round4 {
     keys: gg_2020::party_i::Keys,
-    y_vec: Vec<GE>,
+    y_vec: Vec<Point<Secp256k1>>,
     bc_vec: Vec<gg_2020::party_i::KeyGenBroadcastMessage1>,
     shared_keys: gg_2020::party_i::SharedKeys,
-    own_dlog_proof: DLogProof<GE>,
-    vss_vec: Vec<VerifiableSS<GE>>,
+    own_dlog_proof: DLogProof<Secp256k1, Sha256>,
+    vss_vec: Vec<VerifiableSS<Secp256k1>>,
 
     party_i: u16,
     t: u16,
@@ -241,10 +247,13 @@ pub struct Round4 {
 }
 
 impl Round4 {
-    pub fn proceed(self, input: BroadcastMsgs<DLogProof<GE>>) -> Result<LocalKey> {
+    pub fn proceed(
+        self,
+        input: BroadcastMsgs<DLogProof<Secp256k1, Sha256>>,
+    ) -> Result<LocalKey<Secp256k1>> {
         let params = gg_2020::party_i::Parameters {
-            threshold: self.t.into(),
-            share_count: self.n.into(),
+            threshold: self.t,
+            share_count: self.n,
         };
         let dlog_proofs = input.into_vec_including_me(self.own_dlog_proof.clone());
 
@@ -256,8 +265,8 @@ impl Round4 {
         )
         .map_err(ProceedError::Round4VerifyDLogProof)?;
         let pk_vec = (0..params.share_count as usize)
-            .map(|i| dlog_proofs[i].pk)
-            .collect::<Vec<GE>>();
+            .map(|i| dlog_proofs[i].pk.clone())
+            .collect::<Vec<Point<Secp256k1>>>();
 
         let paillier_key_vec = (0..params.share_count)
             .map(|i| self.bc_vec[i as usize].e.clone())
@@ -269,7 +278,7 @@ impl Round4 {
             .collect::<Vec<DLogStatement>>();
 
         let (head, tail) = self.y_vec.split_at(1);
-        let y_sum = tail.iter().fold(head[0], |acc, x| acc + x);
+        let y_sum = tail.iter().fold(head[0].clone(), |acc, x| acc + x);
 
         let local_key = LocalKey {
             paillier_dk: self.keys.dk,
@@ -292,35 +301,29 @@ impl Round4 {
     pub fn is_expensive(&self) -> bool {
         true
     }
-    pub fn expects_messages(i: u16, n: u16) -> Store<BroadcastMsgs<DLogProof<GE>>> {
+    pub fn expects_messages(i: u16, n: u16) -> Store<BroadcastMsgs<DLogProof<Secp256k1, Sha256>>> {
         containers::BroadcastMsgsStore::new(i, n)
     }
 }
 
 /// Local secret obtained by party after [keygen](super::Keygen) protocol is completed
-#[derive(Derivative, Serialize, Deserialize)]
-#[derivative(Clone(bound = "P: Clone, P::Scalar: Clone"))]
-#[serde(bound(serialize = "P: Serialize, P::Scalar: Serialize"))]
-#[serde(bound(deserialize = "P: Deserialize<'de>, P::Scalar: Deserialize<'de>"))]
-pub struct LocalKey<P = GE>
-where
-    P: ECPoint,
-{
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct LocalKey<E: Curve> {
     pub paillier_dk: paillier::DecryptionKey,
-    pub pk_vec: Vec<P>,
-    pub keys_linear: gg_2020::party_i::SharedKeys<P>,
+    pub pk_vec: Vec<Point<E>>,
+    pub keys_linear: gg_2020::party_i::SharedKeys,
     pub paillier_key_vec: Vec<EncryptionKey>,
-    pub y_sum_s: P,
+    pub y_sum_s: Point<E>,
     pub h1_h2_n_tilde_vec: Vec<DLogStatement>,
-    pub vss_scheme: VerifiableSS<P>,
+    pub vss_scheme: VerifiableSS<E>,
     pub i: u16,
     pub t: u16,
     pub n: u16,
 }
 
-impl<P: ECPoint + Clone> LocalKey<P> {
+impl LocalKey<Secp256k1> {
     /// Public key of secret shared between parties
-    pub fn public_key(&self) -> P {
+    pub fn public_key(&self) -> Point<Secp256k1> {
         self.y_sum_s.clone()
     }
 }

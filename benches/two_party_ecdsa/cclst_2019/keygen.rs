@@ -13,10 +13,10 @@ mod bench {
 
                 let (party_one_first_message, comm_witness, ec_key_pair_party1) =
                     party_one::KeyGenFirstMsg::create_commitments_with_fixed_secret_share(
-                        ECScalar::new_random(),
+                        Scalar::<Secp256k1>::random(),
                     );
                 let (party_two_first_message, _ec_key_pair_party2) =
-                    party_two::KeyGenFirstMsg::create_with_fixed_secret_share(ECScalar::from(&BigInt::from(
+                    party_two::KeyGenFirstMsg::create_with_fixed_secret_share(Scalar::<Secp256k1>::from(&BigInt::from(
                         10,
                     )));
                 let party_one_second_message = party_one::KeyGenSecondMsg::verify_and_decommit(

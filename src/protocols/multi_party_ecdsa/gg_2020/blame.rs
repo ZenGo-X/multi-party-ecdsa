@@ -19,9 +19,7 @@ use crate::utilities::mta::{MessageA, MessageB};
 use curv::cryptographic_primitives::proofs::sigma_ec_ddh::ECDDHProof;
 use curv::cryptographic_primitives::proofs::sigma_ec_ddh::ECDDHStatement;
 use curv::cryptographic_primitives::proofs::sigma_ec_ddh::ECDDHWitness;
-use curv::elliptic::curves::secp256_k1::{FE, GE};
-use curv::elliptic::curves::traits::ECPoint;
-use curv::elliptic::curves::traits::ECScalar;
+use curv::elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar};
 use curv::BigInt;
 use paillier::traits::EncryptWithChosenRandomness;
 use paillier::traits::Open;
@@ -29,12 +27,13 @@ use paillier::DecryptionKey;
 use paillier::Paillier;
 use paillier::{EncryptionKey, Randomness, RawCiphertext, RawPlaintext};
 use serde::{Deserialize, Serialize};
+use sha2::Sha256;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct LocalStatePhase5 {
-    pub k: FE,
+    pub k: Scalar<Secp256k1>,
     pub k_randomness: BigInt,
-    pub gamma: FE,
+    pub gamma: Scalar<Secp256k1>,
     pub beta_randomness: Vec<BigInt>,
     pub beta_tag: Vec<BigInt>,
     pub encryption_key: EncryptionKey,
@@ -42,15 +41,15 @@ pub struct LocalStatePhase5 {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct GlobalStatePhase5 {
-    pub k_vec: Vec<FE>,
+    pub k_vec: Vec<Scalar<Secp256k1>>,
     pub k_randomness_vec: Vec<BigInt>,
-    pub gamma_vec: Vec<FE>,
+    pub gamma_vec: Vec<Scalar<Secp256k1>>,
     pub beta_randomness_vec: Vec<Vec<BigInt>>,
     pub beta_tag_vec: Vec<Vec<BigInt>>,
     pub encryption_key_vec: Vec<EncryptionKey>,
     // stuff to check against
-    pub delta_vec: Vec<FE>,
-    pub g_gamma_vec: Vec<GE>,
+    pub delta_vec: Vec<Scalar<Secp256k1>>,
+    pub g_gamma_vec: Vec<Point<Secp256k1>>,
     pub m_a_vec: Vec<MessageA>,
     pub m_b_mat: Vec<Vec<MessageB>>,
 }
@@ -60,22 +59,22 @@ pub struct GlobalStatePhase5 {
 impl GlobalStatePhase5 {
     pub fn local_state_to_global_state(
         encryption_key_vec: &[EncryptionKey],
-        delta_vec: &[FE],            //to test against delta_vec
-        g_gamma_vec: &[GE],          // to test against the opened commitment for g_gamma
-        m_a_vec: &[MessageA],        // to test against broadcast message A
-        m_b_mat: Vec<Vec<MessageB>>, // to test against broadcast message B
+        delta_vec: &[Scalar<Secp256k1>],  //to test against delta_vec
+        g_gamma_vec: &[Point<Secp256k1>], // to test against the opened commitment for g_gamma
+        m_a_vec: &[MessageA],             // to test against broadcast message A
+        m_b_mat: Vec<Vec<MessageB>>,      // to test against broadcast message B
         local_state_vec: &[LocalStatePhase5],
     ) -> Self {
         let len = local_state_vec.len();
         let k_vec = (0..len)
             .map(|i| local_state_vec[i].k.clone())
-            .collect::<Vec<FE>>();
+            .collect::<Vec<Scalar<Secp256k1>>>();
         let k_randomness_vec = (0..len)
             .map(|i| local_state_vec[i].k_randomness.clone())
             .collect::<Vec<BigInt>>();
         let gamma_vec = (0..len)
             .map(|i| local_state_vec[i].gamma.clone())
-            .collect::<Vec<FE>>();
+            .collect::<Vec<Scalar<Secp256k1>>>();
         let beta_randomness_vec = (0..len)
             .map(|i| {
                 (0..len - 1)
@@ -120,7 +119,7 @@ impl GlobalStatePhase5 {
 
         // check commitment to g_gamma
         for i in 0..len {
-            if self.g_gamma_vec[i] != GE::generator() * self.gamma_vec[i] {
+            if self.g_gamma_vec[i] != Point::generator() * &self.gamma_vec[i] {
                 bad_signers_vec.push(i)
             }
         }
@@ -139,7 +138,7 @@ impl GlobalStatePhase5 {
                     bad_signers_vec.push(i)
                 }
 
-                let alpha_beta_vector = if bad_signers_vec.is_empty() {
+                if bad_signers_vec.is_empty() {
                     (0..len - 1)
                         .map(|j| {
                             let ind = if j < i { j } else { j + 1 };
@@ -157,19 +156,17 @@ impl GlobalStatePhase5 {
                                 bad_signers_vec.push(ind)
                             }
 
-                            let k_i_gamma_j = self.k_vec[i] * self.gamma_vec[ind];
-                            let alpha = k_i_gamma_j.sub(&beta.get_element());
+                            let k_i_gamma_j = &self.k_vec[i] * &self.gamma_vec[ind];
+                            let alpha = k_i_gamma_j - &beta;
 
                             (alpha, beta)
                         })
-                        .collect::<Vec<(FE, FE)>>()
+                        .collect::<Vec<(Scalar<Secp256k1>, Scalar<Secp256k1>)>>()
                 } else {
                     vec![]
-                };
-
-                alpha_beta_vector
+                }
             })
-            .collect::<Vec<Vec<(FE, FE)>>>();
+            .collect::<Vec<Vec<(Scalar<Secp256k1>, Scalar<Secp256k1>)>>>();
 
         // The matrix we got:
         // [P2, P1, P1, P1  ...]
@@ -186,27 +183,30 @@ impl GlobalStatePhase5 {
             //reconstruct delta's
             let delta_vec_reconstruct = (0..len)
                 .map(|i| {
-                    let k_i_gamma_i = self.k_vec[i] * self.gamma_vec[i];
+                    let k_i_gamma_i = &self.k_vec[i] * &self.gamma_vec[i];
 
                     let alpha_sum = alpha_beta_matrix[i]
                         .iter()
-                        .fold(FE::zero(), |acc, x| acc + &x.0);
+                        .fold(Scalar::<Secp256k1>::zero(), |acc, x| acc + &x.0);
                     let beta_vec = (0..len - 1)
                         .map(|j| {
                             let ind1 = if j < i { j } else { j + 1 };
                             let ind2 = if j < i { i - 1 } else { i };
-                            alpha_beta_matrix[ind1][ind2].1
+                            alpha_beta_matrix[ind1][ind2].1.clone()
                         })
-                        .collect::<Vec<FE>>();
+                        .collect::<Vec<Scalar<Secp256k1>>>();
 
-                    let beta_sum = beta_vec.iter().fold(FE::zero(), |acc, x| acc + x);
+                    let beta_sum = beta_vec
+                        .iter()
+                        .fold(Scalar::<Secp256k1>::zero(), |acc, x| acc + x);
 
                     k_i_gamma_i + alpha_sum + beta_sum
                 })
-                .collect::<Vec<FE>>();
+                .collect::<Vec<Scalar<Secp256k1>>>();
 
             // compare delta vec to reconstructed delta vec
 
+            #[allow(clippy::needless_range_loop)]
             for i in 0..len {
                 if self.delta_vec[i] != delta_vec_reconstruct[i] {
                     bad_signers_vec.push(i)
@@ -214,7 +214,7 @@ impl GlobalStatePhase5 {
             }
         }
 
-        bad_signers_vec.sort();
+        bad_signers_vec.sort_unstable();
         bad_signers_vec.dedup();
         let err_type = ErrorType {
             error_type: "phase6_blame".to_string(),
@@ -226,24 +226,24 @@ impl GlobalStatePhase5 {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct LocalStatePhase6 {
-    pub k: FE,
+    pub k: Scalar<Secp256k1>,
     pub k_randomness: BigInt,
     pub miu: Vec<BigInt>, // we need the value before reduction
     pub miu_randomness: Vec<BigInt>,
-    pub proof_of_eq_dlog: ECDDHProof<GE>,
+    pub proof_of_eq_dlog: ECDDHProof<Secp256k1, Sha256>,
 }
 
 // It is assumed the second message of MtAwc (ciphertext from b to a) is broadcasted in the original protocol
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct GlobalStatePhase6 {
-    pub k_vec: Vec<FE>,
+    pub k_vec: Vec<Scalar<Secp256k1>>,
     pub k_randomness_vec: Vec<BigInt>,
     pub miu_vec: Vec<Vec<BigInt>>,
     pub miu_randomness_vec: Vec<Vec<BigInt>>,
-    pub g_w_vec: Vec<GE>,
+    pub g_w_vec: Vec<Point<Secp256k1>>,
     pub encryption_key_vec: Vec<EncryptionKey>,
-    pub proof_vec: Vec<ECDDHProof<GE>>,
-    pub S_vec: Vec<GE>,
+    pub proof_vec: Vec<ECDDHProof<Secp256k1, Sha256>>,
+    pub S_vec: Vec<Point<Secp256k1>>,
     pub m_a_vec: Vec<MessageA>,
     pub m_b_mat: Vec<Vec<MessageB>>,
 }
@@ -255,24 +255,27 @@ impl GlobalStatePhase6 {
         randomness.0
     }
 
-    pub fn ecddh_proof(sigma_i: &FE, R: &GE, S: &GE) -> ECDDHProof<GE> {
+    pub fn ecddh_proof(
+        sigma_i: &Scalar<Secp256k1>,
+        R: &Point<Secp256k1>,
+        S: &Point<Secp256k1>,
+    ) -> ECDDHProof<Secp256k1, Sha256> {
         let delta = ECDDHStatement {
-            g1: GE::generator(),
+            g1: Point::generator().to_point(),
             g2: R.clone(),
-            h1: GE::generator() * sigma_i,
+            h1: Point::generator() * sigma_i,
             h2: S.clone(),
         };
         let w = ECDDHWitness { x: sigma_i.clone() };
-        let proof = ECDDHProof::prove(&w, &delta);
-        proof
+        ECDDHProof::prove(&w, &delta)
     }
 
     // TODO: check all parties submitted inputs
     // TODO: if not - abort gracefully with list of parties that did not produce inputs
     pub fn local_state_to_global_state(
         encryption_key_vec: &[EncryptionKey],
-        S_vec: &[GE],
-        g_w_vec: &[GE],
+        S_vec: &[Point<Secp256k1>],
+        g_w_vec: &[Point<Secp256k1>],
         m_a_vec: &[MessageA],        // to test against broadcast message A
         m_b_mat: Vec<Vec<MessageB>>, // to test against broadcast message B
         local_state_vec: &[LocalStatePhase6],
@@ -280,13 +283,13 @@ impl GlobalStatePhase6 {
         let len = local_state_vec.len();
         let k_vec = (0..len)
             .map(|i| local_state_vec[i].k.clone())
-            .collect::<Vec<FE>>();
+            .collect::<Vec<Scalar<Secp256k1>>>();
         let k_randomness_vec = (0..len)
             .map(|i| local_state_vec[i].k_randomness.clone())
             .collect::<Vec<BigInt>>();
         let proof_vec = (0..len)
             .map(|i| local_state_vec[i].proof_of_eq_dlog.clone())
-            .collect::<Vec<ECDDHProof<GE>>>();
+            .collect::<Vec<ECDDHProof<Secp256k1, Sha256>>>();
         let miu_randomness_vec = (0..len)
             .map(|i| {
                 (0..len - 1)
@@ -316,7 +319,7 @@ impl GlobalStatePhase6 {
         }
     }
 
-    pub fn phase6_blame(&self, R: &GE) -> Result<(), ErrorType> {
+    pub fn phase6_blame(&self, R: &Point<Secp256k1>) -> Result<(), ErrorType> {
         let len = self.k_vec.len();
         let mut bad_signers_vec = Vec::new();
 
@@ -360,42 +363,44 @@ impl GlobalStatePhase6 {
                             let k_i = &self.k_vec[i];
                             let g_w_j = &self.g_w_vec[ind];
                             let g_w_j_ki = g_w_j * k_i;
-                            let miu: FE = ECScalar::from(&self.miu_vec[i][j]);
-                            let g_miu = GE::generator() * &miu;
-                            let g_ni = g_w_j_ki.sub_point(&g_miu.get_element());
-                            g_ni
+                            let miu: Scalar<Secp256k1> =
+                                Scalar::<Secp256k1>::from(&self.miu_vec[i][j]);
+                            let g_miu = Point::generator() * &miu;
+                            g_w_j_ki - &g_miu
                         })
-                        .collect::<Vec<GE>>()
+                        .collect::<Vec<Point<Secp256k1>>>()
                 })
-                .collect::<Vec<Vec<GE>>>();
+                .collect::<Vec<Vec<Point<Secp256k1>>>>();
 
             // compute g_sigma_i
 
             let mut g_sigma_i_vec = (0..len)
                 .map(|i| {
-                    let g_wi_ki = self.g_w_vec[i] * &self.k_vec[i];
+                    let g_wi_ki = &self.g_w_vec[i] * &self.k_vec[i];
                     let sum = self.miu_vec[i].iter().fold(g_wi_ki, |acc, x| {
-                        acc + (GE::generator() * &ECScalar::from(&x))
+                        acc + (Point::generator() * &Scalar::<Secp256k1>::from(&*x))
                     });
                     sum
                 })
-                .collect::<Vec<GE>>();
+                .collect::<Vec<Point<Secp256k1>>>();
 
+            #[allow(clippy::needless_range_loop)]
             for i in 0..len {
                 for j in 0..len - 1 {
                     let ind1 = if j < i { j } else { j + 1 };
                     let ind2 = if j < i { i - 1 } else { i };
-                    g_sigma_i_vec[i] = g_sigma_i_vec[i] + g_ni_mat[ind1][ind2];
+                    g_sigma_i_vec[i] = &g_sigma_i_vec[i] + &g_ni_mat[ind1][ind2];
                 }
             }
 
             // check zero knowledge proof
+            #[allow(clippy::needless_range_loop)]
             for i in 0..len {
                 let statement = ECDDHStatement {
-                    g1: GE::generator(),
+                    g1: Point::generator().to_point(),
                     g2: R.clone(),
-                    h1: g_sigma_i_vec[i],
-                    h2: self.S_vec[i],
+                    h1: g_sigma_i_vec[i].clone(),
+                    h2: self.S_vec[i].clone(),
                 };
 
                 let result = self.proof_vec[i].verify(&statement);
@@ -405,7 +410,7 @@ impl GlobalStatePhase6 {
             }
         }
 
-        bad_signers_vec.sort();
+        bad_signers_vec.sort_unstable();
         bad_signers_vec.dedup();
         let err_type = ErrorType {
             error_type: "phase6_blame".to_string(),
@@ -417,12 +422,12 @@ impl GlobalStatePhase6 {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct GlobalStatePhase7 {
-    pub s_vec: Vec<FE>,
-    pub r: FE,
-    pub R_dash_vec: Vec<GE>,
+    pub s_vec: Vec<Scalar<Secp256k1>>,
+    pub r: Scalar<Secp256k1>,
+    pub R_dash_vec: Vec<Point<Secp256k1>>,
     pub m: BigInt,
-    pub R: GE,
-    pub S_vec: Vec<GE>,
+    pub R: Point<Secp256k1>,
+    pub S_vec: Vec<Point<Secp256k1>>,
 }
 
 impl GlobalStatePhase7 {
@@ -431,9 +436,9 @@ impl GlobalStatePhase7 {
         let mut bad_signers_vec = Vec::new();
 
         for i in 0..len {
-            let R_si = self.R * &self.s_vec[i];
-            let R_dash_m = self.R_dash_vec[i] * &ECScalar::from(&self.m);
-            let Si_r = self.S_vec[i] * &self.r;
+            let R_si = &self.R * &self.s_vec[i];
+            let R_dash_m = &self.R_dash_vec[i] * &Scalar::<Secp256k1>::from(&self.m);
+            let Si_r = &self.S_vec[i] * &self.r;
             let right = R_dash_m + Si_r;
             let left = R_si;
             if left != right {

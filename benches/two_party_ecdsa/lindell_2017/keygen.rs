@@ -3,7 +3,7 @@ use criterion::criterion_main;
 mod bench {
     use criterion::{criterion_group, Criterion};
     use curv::arithmetic::traits::Samplable;
-    use curv::elliptic::curves::traits::*;
+    use curv::elliptic::curves::{secp256_k1::Secp256k1, Scalar};
     use curv::BigInt;
     use multi_party_ecdsa::protocols::two_party_ecdsa::lindell_2017::*;
 
@@ -12,12 +12,12 @@ mod bench {
             b.iter(|| {
                 let (party_one_first_message, comm_witness, ec_key_pair_party1) =
                     party_one::KeyGenFirstMsg::create_commitments_with_fixed_secret_share(
-                        ECScalar::from(&BigInt::sample(253)),
+                        Scalar::<Secp256k1>::from(&BigInt::sample(253)),
                     );
                 let (party_two_first_message, _ec_key_pair_party2) =
-                    party_two::KeyGenFirstMsg::create_with_fixed_secret_share(ECScalar::from(
-                        &BigInt::from(10),
-                    ));
+                    party_two::KeyGenFirstMsg::create_with_fixed_secret_share(
+                        Scalar::<Secp256k1>::from(&BigInt::from(10)),
+                    );
                 let party_one_second_message = party_one::KeyGenSecondMsg::verify_and_decommit(
                     comm_witness,
                     &party_two_first_message.d_log_proof,
