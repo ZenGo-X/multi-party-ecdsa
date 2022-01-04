@@ -44,7 +44,7 @@ The following steps are for setup, key generation with `n` parties and signing w
 
 2.  Install [Rust](https://rustup.rs/). Run `cargo build --release --examples` (it will build into `/target/release/examples/`)
 
-3.  Run the shared state machine: `./sm_manager`. Currently configured to be in `127.0.0.1:8001`, this can be changed in `Rocket.toml` file. The `Rocket.toml` file should be in the same folder you run `sm_manager` from.
+3.  Run the shared state machine: `./gg18_sm_manager`. Currently configured to be in `127.0.0.1:8001`, this can be changed in `Rocket.toml` file. The `Rocket.toml` file should be in the same folder you run `sm_manager` from.
 
 ### KeyGen
 
@@ -71,20 +71,10 @@ Then, run:
 
 Run `./run.sh` (located in `/demo` folder) in the main folder. Move `params` file to the same folder as the executables (usually `/target/release/examples`). The script will spawn a shared state machine, clients in the number of parties and signing requests for the `threshold + 1` first parties.
 
-`sm_manager` rocket server runs in _production_ mode by default. You may modify the `./run.sh` to config it to run in different environments. For example, to run rocket server in _development_:
+`gg18_sm_manager` rocket server runs in _production_ mode by default. You may modify the `./run.sh` to config it to run in different environments. For example, to run rocket server in _development_:
 ```
 ROCKET_ENV=development ./target/release/examples/sm_manager
 ```
-
-### GG20 demo
-Run `./demo/run20.sh`. You would need nightly rust toolchain and libgmp to be installed and available. The `params.json` file should be changed in case you want to change the default split of 2-of-3. The script starts sm_manager which exposes a shared state over http for message passing between parties. Multiple instances of the gg20_keygen_client and gg20_sign_client communicate via the sm_manager. This demo does not implement the identifiable abort portion of the protocol yet.
-
-
-|          !["Multiparty ECDSA Demo"][demo]          |
-| :------------------------------------------------: |
-| _A 5 parties setup with 3 signers (threshold = 2)_ |
-
-[demo]: https://raw.githubusercontent.com/KZen-networks/multi-party-ecdsa/master/demo/MP-ECDSA%20demo.gif
 
 ## Contributions & Development Process
 
