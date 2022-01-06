@@ -1,8 +1,7 @@
 #![allow(non_snake_case)]
 
 use curv::arithmetic::traits::*;
-use curv::elliptic::curves::secp256_k1::{FE, GE};
-use curv::elliptic::curves::traits::*;
+use curv::elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar};
 use curv::BigInt;
 use paillier::core::Randomness;
 use paillier::traits::{EncryptWithChosenRandomness, KeyGeneration};
@@ -17,14 +16,15 @@ fn test_zk_pdl() {
 
     let (ek, dk) = Paillier::keypair().keys();
     let randomness = Randomness::sample(&ek);
-    let x: FE = ECScalar::new_random();
-    let x: FE = ECScalar::from(&x.to_big_int().div_floor(&BigInt::from(3)));
+    let x = Scalar::<Secp256k1>::random();
+    let x: Scalar<Secp256k1> =
+        Scalar::<Secp256k1>::from(&x.to_bigint().div_floor(&BigInt::from(3)));
 
-    let Q = GE::generator() * &x;
+    let Q = Point::generator() * &x;
 
     let c = Paillier::encrypt_with_chosen_randomness(
         &ek,
-        RawPlaintext::from(x.to_big_int().clone()),
+        RawPlaintext::from(x.to_bigint()),
         &randomness,
     )
     .0
@@ -33,7 +33,7 @@ fn test_zk_pdl() {
         ciphertext: c,
         ek,
         Q,
-        G: GE::generator(),
+        G: Point::generator().to_point(),
     };
     let witness = PDLWitness {
         x,

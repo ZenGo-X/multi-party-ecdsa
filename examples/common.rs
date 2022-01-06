@@ -1,16 +1,17 @@
-use std::{env, iter::repeat, thread, time, time::Duration};
+#![allow(dead_code)]
 
-use crypto::{
-    aead::{AeadDecryptor, AeadEncryptor},
-    aes::KeySize::KeySize256,
-    aes_gcm::AesGcm,
-};
+use std::{env, thread, time, time::Duration};
+
+use aes_gcm::aead::{Aead, NewAead};
+use aes_gcm::{Aes256Gcm, Nonce};
+use rand::{rngs::OsRng, RngCore};
+
 use curv::{
     arithmetic::traits::Converter,
-    elliptic::curves::secp256_k1::{FE, GE},
-    elliptic::curves::traits::{ECPoint, ECScalar},
+    elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar},
     BigInt,
 };
+
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
@@ -50,26 +51,31 @@ pub struct Params {
 
 #[allow(dead_code)]
 pub fn aes_encrypt(key: &[u8], plaintext: &[u8]) -> AEAD {
-    let nonce: Vec<u8> = repeat(3).take(12).collect();
-    let aad: [u8; 0] = [];
-    let mut gcm = AesGcm::new(KeySize256, key, &nonce[..], &aad);
-    let mut out: Vec<u8> = repeat(0).take(plaintext.len()).collect();
-    let mut out_tag: Vec<u8> = repeat(0).take(16).collect();
-    gcm.encrypt(&plaintext[..], &mut out[..], &mut out_tag[..]);
+    let aes_key = aes_gcm::Key::from_slice(key);
+    let cipher = Aes256Gcm::new(aes_key);
+
+    let mut nonce = [0u8; 12];
+    OsRng.fill_bytes(&mut nonce);
+    let nonce = Nonce::from_slice(&nonce);
+
+    let ciphertext = cipher
+        .encrypt(nonce, plaintext)
+        .expect("encryption failure!");
+
     AEAD {
-        ciphertext: out.to_vec(),
-        tag: out_tag.to_vec(),
+        ciphertext: ciphertext,
+        tag: nonce.to_vec(),
     }
 }
 
 #[allow(dead_code)]
 pub fn aes_decrypt(key: &[u8], aead_pack: AEAD) -> Vec<u8> {
-    let mut out: Vec<u8> = repeat(0).take(aead_pack.ciphertext.len()).collect();
-    let nonce: Vec<u8> = repeat(3).take(12).collect();
-    let aad: [u8; 0] = [];
-    let mut gcm = AesGcm::new(KeySize256, key, &nonce[..], &aad);
-    gcm.decrypt(&aead_pack.ciphertext[..], &mut out, &aead_pack.tag[..]);
-    out
+    let aes_key = aes_gcm::Key::from_slice(key);
+    let nonce = Nonce::from_slice(&aead_pack.tag);
+    let gcm = Aes256Gcm::new(aes_key);
+
+    let out = gcm.decrypt(nonce, aead_pack.ciphertext.as_slice());
+    out.unwrap()
 }
 
 pub fn postb<T>(client: &Client, path: &str, body: T) -> Option<String>
@@ -103,12 +109,9 @@ pub fn broadcast(
     sender_uuid: String,
 ) -> Result<(), ()> {
     let key = format!("{}-{}-{}", party_num, round, sender_uuid);
-    let entry = Entry {
-        key: key.clone(),
-        value: data,
-    };
+    let entry = Entry { key, value: data };
 
-    let res_body = postb(&client, "set", entry).unwrap();
+    let res_body = postb(client, "set", entry).unwrap();
     serde_json::from_str(&res_body).unwrap()
 }
 
@@ -122,12 +125,9 @@ pub fn sendp2p(
 ) -> Result<(), ()> {
     let key = format!("{}-{}-{}-{}", party_from, party_to, round, sender_uuid);
 
-    let entry = Entry {
-        key: key.clone(),
-        value: data,
-    };
+    let entry = Entry { key, value: data };
 
-    let res_body = postb(&client, "set", entry).unwrap();
+    let res_body = postb(client, "set", entry).unwrap();
     serde_json::from_str(&res_body).unwrap()
 }
 
@@ -190,27 +190,32 @@ pub fn poll_for_p2p(
 }
 
 #[allow(dead_code)]
-pub fn check_sig(r: &FE, s: &FE, msg: &BigInt, pk: &GE) {
+pub fn check_sig(
+    r: &Scalar<Secp256k1>,
+    s: &Scalar<Secp256k1>,
+    msg: &BigInt,
+    pk: &Point<Secp256k1>,
+) {
     use secp256k1::{verify, Message, PublicKey, PublicKeyFormat, Signature};
 
-    let raw_msg = BigInt::to_bytes(&msg);
+    let raw_msg = BigInt::to_bytes(msg);
     let mut msg: Vec<u8> = Vec::new(); // padding
     msg.extend(vec![0u8; 32 - raw_msg.len()]);
     msg.extend(raw_msg.iter());
 
     let msg = Message::parse_slice(msg.as_slice()).unwrap();
-    let mut raw_pk = pk.pk_to_key_slice();
+    let mut raw_pk = pk.to_bytes(false).to_vec();
     if raw_pk.len() == 64 {
         raw_pk.insert(0, 4u8);
     }
     let pk = PublicKey::parse_slice(&raw_pk, Some(PublicKeyFormat::Full)).unwrap();
 
     let mut compact: Vec<u8> = Vec::new();
-    let bytes_r = &r.get_element()[..];
+    let bytes_r = &r.to_bytes().to_vec();
     compact.extend(vec![0u8; 32 - bytes_r.len()]);
     compact.extend(bytes_r.iter());
 
-    let bytes_s = &s.get_element()[..];
+    let bytes_s = &s.to_bytes().to_vec();
     compact.extend(vec![0u8; 32 - bytes_s.len()]);
     compact.extend(bytes_s.iter());
 

@@ -1,7 +1,8 @@
 // For integration tests, please add your tests in /tests instead
 
 use super::*;
-use curv::elliptic::curves::traits::*;
+use curv::arithmetic::Converter;
+use curv::elliptic::curves::*;
 use curv::BigInt;
 
 #[test]
@@ -26,12 +27,12 @@ fn test_d_log_proof_party_two_party_one() {
 fn test_full_key_gen() {
     let (party_one_first_message, comm_witness, ec_key_pair_party1) =
         party_one::KeyGenFirstMsg::create_commitments_with_fixed_secret_share(
-            ECScalar::new_random(),
+            Scalar::<Secp256k1>::random(),
         );
     let (party_two_first_message, _ec_key_pair_party2) =
-        party_two::KeyGenFirstMsg::create_with_fixed_secret_share(ECScalar::from(&BigInt::from(
-            10,
-        )));
+        party_two::KeyGenFirstMsg::create_with_fixed_secret_share(Scalar::<Secp256k1>::from(
+            &BigInt::from(10),
+        ));
     let party_one_second_message = party_one::KeyGenSecondMsg::verify_and_decommit(
         comm_witness,
         &party_two_first_message.d_log_proof,
@@ -45,9 +46,10 @@ fn test_full_key_gen() {
     .expect("failed to verify commitments and DLog proof");
 
     // init HSMCL keypair:
-    let seed: BigInt = str::parse(
-            "314159265358979323846264338327950288419716939937510582097494459230781640628620899862803482534211706798214808651328230664709384460955058223172535940812848"
-        ).unwrap();
+    let seed: BigInt = BigInt::from_str_radix(
+        "314159265358979323846264338327950288419716939937510582097494459230781640628620899862803482534211706798214808651328230664709384460955058223172535940812848",
+        10,
+    ).unwrap();
     let (hsmcl, hsmcl_public) = party_one::HSMCL::generate_keypair_and_encrypted_share_and_proof(
         &ec_key_pair_party1,
         &seed,
@@ -75,8 +77,9 @@ fn test_two_party_sign() {
     let (party_two_private_share_gen, ec_key_pair_party2) = party_two::KeyGenFirstMsg::create();
 
     //pi (nothing up my sleeve)
-    let seed: BigInt = str::parse(
-        "314159265358979323846264338327950288419716939937510582097494459230781640628620899862803482534211706798214808651328230664709384460955058223172535940812848"
+    let seed: BigInt = BigInt::from_str_radix(
+        "314159265358979323846264338327950288419716939937510582097494459230781640628620899862803482534211706798214808651328230664709384460955058223172535940812848",
+        10,
     ).unwrap();
 
     let (party_one_hsmcl, hsmcl_public) =

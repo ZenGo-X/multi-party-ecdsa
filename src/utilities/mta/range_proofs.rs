@@ -10,13 +10,12 @@
 //! 2) A non-interactive version is implemented, with challenge `e` computed via Fiat-Shamir.
 
 use curv::arithmetic::traits::*;
-use curv::cryptographic_primitives::hashing::hash_sha256::HSha256;
-use curv::cryptographic_primitives::hashing::traits::Hash;
-use curv::elliptic::curves::secp256_k1::{FE, GE};
-use curv::elliptic::curves::traits::{ECPoint, ECScalar};
+use curv::cryptographic_primitives::hashing::{Digest, DigestExt};
+use curv::elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar};
 use curv::BigInt;
+use sha2::Sha256;
 
-use paillier::{Add, EncryptionKey, Mul, Randomness, RawCiphertext, RawPlaintext};
+use paillier::{EncryptionKey, Randomness};
 use zk_paillier::zkproofs::DLogStatement;
 
 use serde::{Deserialize, Serialize};
@@ -50,7 +49,7 @@ impl AliceZkpRound1 {
         let beta = BigInt::from_paillier_key(alice_ek);
         let gamma = BigInt::sample_below(&(q.pow(3) * N_tilde));
         let ro = BigInt::sample_below(&(q * N_tilde));
-        let z = (BigInt::mod_pow(h1, &a, N_tilde) * BigInt::mod_pow(h2, &ro, N_tilde)) % N_tilde;
+        let z = (BigInt::mod_pow(h1, a, N_tilde) * BigInt::mod_pow(h2, &ro, N_tilde)) % N_tilde;
         let u = ((alpha.borrow() * &alice_ek.n + 1)
             * BigInt::mod_pow(&beta, &alice_ek.n, &alice_ek.nn))
             % &alice_ek.nn;
@@ -84,7 +83,7 @@ impl AliceZkpRound2 {
         r: &BigInt,
     ) -> Self {
         Self {
-            s: (BigInt::mod_pow(r, &e, &alice_ek.n) * round1.beta.borrow()) % &alice_ek.n,
+            s: (BigInt::mod_pow(r, e, &alice_ek.n) * round1.beta.borrow()) % &alice_ek.n,
             s1: (e * a) + round1.alpha.borrow(),
             s2: (e * round1.ro.borrow()) + round1.gamma.borrow(),
         }
@@ -116,7 +115,7 @@ impl AliceProof {
         let h2 = &dlog_statement.ni;
         let Gen = alice_ek.n.borrow() + 1;
 
-        if self.s1 > FE::q().pow(3) {
+        if self.s1 > Scalar::<Secp256k1>::group_order().pow(3) {
             return false;
         }
 
@@ -133,7 +132,7 @@ impl AliceProof {
             % N_tilde;
 
         let gs1 = (self.s1.borrow() * N + 1) % NN;
-        let cipher_e_inv = BigInt::mod_inv(&BigInt::mod_pow(&cipher, &self.e, NN), NN);
+        let cipher_e_inv = BigInt::mod_inv(&BigInt::mod_pow(cipher, &self.e, NN), NN);
         let cipher_e_inv = match cipher_e_inv {
             None => return false,
             Some(c) => c,
@@ -141,7 +140,14 @@ impl AliceProof {
 
         let u = (gs1 * BigInt::mod_pow(&self.s, N, NN) * cipher_e_inv) % NN;
 
-        let e = HSha256::create_hash(&[N, &Gen, cipher, &self.z, &u, &w]);
+        let e = Sha256::new()
+            .chain_bigint(N)
+            .chain_bigint(&Gen)
+            .chain_bigint(cipher)
+            .chain_bigint(&self.z)
+            .chain_bigint(&u)
+            .chain_bigint(&w)
+            .result_bigint();
         if e != self.e {
             return false;
         }
@@ -158,10 +164,22 @@ impl AliceProof {
         dlog_statement: &DLogStatement,
         r: &BigInt,
     ) -> Self {
-        let round1 = AliceZkpRound1::from(alice_ek, dlog_statement, a, &FE::q());
+        let round1 = AliceZkpRound1::from(
+            alice_ek,
+            dlog_statement,
+            a,
+            Scalar::<Secp256k1>::group_order(),
+        );
 
         let Gen = alice_ek.n.borrow() + 1;
-        let e = HSha256::create_hash(&[&alice_ek.n, &Gen, cipher, &round1.z, &round1.u, &round1.w]);
+        let e = Sha256::new()
+            .chain_bigint(&alice_ek.n)
+            .chain_bigint(&Gen)
+            .chain_bigint(cipher)
+            .chain_bigint(&round1.z)
+            .chain_bigint(&round1.u)
+            .chain_bigint(&round1.w)
+            .result_bigint();
 
         let round2 = AliceZkpRound2::from(alice_ek, &round1, &e, a, r);
 
@@ -200,7 +218,7 @@ impl BobZkpRound1 {
     fn from(
         alice_ek: &EncryptionKey,
         dlog_statement: &DLogStatement,
-        b: &FE,
+        b: &Scalar<Secp256k1>,
         beta_prim: &BigInt,
         a_encrypted: &BigInt,
         q: &BigInt,
@@ -208,7 +226,7 @@ impl BobZkpRound1 {
         let h1 = &dlog_statement.g;
         let h2 = &dlog_statement.ni;
         let N_tilde = &dlog_statement.N;
-        let b_bn = b.to_big_int();
+        let b_bn = b.to_bigint();
 
         let alpha = BigInt::sample_below(&q.pow(3));
         let beta = BigInt::from_paillier_key(alice_ek);
@@ -264,11 +282,11 @@ impl BobZkpRound2 {
         alice_ek: &EncryptionKey,
         round1: &BobZkpRound1,
         e: &BigInt,
-        b: &FE,
+        b: &Scalar<Secp256k1>,
         beta_prim: &BigInt,
         r: &Randomness,
     ) -> Self {
-        let b_bn = b.to_big_int();
+        let b_bn = b.to_bigint();
         Self {
             s: (BigInt::mod_pow(r.0.borrow(), e, &alice_ek.n) * round1.beta.borrow()) % &alice_ek.n,
             s1: (e * b_bn) + round1.alpha.borrow(),
@@ -281,8 +299,8 @@ impl BobZkpRound2 {
 
 /// Additional fields in Bob's proof if MtA is run with check
 pub struct BobCheck {
-    u: GE,
-    X: GE,
+    u: Point<Secp256k1>,
+    X: Point<Secp256k1>,
 }
 
 /// Bob's regular proof
@@ -314,7 +332,7 @@ impl BobProof {
         let h1 = &dlog_statement.g;
         let h2 = &dlog_statement.ni;
 
-        if self.s1 > FE::q().pow(3) {
+        if self.s1 > Scalar::<Secp256k1>::group_order().pow(3) {
             return false;
         }
 
@@ -367,17 +385,23 @@ impl BobProof {
         ];
         let e = match check {
             Some(_) => {
-                let X_x_coor = check.unwrap().X.x_coor().unwrap();
+                let X_x_coor = check.unwrap().X.x_coord().unwrap();
                 values_to_hash.push(&X_x_coor);
-                let X_y_coor = check.unwrap().X.y_coor().unwrap();
+                let X_y_coor = check.unwrap().X.y_coord().unwrap();
                 values_to_hash.push(&X_y_coor);
-                let u_x_coor = check.unwrap().u.x_coor().unwrap();
+                let u_x_coor = check.unwrap().u.x_coord().unwrap();
                 values_to_hash.push(&u_x_coor);
-                let u_y_coor = check.unwrap().u.y_coor().unwrap();
+                let u_y_coor = check.unwrap().u.y_coord().unwrap();
                 values_to_hash.push(&u_y_coor);
-                HSha256::create_hash(&values_to_hash[..])
+                values_to_hash
+                    .into_iter()
+                    .fold(Sha256::new(), |acc, b| acc.chain_bigint(b))
+                    .result_bigint()
             }
-            None => HSha256::create_hash(&values_to_hash[..]),
+            None => values_to_hash
+                .into_iter()
+                .fold(Sha256::new(), |acc, b| acc.chain_bigint(b))
+                .result_bigint(),
         };
 
         if e != self.e {
@@ -390,20 +414,20 @@ impl BobProof {
     pub fn generate(
         a_encrypted: &BigInt,
         mta_encrypted: &BigInt,
-        b: &FE,
+        b: &Scalar<Secp256k1>,
         beta_prim: &BigInt,
         alice_ek: &EncryptionKey,
         dlog_statement: &DLogStatement,
         r: &Randomness,
         check: bool,
-    ) -> (BobProof, Option<GE>) {
+    ) -> (BobProof, Option<Point<Secp256k1>>) {
         let round1 = BobZkpRound1::from(
             alice_ek,
             dlog_statement,
             b,
             beta_prim,
             a_encrypted,
-            &FE::q(),
+            Scalar::<Secp256k1>::group_order(),
         );
 
         let Gen = alice_ek.n.borrow() + 1;
@@ -421,22 +445,28 @@ impl BobProof {
         let mut check_u = None;
         let e = if check {
             let (X, u) = {
-                let ec_gen: GE = ECPoint::generator();
-                let alpha: FE = ECScalar::from(&round1.alpha);
+                let ec_gen = Point::generator();
+                let alpha = Scalar::<Secp256k1>::from(&round1.alpha);
                 (ec_gen * b, ec_gen * alpha)
             };
-            check_u = Some(u);
-            let X_x_coor = X.x_coor().unwrap();
+            check_u = Some(u.clone());
+            let X_x_coor = X.x_coord().unwrap();
             values_to_hash.push(&X_x_coor);
-            let X_y_coor = X.y_coor().unwrap();
+            let X_y_coor = X.y_coord().unwrap();
             values_to_hash.push(&X_y_coor);
-            let u_x_coor = u.x_coor().unwrap();
+            let u_x_coor = u.x_coord().unwrap();
             values_to_hash.push(&u_x_coor);
-            let u_y_coor = u.y_coor().unwrap();
+            let u_y_coor = u.y_coord().unwrap();
             values_to_hash.push(&u_y_coor);
-            HSha256::create_hash(&values_to_hash[..])
+            values_to_hash
+                .into_iter()
+                .fold(Sha256::new(), |acc, b| acc.chain_bigint(b))
+                .result_bigint()
         } else {
-            HSha256::create_hash(&values_to_hash[..])
+            values_to_hash
+                .into_iter()
+                .fold(Sha256::new(), |acc, b| acc.chain_bigint(b))
+                .result_bigint()
         };
 
         let round2 = BobZkpRound2::from(alice_ek, &round1, &e, b, beta_prim, r);
@@ -461,7 +491,7 @@ impl BobProof {
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct BobProofExt {
     proof: BobProof,
-    u: GE,
+    u: Point<Secp256k1>,
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -472,7 +502,7 @@ impl BobProofExt {
         mta_avc_out: &BigInt,
         alice_ek: &EncryptionKey,
         dlog_statement: &DLogStatement,
-        X: &GE,
+        X: &Point<Secp256k1>,
     ) -> bool {
         // check basic proof first
         if !self.proof.verify(
@@ -480,17 +510,20 @@ impl BobProofExt {
             mta_avc_out,
             alice_ek,
             dlog_statement,
-            Some(&BobCheck { u: self.u, X: *X }),
+            Some(&BobCheck {
+                u: self.u.clone(),
+                X: X.clone(),
+            }),
         ) {
             return false;
         }
 
         // fiddle with EC points
         let (x1, x2) = {
-            let ec_gen: GE = ECPoint::generator();
-            let s1: FE = ECScalar::from(&self.proof.s1);
-            let e: FE = ECScalar::from(&self.proof.e);
-            (ec_gen * s1, (X * &e) + self.u)
+            let ec_gen = Point::generator();
+            let s1 = Scalar::<Secp256k1>::from(&self.proof.s1);
+            let e = Scalar::<Secp256k1>::from(&self.proof.e);
+            (ec_gen * s1, (X * &e) + &self.u)
         };
 
         if x1 != x2 {
@@ -498,33 +531,6 @@ impl BobProofExt {
         }
 
         true
-    }
-
-    fn generate(
-        a_encrypted: &BigInt,
-        mta_encrypted: &BigInt,
-        b: &FE,
-        beta_prim: &BigInt,
-        alice_ek: &EncryptionKey,
-        dlog_statement: &DLogStatement,
-        r: &Randomness,
-    ) -> BobProofExt {
-        // proving a basic proof (with modified hash)
-        let (bob_proof, u) = BobProof::generate(
-            a_encrypted,
-            mta_encrypted,
-            b,
-            beta_prim,
-            alice_ek,
-            dlog_statement,
-            r,
-            true,
-        );
-
-        BobProofExt {
-            proof: bob_proof,
-            u: u.unwrap(),
-        }
     }
 }
 
@@ -554,7 +560,34 @@ impl SampleFromMultiplicativeGroup for BigInt {
 pub(crate) mod tests {
     use super::*;
     use paillier::traits::{Encrypt, EncryptWithChosenRandomness, KeyGeneration};
-    use paillier::{DecryptionKey, Paillier};
+    use paillier::{Add, DecryptionKey, Mul, Paillier, RawCiphertext, RawPlaintext};
+
+    fn generate(
+        a_encrypted: &BigInt,
+        mta_encrypted: &BigInt,
+        b: &Scalar<Secp256k1>,
+        beta_prim: &BigInt,
+        alice_ek: &EncryptionKey,
+        dlog_statement: &DLogStatement,
+        r: &Randomness,
+    ) -> BobProofExt {
+        // proving a basic proof (with modified hash)
+        let (bob_proof, u) = BobProof::generate(
+            a_encrypted,
+            mta_encrypted,
+            b,
+            beta_prim,
+            alice_ek,
+            dlog_statement,
+            r,
+            true,
+        );
+
+        BobProofExt {
+            proof: bob_proof,
+            u: u.unwrap(),
+        }
+    }
 
     pub(crate) fn generate_init() -> (DLogStatement, EncryptionKey, DecryptionKey) {
         let (ek_tilde, dk_tilde) = Paillier::keypair().keys();
@@ -584,7 +617,7 @@ pub(crate) mod tests {
         let (dlog_statement, ek, _) = generate_init();
 
         // Alice's secret value
-        let a = FE::new_random().to_big_int();
+        let a = Scalar::<Secp256k1>::random().to_bigint();
         let r = BigInt::from_paillier_key(&ek);
         let cipher = Paillier::encrypt_with_chosen_randomness(
             &ek,
@@ -610,19 +643,19 @@ pub(crate) mod tests {
             // run MtA protocol with different inputs
             (0..5).for_each(|_| {
                 // Simulate Alice
-                let a = FE::new_random().to_big_int();
+                let a = Scalar::<Secp256k1>::random().to_bigint();
                 let encrypted_a = Paillier::encrypt(alice_public_key, RawPlaintext::from(a))
                     .0
                     .clone()
                     .into_owned();
 
                 // Bob follows MtA
-                let b = FE::new_random();
+                let b = Scalar::<Secp256k1>::random();
                 // E(a) * b
                 let b_times_enc_a = Paillier::mul(
                     alice_public_key,
                     RawCiphertext::from(encrypted_a.clone()),
-                    RawPlaintext::from(&b.to_big_int()),
+                    RawPlaintext::from(&b.to_bigint()),
                 );
                 let beta_prim = BigInt::sample_below(&alice_public_key.n);
                 let r = Randomness::sample(alice_public_key);
@@ -653,9 +686,9 @@ pub(crate) mod tests {
                 ));
 
                 // Bob follows MtAwc
-                let ec_gen: GE = ECPoint::generator();
-                let X = ec_gen * b;
-                let bob_proof = BobProofExt::generate(
+                let ec_gen = Point::generator();
+                let X = ec_gen * &b;
+                let bob_proof = generate(
                     &encrypted_a,
                     &mta_out.0.clone().into_owned(),
                     &b,

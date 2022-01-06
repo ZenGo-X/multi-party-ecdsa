@@ -6,13 +6,14 @@ use std::time::Duration;
 
 use curv::cryptographic_primitives::proofs::sigma_dlog::DLogProof;
 use curv::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS;
-use curv::elliptic::curves::secp256_k1::{FE, GE};
+use curv::elliptic::curves::{secp256_k1::Secp256k1, Scalar};
 use round_based::containers::{
     push::{Push, PushExt},
     *,
 };
 use round_based::{IsCritical, Msg, StateMachine};
 use serde::{Deserialize, Serialize};
+use sha2::Sha256;
 use thiserror::Error;
 
 use crate::protocols::multi_party_ecdsa::gg_2020;
@@ -32,8 +33,8 @@ pub struct Keygen {
 
     msgs1: Option<Store<BroadcastMsgs<gg_2020::party_i::KeyGenBroadcastMessage1>>>,
     msgs2: Option<Store<BroadcastMsgs<gg_2020::party_i::KeyGenDecommitMessage1>>>,
-    msgs3: Option<Store<P2PMsgs<(VerifiableSS<GE>, FE)>>>,
-    msgs4: Option<Store<BroadcastMsgs<DLogProof<GE>>>>,
+    msgs3: Option<Store<P2PMsgs<(VerifiableSS<Secp256k1>, Scalar<Secp256k1>)>>>,
+    msgs4: Option<Store<BroadcastMsgs<DLogProof<Secp256k1, Sha256>>>>,
 
     msgs_queue: Vec<Msg<ProtocolMessage>>,
 
@@ -186,7 +187,7 @@ impl Keygen {
 impl StateMachine for Keygen {
     type MessageBody = ProtocolMessage;
     type Err = Error;
-    type Output = LocalKey;
+    type Output = LocalKey<Secp256k1>;
 
     fn handle_incoming(&mut self, msg: Msg<Self::MessageBody>) -> Result<()> {
         let current_round = self.current_round();
@@ -345,15 +346,14 @@ impl super::traits::RoundBlame for Keygen {
         let store4_blame = self.msgs4.as_ref().map(|s| s.blame()).unwrap_or_default();
 
         let default = (0, vec![]);
-        let res = match &self.round {
-            R::Round0(_) => default.clone(),
+        match &self.round {
+            R::Round0(_) => default,
             R::Round1(_) => store1_blame,
             R::Round2(_) => store2_blame,
             R::Round3(_) => store3_blame,
             R::Round4(_) => store4_blame,
-            R::Final(_) | R::Gone => default.clone(),
-        };
-        res
+            R::Final(_) | R::Gone => default,
+        }
     }
 }
 
@@ -405,7 +405,7 @@ enum R {
     Round2(Round2),
     Round3(Round3),
     Round4(Round4),
-    Final(LocalKey),
+    Final(LocalKey<Secp256k1>),
     Gone,
 }
 
@@ -421,8 +421,8 @@ pub struct ProtocolMessage(M);
 enum M {
     Round1(gg_2020::party_i::KeyGenBroadcastMessage1),
     Round2(gg_2020::party_i::KeyGenDecommitMessage1),
-    Round3((VerifiableSS<GE>, FE)),
-    Round4(DLogProof<GE>),
+    Round3((VerifiableSS<Secp256k1>, Scalar<Secp256k1>)),
+    Round4(DLogProof<Secp256k1, Sha256>),
 }
 
 // Error
@@ -495,7 +495,7 @@ pub mod test {
 
     use super::*;
 
-    pub fn simulate_keygen(t: u16, n: u16) -> Vec<LocalKey> {
+    pub fn simulate_keygen(t: u16, n: u16) -> Vec<LocalKey<Secp256k1>> {
         let mut simulation = Simulation::new();
         simulation.enable_benchmarks(true);
 

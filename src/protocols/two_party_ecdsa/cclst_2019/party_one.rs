@@ -19,18 +19,17 @@ use class_group::primitives::cl_dl_public_setup::{
     decrypt, verifiably_encrypt, CLDLProof, CLGroup, Ciphertext as CLCiphertext, PK, SK,
 };
 
-use curv::arithmetic::traits::*;
+use curv::arithmetic::*;
 use curv::cryptographic_primitives::commitments::hash_commitment::HashCommitment;
 use curv::cryptographic_primitives::commitments::traits::Commitment;
-use curv::cryptographic_primitives::hashing::hash_sha256::HSha256;
-use curv::cryptographic_primitives::hashing::traits::Hash;
+use curv::cryptographic_primitives::hashing::{Digest, DigestExt};
 use curv::cryptographic_primitives::proofs::sigma_dlog::*;
 use curv::cryptographic_primitives::proofs::sigma_ec_ddh::*;
 use curv::cryptographic_primitives::proofs::ProofError;
-use curv::elliptic::curves::secp256_k1::{FE, GE};
-use curv::elliptic::curves::traits::*;
+use curv::elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar};
 use curv::BigInt;
 use serde::{Deserialize, Serialize};
+use sha2::Sha256;
 use subtle::ConstantTimeEq;
 
 use super::party_two::EphKeyGenFirstMsg as Party2EphKeyGenFirstMessage;
@@ -41,16 +40,16 @@ use crate::Error::{self, InvalidSig};
 //****************** Begin: Party One structs ******************//
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct EcKeyPair {
-    pub public_share: GE,
-    secret_share: FE,
+    pub public_share: Point<Secp256k1>,
+    secret_share: Scalar<Secp256k1>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CommWitness {
     pub pk_commitment_blind_factor: BigInt,
     pub zk_pok_blind_factor: BigInt,
-    pub public_share: GE,
-    pub d_log_proof: DLogProof<GE>,
+    pub public_share: Point<Secp256k1>,
+    pub d_log_proof: DLogProof<Secp256k1, Sha256>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -95,7 +94,7 @@ pub struct Signature {
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Party1Private {
-    x1: FE,
+    x1: Scalar<Secp256k1>,
     hsmcl_pub: PK,
     hsmcl_priv: SK,
 }
@@ -107,7 +106,7 @@ pub struct PDLFirstMessage {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PDLdecommit {
-    pub q_hat: GE,
+    pub q_hat: Point<Secp256k1>,
     pub blindness: BigInt,
 }
 
@@ -118,15 +117,15 @@ pub struct PDLSecondMessage {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct EphEcKeyPair {
-    pub public_share: GE,
-    secret_share: FE,
+    pub public_share: Point<Secp256k1>,
+    secret_share: Scalar<Secp256k1>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct EphKeyGenFirstMsg {
-    pub d_log_proof: ECDDHProof<GE>,
-    pub public_share: GE,
-    pub c: GE, //c = secret_share * base_point2
+    pub d_log_proof: ECDDHProof<Secp256k1, Sha256>,
+    pub public_share: Point<Secp256k1>,
+    pub c: Point<Secp256k1>, //c = secret_share * base_point2
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -136,30 +135,30 @@ pub struct EphKeyGenSecondMsg {}
 
 impl KeyGenFirstMsg {
     pub fn create_commitments() -> (KeyGenFirstMsg, CommWitness, EcKeyPair) {
-        let base: GE = ECPoint::generator();
+        let base = Point::generator();
 
-        let secret_share: FE = ECScalar::new_random();
+        let secret_share = Scalar::<Secp256k1>::random();
         //in Lindell's protocol range proof works only for x1<q/3
-        let secret_share: FE =
-            ECScalar::from(&secret_share.to_big_int().div_floor(&BigInt::from(3)));
+        let secret_share: Scalar<Secp256k1> =
+            Scalar::<Secp256k1>::from(&secret_share.to_bigint().div_floor(&BigInt::from(3)));
 
-        let public_share = base.scalar_mul(&secret_share.get_element());
+        let public_share = base * &secret_share;
 
         let d_log_proof = DLogProof::prove(&secret_share);
         // we use hash based commitment
         let pk_commitment_blind_factor = BigInt::sample(SECURITY_BITS);
-        let pk_commitment = HashCommitment::create_commitment_with_user_defined_randomness(
-            &public_share.bytes_compressed_to_big_int(),
-            &pk_commitment_blind_factor,
-        );
+        let pk_commitment =
+            HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
+                &BigInt::from_bytes(public_share.to_bytes(true).as_ref()),
+                &pk_commitment_blind_factor,
+            );
 
         let zk_pok_blind_factor = BigInt::sample(SECURITY_BITS);
-        let zk_pok_commitment = HashCommitment::create_commitment_with_user_defined_randomness(
-            &d_log_proof
-                .pk_t_rand_commitment
-                .bytes_compressed_to_big_int(),
-            &zk_pok_blind_factor,
-        );
+        let zk_pok_commitment =
+            HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
+                &BigInt::from_bytes(d_log_proof.pk_t_rand_commitment.to_bytes(true).as_ref()),
+                &zk_pok_blind_factor,
+            );
         let ec_key_pair = EcKeyPair {
             public_share,
             secret_share,
@@ -180,26 +179,26 @@ impl KeyGenFirstMsg {
     }
 
     pub fn create_commitments_with_fixed_secret_share(
-        secret_share: FE,
+        secret_share: Scalar<Secp256k1>,
     ) -> (KeyGenFirstMsg, CommWitness, EcKeyPair) {
-        let base: GE = ECPoint::generator();
-        let public_share = base.scalar_mul(&secret_share.get_element());
+        let base = Point::generator();
+        let public_share = base * &secret_share;
 
         let d_log_proof = DLogProof::prove(&secret_share);
 
         let pk_commitment_blind_factor = BigInt::sample(SECURITY_BITS);
-        let pk_commitment = HashCommitment::create_commitment_with_user_defined_randomness(
-            &public_share.bytes_compressed_to_big_int(),
-            &pk_commitment_blind_factor,
-        );
+        let pk_commitment =
+            HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
+                &BigInt::from_bytes(public_share.to_bytes(true).as_ref()),
+                &pk_commitment_blind_factor,
+            );
 
         let zk_pok_blind_factor = BigInt::sample(SECURITY_BITS);
-        let zk_pok_commitment = HashCommitment::create_commitment_with_user_defined_randomness(
-            &d_log_proof
-                .pk_t_rand_commitment
-                .bytes_compressed_to_big_int(),
-            &zk_pok_blind_factor,
-        );
+        let zk_pok_commitment =
+            HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
+                &BigInt::from_bytes(d_log_proof.pk_t_rand_commitment.to_bytes(true).as_ref()),
+                &zk_pok_blind_factor,
+            );
 
         let ec_key_pair = EcKeyPair {
             public_share,
@@ -224,14 +223,17 @@ impl KeyGenFirstMsg {
 impl KeyGenSecondMsg {
     pub fn verify_and_decommit(
         comm_witness: CommWitness,
-        proof: &DLogProof<GE>,
+        proof: &DLogProof<Secp256k1, Sha256>,
     ) -> Result<KeyGenSecondMsg, ProofError> {
         DLogProof::verify(proof)?;
         Ok(KeyGenSecondMsg { comm_witness })
     }
 }
 
-pub fn compute_pubkey(party_one_private: &Party1Private, other_share_public_share: &GE) -> GE {
+pub fn compute_pubkey(
+    party_one_private: &Party1Private,
+    other_share_public_share: &Point<Secp256k1>,
+) -> Point<Secp256k1> {
     other_share_public_share * &party_one_private.x1
 }
 
@@ -250,7 +252,7 @@ impl HSMCL {
         keygen: &EcKeyPair,
         seed: &BigInt,
     ) -> (HSMCL, HSMCLPublic) {
-        let cl_group = CLGroup::new_from_setup(&1348, &seed);
+        let cl_group = CLGroup::new_from_setup(&1348, seed);
         let (secret_key, public_key) = cl_group.keygen();
         let (ciphertext, proof) = verifiably_encrypt(
             &cl_group,
@@ -262,13 +264,13 @@ impl HSMCL {
             HSMCL {
                 cl_group: cl_group.clone(),
                 public: public_key.clone(),
-                secret: secret_key.clone(),
+                secret: secret_key,
                 encrypted_share: ciphertext.clone(),
             },
             HSMCLPublic {
-                cl_pub_key: public_key.clone(),
+                cl_pub_key: public_key,
                 proof,
-                encrypted_share: ciphertext.clone(),
+                encrypted_share: ciphertext,
                 cl_group,
             },
         )
@@ -277,16 +279,16 @@ impl HSMCL {
 
 impl EphKeyGenFirstMsg {
     pub fn create() -> (EphKeyGenFirstMsg, EphEcKeyPair) {
-        let base: GE = ECPoint::generator();
-        let secret_share: FE = ECScalar::new_random();
-        let public_share = &base * &secret_share;
-        let h: GE = GE::base_point2();
+        let base = Point::generator();
+        let secret_share = Scalar::<Secp256k1>::random();
+        let public_share = base * &secret_share;
+        let h = Point::<Secp256k1>::base_point2();
         let w = ECDDHWitness {
             x: secret_share.clone(),
         };
-        let c = &h * &secret_share;
+        let c = h * &secret_share;
         let delta = ECDDHStatement {
-            g1: base.clone(),
+            g1: base.to_point(),
             h1: public_share.clone(),
             g2: h.clone(),
             h2: c.clone(),
@@ -322,31 +324,31 @@ impl EphKeyGenSecondMsg {
             .pk_commitment_blind_factor;
         let party_two_d_log_proof = &party_two_second_message.comm_witness.d_log_proof;
         let mut flag = true;
-        match party_two_pk_commitment
-            == &HashCommitment::create_commitment_with_user_defined_randomness(
-                &party_two_public_share.bytes_compressed_to_big_int(),
-                &party_two_pk_commitment_blind_factor,
-            ) {
-            false => flag = false,
-            true => flag = flag,
-        };
-        match party_two_zk_pok_commitment
-            == &HashCommitment::create_commitment_with_user_defined_randomness(
-                &HSha256::create_hash_from_ge(&[
-                    &party_two_d_log_proof.a1,
-                    &party_two_d_log_proof.a2,
-                ])
-                .to_big_int(),
-                &party_two_zk_pok_blind_factor,
-            ) {
-            false => flag = false,
-            true => flag = flag,
-        };
-        assert!(flag);
+        if party_two_pk_commitment
+            != &HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
+                &BigInt::from_bytes(party_two_public_share.to_bytes(true).as_ref()),
+                party_two_pk_commitment_blind_factor,
+            )
+        {
+            flag = false
+        }
+        if party_two_zk_pok_commitment
+            != &HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
+                &Sha256::new()
+                    .chain_points([&party_two_d_log_proof.a1, &party_two_d_log_proof.a2])
+                    .result_bigint(),
+                party_two_zk_pok_blind_factor,
+            )
+        {
+            flag = false
+        }
+        if !flag {
+            return Err(ProofError);
+        }
         let delta = ECDDHStatement {
-            g1: GE::generator(),
+            g1: Point::generator().to_point(),
             h1: party_two_public_share.clone(),
-            g2: GE::base_point2(),
+            g2: Point::<Secp256k1>::base_point2().clone(),
             h2: party_two_second_message.comm_witness.c.clone(),
         };
         party_two_d_log_proof.verify(&delta)?;
@@ -360,44 +362,55 @@ impl Signature {
         party_one_private: &Party1Private,
         partial_sig_c3: CLCiphertext,
         ephemeral_local_share: &EphEcKeyPair,
-        ephemeral_other_public_share: &GE,
+        ephemeral_other_public_share: &Point<Secp256k1>,
     ) -> Signature {
         //compute r = k2* R1
-        let mut r = ephemeral_other_public_share.clone();
-        r = r.scalar_mul(&ephemeral_local_share.secret_share.get_element());
+        let r = ephemeral_other_public_share * &ephemeral_local_share.secret_share;
 
-        let rx = r.x_coor().unwrap().mod_floor(&FE::q());
-        let k1_inv = &ephemeral_local_share
-            .secret_share
-            .to_big_int()
-            .invert(&FE::q())
-            .unwrap();
+        let rx = r
+            .x_coord()
+            .unwrap()
+            .mod_floor(Scalar::<Secp256k1>::group_order());
+        let k1 = &ephemeral_local_share.secret_share.to_bigint();
+        let k1_inv = BigInt::mod_inv(k1, Scalar::<Secp256k1>::group_order()).unwrap();
         let s_tag = decrypt(
             &hsmcl.cl_group,
             &party_one_private.hsmcl_priv,
             &partial_sig_c3,
         );
-        let s_tag_tag = BigInt::mod_mul(&k1_inv, &s_tag.to_big_int(), &FE::q());
-        let s = cmp::min(s_tag_tag.clone(), FE::q().clone() - s_tag_tag.clone());
+        let s_tag_tag = BigInt::mod_mul(
+            &k1_inv,
+            &s_tag.to_bigint(),
+            Scalar::<Secp256k1>::group_order(),
+        );
+        let s = cmp::min(
+            s_tag_tag.clone(),
+            Scalar::<Secp256k1>::group_order().clone() - s_tag_tag,
+        );
         Signature { s, r: rx }
     }
 }
 
-pub fn verify(signature: &Signature, pubkey: &GE, message: &BigInt) -> Result<(), Error> {
-    let s_fe: FE = ECScalar::from(&signature.s);
-    let rx_fe: FE = ECScalar::from(&signature.r);
+pub fn verify(
+    signature: &Signature,
+    pubkey: &Point<Secp256k1>,
+    message: &BigInt,
+) -> Result<(), Error> {
+    let s_fe = Scalar::<Secp256k1>::from(&signature.s);
+    let rx_fe = Scalar::<Secp256k1>::from(&signature.r);
 
-    let s_inv_fe = s_fe.invert();
-    let e_fe: FE = ECScalar::from(&message.mod_floor(&FE::q()));
-    let u1 = GE::generator() * e_fe * s_inv_fe;
-    let u2 = *pubkey * rx_fe * s_inv_fe;
+    let s_inv_fe = s_fe.invert().ok_or(Error::InvalidSig)?;
+    let e_fe: Scalar<Secp256k1> =
+        Scalar::<Secp256k1>::from(&message.mod_floor(Scalar::<Secp256k1>::group_order()));
+    let u1 = Point::generator() * e_fe * &s_inv_fe;
+    let u2 = pubkey * rx_fe * &s_inv_fe;
 
     // second condition is against malleability
     let rx_bytes = &BigInt::to_bytes(&signature.r)[..];
-    let u1_plus_u2_bytes = &BigInt::to_bytes(&(u1 + u2).x_coor().unwrap())[..];
+    let u1_plus_u2_bytes = &BigInt::to_bytes(&(u1 + u2).x_coord().unwrap())[..];
 
-    if rx_bytes.ct_eq(&u1_plus_u2_bytes).unwrap_u8() == 1
-        && signature.s < FE::q() - signature.s.clone()
+    if rx_bytes.ct_eq(u1_plus_u2_bytes).unwrap_u8() == 1
+        && signature.s < Scalar::<Secp256k1>::group_order() - signature.s.clone()
     {
         Ok(())
     } else {

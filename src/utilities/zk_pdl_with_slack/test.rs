@@ -1,6 +1,6 @@
 #![allow(non_snake_case)]
 use crate::utilities::zk_pdl_with_slack::*;
-use curv::elliptic::curves::secp256_k1::{FE, GE};
+use curv::elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar};
 use curv::BigInt;
 use paillier::core::Randomness;
 use paillier::traits::{EncryptWithChosenRandomness, KeyGeneration};
@@ -17,7 +17,7 @@ fn test_zk_pdl_with_slack() {
     let one = BigInt::one();
     let phi = (&dk_tilde.p - &one) * (&dk_tilde.q - &one);
     let h1 = BigInt::sample_below(&phi);
-    let S = BigInt::from(2).pow(256 as u32);
+    let S = BigInt::from(2).pow(256_u32);
     let xhi = BigInt::sample_below(&S);
     let h1_inv = BigInt::mod_inv(&h1, &ek_tilde.n).unwrap();
     let h2 = BigInt::mod_pow(&h1_inv, &xhi, &ek_tilde.n);
@@ -34,13 +34,13 @@ fn test_zk_pdl_with_slack() {
     // note: safe primes should be used here as well:
     // let (ek_tilde, dk_tilde) = Paillier::keypair_safe_primes().keys();
     let randomness = Randomness::sample(&ek);
-    let x: FE = ECScalar::new_random();
+    let x = Scalar::<Secp256k1>::random();
 
-    let Q = GE::generator() * &x;
+    let Q = Point::generator() * &x;
 
     let c = Paillier::encrypt_with_chosen_randomness(
         &ek,
-        RawPlaintext::from(x.to_big_int().clone()),
+        RawPlaintext::from(x.to_bigint()),
         &randomness,
     )
     .0
@@ -51,7 +51,7 @@ fn test_zk_pdl_with_slack() {
         ciphertext: c,
         ek,
         Q,
-        G: GE::generator(),
+        G: Point::generator().to_point(),
         h1,
         h2,
         N_tilde: ek_tilde.n,
@@ -77,7 +77,7 @@ fn test_zk_pdl_with_slack_soundness() {
     let one = BigInt::one();
     let phi = (&dk_tilde.p - &one) * (&dk_tilde.q - &one);
     let h1 = BigInt::sample_below(&phi);
-    let S = BigInt::from(2).pow(256 as u32);
+    let S = BigInt::from(2).pow(256_u32);
     let xhi = BigInt::sample_below(&S);
     let h1_inv = BigInt::mod_inv(&h1, &ek_tilde.n).unwrap();
     let h2 = BigInt::mod_pow(&h1_inv, &xhi, &ek_tilde.n);
@@ -94,14 +94,14 @@ fn test_zk_pdl_with_slack_soundness() {
     // note: safe primes should be used here as well:
     // let (ek_tilde, dk_tilde) = Paillier::keypair_safe_primes().keys();
     let randomness = Randomness::sample(&ek);
-    let x: FE = ECScalar::new_random();
+    let x = Scalar::<Secp256k1>::random();
 
-    let Q = GE::generator() * &x;
+    let Q = Point::generator() * &x;
 
     // here we encrypt x + 1 instead of x:
     let c = Paillier::encrypt_with_chosen_randomness(
         &ek,
-        RawPlaintext::from(x.to_big_int().clone() + BigInt::one()),
+        RawPlaintext::from(x.to_bigint() + BigInt::one()),
         &randomness,
     )
     .0
@@ -112,7 +112,7 @@ fn test_zk_pdl_with_slack_soundness() {
         ciphertext: c,
         ek,
         Q,
-        G: GE::generator(),
+        G: Point::generator().to_point(),
         h1,
         h2,
         N_tilde: ek_tilde.n,
