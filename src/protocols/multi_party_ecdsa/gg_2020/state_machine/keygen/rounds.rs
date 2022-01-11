@@ -1,3 +1,4 @@
+use curv::BigInt;
 use curv::arithmetic::Converter;
 use curv::cryptographic_primitives::proofs::sigma_dlog::DLogProof;
 use curv::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS;
@@ -194,18 +195,28 @@ impl Round3 {
             share_count: self.n,
         };
         
-        let (vss_schemes, party_shares): (Vec<_>, Vec<_>) = input
-            .iter().map(|inp| {
-                match inp {
-                    (_, None, Some(encrypted_share)) => {
-                        let share_plaintext = Paillier::decrypt(&self.keys.dk, &encrypted_share);
-                        (inp.0.clone(), Some(Scalar::from_bigint(share_plaintext.0)), None)
-                    },
-                    _ => {}
-                }
-            })
-            .into_vec_including_me((self.own_vss, self.own_share))
+        let decrypted_input_msgs = input.into_vec()
+        .iter().map(|inp| {
+            match inp {
+                (_, None, Some(encrypted_share)) => {
+                    let share_plaintext = Paillier::decrypt(
+                        &self.keys.dk, 
+                        RawCiphertext::from(BigInt::from_bytes(encrypted_share.as_slice()))
+                    );
+                    (inp.0.clone(), Some(Scalar::from_bigint(&share_plaintext.0.into_owned())), None)
+                },
+                _ => inp.clone()
+            }
+        }).collect();
+        let decrypted_p2p = P2PMsgs {
+            msgs: decrypted_input_msgs,
+            my_ind: self.party_i,
+        };
+
+        let (vss_schemes, party_shares): (Vec<_>, Vec<_>) = decrypted_p2p
+            .into_vec_including_me((self.own_vss, Some(self.own_share), None))
             .into_iter()
+            .map(|inp| (inp.0, inp.1.unwrap()))
             .unzip();
 
         let (shared_keys, dlog_proof) = self
