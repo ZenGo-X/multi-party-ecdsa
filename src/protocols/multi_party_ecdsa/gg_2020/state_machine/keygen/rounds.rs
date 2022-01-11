@@ -1,3 +1,4 @@
+use curv::arithmetic::Converter;
 use curv::cryptographic_primitives::proofs::sigma_dlog::DLogProof;
 use curv::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS;
 use curv::elliptic::curves::{secp256_k1::Secp256k1, Curve, Point, Scalar};
@@ -6,7 +7,9 @@ use sha2::Sha256;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use paillier::EncryptionKey;
+use paillier::Paillier;
+use paillier::{Add, Encrypt, Mul};
+use paillier::{EncryptionKey, RawCiphertext, RawPlaintext};
 use round_based::containers::push::Push;
 use round_based::containers::{self, BroadcastMsgs, P2PMsgs, Store};
 use round_based::Msg;
@@ -109,7 +112,7 @@ impl Round2 {
         mut output: O,
     ) -> Result<Round3>
     where
-        O: Push<Msg<(VerifiableSS<Secp256k1>, Scalar<Secp256k1>)>>,
+        O: Push<Msg<(VerifiableSS<Secp256k1>, Option<Scalar<Secp256k1>>, Option<Vec<u8>>)>>,
     {
         let params = gg_2020::party_i::Parameters {
             threshold: self.t,
@@ -131,10 +134,12 @@ impl Round2 {
                 continue;
             }
 
+            let enc_key_for_recipient = self.received_comm[i + 1].e;
+            let encrypted_share = Paillier::encrypt(&enc_key_for_recipient, RawPlaintext::from(share.to_bigint()));
             output.push(Msg {
                 sender: self.party_i,
                 receiver: Some(i as u16 + 1),
-                body: (vss_result.0.clone(), share.clone()),
+                body: (vss_result.0.clone(), None, Some(encrypted_share.0.to_bytes())),
             })
         }
 
@@ -177,7 +182,7 @@ pub struct Round3 {
 impl Round3 {
     pub fn proceed<O>(
         self,
-        input: P2PMsgs<(VerifiableSS<Secp256k1>, Scalar<Secp256k1>)>,
+        input: P2PMsgs<(VerifiableSS<Secp256k1>, Option<Scalar<Secp256k1>>, Option<Vec<u8>>)>,
         mut output: O,
     ) -> Result<Round4>
     where
