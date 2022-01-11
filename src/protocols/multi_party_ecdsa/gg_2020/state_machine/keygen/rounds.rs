@@ -184,7 +184,6 @@ pub struct Round3 {
 impl Round3 {
     pub fn proceed<O>(
         self,
-        // Are these inputs ONLY for me to decrypt? i.e. am I the recipient on all of them.
         input: P2PMsgs<(VerifiableSS<Secp256k1>, Vec<u8>)>,
         mut output: O,
     ) -> Result<Round4>
