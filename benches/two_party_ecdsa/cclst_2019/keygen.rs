@@ -2,8 +2,8 @@ use criterion::criterion_main;
 
 mod bench {
     use criterion::{criterion_group, Criterion};
-    use curv::arithmetic::traits::Samplable;
-    use curv::elliptic::curves::traits::*;
+    use curv::arithmetic::Converter;
+    use curv::elliptic::curves::{Scalar, Secp256k1};
     use curv::BigInt;
     use multi_party_ecdsa::protocols::two_party_ecdsa::cclst_2019::{party_one, party_two};
 
@@ -32,9 +32,7 @@ mod bench {
                     .expect("failed to verify commitments and DLog proof");
 
                 // init HSMCL keypair:
-                let seed: BigInt = str::parse(
-                    "314159265358979323846264338327950288419716939937510582097494459230781640628620899862803482534211706798214808651328230664709384460955058223172535940812848"
-                ).unwrap();
+                let seed = BigInt::from_str_radix("314159265358979323846264338327950288419716939937510582097494459230781640628620899862803482534211706798214808651328230664709384460955058223172535940812848", 10).unwrap();
                 let (hsmcl, hsmcl_public) = party_one::HSMCL::generate_keypair_and_encrypted_share_and_proof(
                     &ec_key_pair_party1,
                     &seed,

@@ -2,8 +2,8 @@ use criterion::criterion_main;
 
 mod bench {
     use criterion::{criterion_group, Criterion};
+    use curv::arithmetic::Converter;
     use curv::BigInt;
-    use multi_party_ecdsa::protocols::two_party_ecdsa::cclst_2019::party_two::HSMCLPublic;
     use multi_party_ecdsa::protocols::two_party_ecdsa::cclst_2019::*;
 
     pub fn bench_full_sign_party_one_two(c: &mut Criterion) {
@@ -18,9 +18,7 @@ mod bench {
                 let (party_two_private_share_gen, ec_key_pair_party2) = party_two::KeyGenFirstMsg::create();
 
                 //pi (nothing up my sleeve)
-                let seed: BigInt = str::parse(
-                    "314159265358979323846264338327950288419716939937510582097494459230781640628620899862803482534211706798214808651328230664709384460955058223172535940812848"
-                ).unwrap();
+                let seed= BigInt::from_str_radix("314159265358979323846264338327950288419716939937510582097494459230781640628620899862803482534211706798214808651328230664709384460955058223172535940812848", 10).unwrap();
 
                 let (party_one_hsmcl, hsmcl_public) =
                     party_one::HSMCL::generate_keypair_and_encrypted_share_and_proof(

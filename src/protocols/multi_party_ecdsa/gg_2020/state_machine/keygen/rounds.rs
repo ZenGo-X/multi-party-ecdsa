@@ -1,14 +1,18 @@
+use curv::arithmetic::Converter;
 use curv::cryptographic_primitives::proofs::sigma_dlog::DLogProof;
 use curv::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS;
 use curv::elliptic::curves::{secp256_k1::Secp256k1, Curve, Point, Scalar};
+use curv::BigInt;
 use sha2::Sha256;
 
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use paillier::EncryptionKey;
+use paillier::Paillier;
+use paillier::{Decrypt, Encrypt};
+use paillier::{EncryptionKey, RawCiphertext, RawPlaintext};
 use round_based::containers::push::Push;
-use round_based::containers::{self, BroadcastMsgs, P2PMsgs, Store};
+use round_based::containers::{self, BroadcastMsgs, MessageStore, P2PMsgs, P2PMsgsStore, Store};
 use round_based::Msg;
 use zk_paillier::zkproofs::DLogStatement;
 
@@ -109,7 +113,7 @@ impl Round2 {
         mut output: O,
     ) -> Result<Round3>
     where
-        O: Push<Msg<(VerifiableSS<Secp256k1>, Scalar<Secp256k1>)>>,
+        O: Push<Msg<(VerifiableSS<Secp256k1>, Vec<u8>)>>,
     {
         let params = gg_2020::party_i::Parameters {
             threshold: self.t,
@@ -131,10 +135,13 @@ impl Round2 {
                 continue;
             }
 
+            let enc_key_for_recipient = &self.received_comm[i].e;
+            let encrypted_share =
+                Paillier::encrypt(enc_key_for_recipient, RawPlaintext::from(share.to_bigint()));
             output.push(Msg {
                 sender: self.party_i,
                 receiver: Some(i as u16 + 1),
-                body: (vss_result.0.clone(), share.clone()),
+                body: (vss_result.0.clone(), encrypted_share.0.to_bytes()),
             })
         }
 
@@ -177,7 +184,7 @@ pub struct Round3 {
 impl Round3 {
     pub fn proceed<O>(
         self,
-        input: P2PMsgs<(VerifiableSS<Secp256k1>, Scalar<Secp256k1>)>,
+        input: P2PMsgs<(VerifiableSS<Secp256k1>, Vec<u8>)>,
         mut output: O,
     ) -> Result<Round4>
     where
@@ -187,11 +194,27 @@ impl Round3 {
             threshold: self.t,
             share_count: self.n,
         };
+        let input: P2PMsgs<(VerifiableSS<Secp256k1>, Scalar<Secp256k1>)> = {
+            let encrypted_input = input.into_iter_indexed();
+            let mut decrypted_input = P2PMsgsStore::new(self.party_i, self.n);
+            for (i, (vss, encrypted_share)) in encrypted_input {
+                let v = BigInt::from_bytes(&encrypted_share);
+                let c = RawCiphertext::from(v);
+                let raw_share: RawPlaintext<'_> = Paillier::decrypt(&self.keys.dk, c);
+                let share = Scalar::from_bigint(&raw_share.0.into_owned());
+                let _ = decrypted_input.push_msg(Msg {
+                    sender: i,
+                    receiver: Some(self.party_i),
+                    body: (vss, share),
+                });
+            }
+            decrypted_input.finish().unwrap()
+        };
+
         let (vss_schemes, party_shares): (Vec<_>, Vec<_>) = input
             .into_vec_including_me((self.own_vss, self.own_share))
             .into_iter()
             .unzip();
-
         let (shared_keys, dlog_proof) = self
             .keys
             .phase2_verify_vss_construct_keypair_phase3_pok_dlog(
@@ -225,10 +248,7 @@ impl Round3 {
     pub fn is_expensive(&self) -> bool {
         true
     }
-    pub fn expects_messages(
-        i: u16,
-        n: u16,
-    ) -> Store<P2PMsgs<(VerifiableSS<Secp256k1>, Scalar<Secp256k1>)>> {
+    pub fn expects_messages(i: u16, n: u16) -> Store<P2PMsgs<(VerifiableSS<Secp256k1>, Vec<u8>)>> {
         containers::P2PMsgsStore::new(i, n)
     }
 }
