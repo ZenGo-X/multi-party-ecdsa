@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use paillier::Paillier;
-use paillier::{Add, Encrypt, Mul};
+use paillier::{Add, Encrypt, Decrypt, Mul};
 use paillier::{EncryptionKey, RawCiphertext, RawPlaintext};
 use round_based::containers::push::Push;
 use round_based::containers::{self, BroadcastMsgs, P2PMsgs, Store};
@@ -182,6 +182,7 @@ pub struct Round3 {
 impl Round3 {
     pub fn proceed<O>(
         self,
+        // Are these inputs ONLY for me to decrypt? i.e. am I the recipient on all of them.
         input: P2PMsgs<(VerifiableSS<Secp256k1>, Option<Scalar<Secp256k1>>, Option<Vec<u8>>)>,
         mut output: O,
     ) -> Result<Round4>
@@ -192,7 +193,17 @@ impl Round3 {
             threshold: self.t,
             share_count: self.n,
         };
+        
         let (vss_schemes, party_shares): (Vec<_>, Vec<_>) = input
+            .iter().map(|inp| {
+                match inp {
+                    (_, None, Some(encrypted_share)) => {
+                        let share_plaintext = Paillier::decrypt(&self.keys.dk, &encrypted_share);
+                        (inp.0.clone(), Some(Scalar::from_bigint(share_plaintext.0)), None)
+                    },
+                    _ => {}
+                }
+            })
             .into_vec_including_me((self.own_vss, self.own_share))
             .into_iter()
             .unzip();
