@@ -1,7 +1,5 @@
 #![allow(dead_code)]
 
-use std::{env, thread, time, time::Duration};
-
 use aes_gcm::aead::{Aead, NewAead};
 use aes_gcm::{Aes256Gcm, Nonce};
 use rand::{rngs::OsRng, RngCore};
@@ -12,7 +10,6 @@ use curv::{
     BigInt,
 };
 
-use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
 pub type Key = String;
@@ -78,124 +75,14 @@ pub fn aes_decrypt(key: &[u8], aead_pack: AEAD) -> Vec<u8> {
     out.unwrap()
 }
 
-pub fn postb<T>(client: &Client, path: &str, body: T) -> Option<String>
-where
-    T: serde::ser::Serialize,
-{
-    let addr = env::args()
-        .nth(1)
-        .unwrap_or_else(|| "http://127.0.0.1:8001".to_string());
-    let retries = 3;
-    let retry_delay = time::Duration::from_millis(250);
-    for _i in 1..retries {
-        let res = client
-            .post(&format!("{}/{}", addr, path))
-            .json(&body)
-            .send();
-
-        if let Ok(mut res) = res {
-            return Some(res.text().unwrap());
-        }
-        thread::sleep(retry_delay);
-    }
-    None
-}
-
-pub fn broadcast(
-    client: &Client,
-    party_num: u16,
-    round: &str,
-    data: String,
-    sender_uuid: String,
-) -> Result<(), ()> {
-    let key = format!("{}-{}-{}", party_num, round, sender_uuid);
-    let entry = Entry { key, value: data };
-
-    let res_body = postb(client, "set", entry).unwrap();
-    serde_json::from_str(&res_body).unwrap()
-}
-
-pub fn sendp2p(
-    client: &Client,
-    party_from: u16,
-    party_to: u16,
-    round: &str,
-    data: String,
-    sender_uuid: String,
-) -> Result<(), ()> {
-    let key = format!("{}-{}-{}-{}", party_from, party_to, round, sender_uuid);
-
-    let entry = Entry { key, value: data };
-
-    let res_body = postb(client, "set", entry).unwrap();
-    serde_json::from_str(&res_body).unwrap()
-}
-
-pub fn poll_for_broadcasts(
-    client: &Client,
-    party_num: u16,
-    n: u16,
-    delay: Duration,
-    round: &str,
-    sender_uuid: String,
-) -> Vec<String> {
-    let mut ans_vec = Vec::new();
-    for i in 1..=n {
-        if i != party_num {
-            let key = format!("{}-{}-{}", i, round, sender_uuid);
-            let index = Index { key };
-            loop {
-                // add delay to allow the server to process request:
-                thread::sleep(delay);
-                let res_body = postb(client, "get", index.clone()).unwrap();
-                let answer: Result<Entry, ()> = serde_json::from_str(&res_body).unwrap();
-                if let Ok(answer) = answer {
-                    ans_vec.push(answer.value);
-                    println!("[{:?}] party {:?} => party {:?}", round, i, party_num);
-                    break;
-                }
-            }
-        }
-    }
-    ans_vec
-}
-
-pub fn poll_for_p2p(
-    client: &Client,
-    party_num: u16,
-    n: u16,
-    delay: Duration,
-    round: &str,
-    sender_uuid: String,
-) -> Vec<String> {
-    let mut ans_vec = Vec::new();
-    for i in 1..=n {
-        if i != party_num {
-            let key = format!("{}-{}-{}-{}", i, party_num, round, sender_uuid);
-            let index = Index { key };
-            loop {
-                // add delay to allow the server to process request:
-                thread::sleep(delay);
-                let res_body = postb(client, "get", index.clone()).unwrap();
-                let answer: Result<Entry, ()> = serde_json::from_str(&res_body).unwrap();
-                if let Ok(answer) = answer {
-                    ans_vec.push(answer.value);
-                    println!("[{:?}] party {:?} => party {:?}", round, i, party_num);
-                    break;
-                }
-            }
-        }
-    }
-    ans_vec
-}
-
 #[allow(dead_code)]
 pub fn check_sig(
     r: &Scalar<Secp256k1>,
     s: &Scalar<Secp256k1>,
     msg: &BigInt,
     pk: &Point<Secp256k1>,
-) {
+)
+{
     use secp256k1::{verify, Message, PublicKey, PublicKeyFormat, Signature};
 
     let raw_msg = BigInt::to_bytes(msg);
