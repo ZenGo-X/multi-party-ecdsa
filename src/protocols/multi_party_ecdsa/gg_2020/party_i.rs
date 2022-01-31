@@ -731,8 +731,7 @@ impl LocalSignature {
         let num_of_other_participants = s.len() - 1;
         if pdl_w_slack_proof_vec.len() != num_of_other_participants {
             bad_actors_vec.push(i);
-        }
-        else {
+        } else {
             let proofs_verification = (0..pdl_w_slack_proof_vec.len())
                 .map(|j| {
                     let ind = if j < i { j } else { j + 1 };
