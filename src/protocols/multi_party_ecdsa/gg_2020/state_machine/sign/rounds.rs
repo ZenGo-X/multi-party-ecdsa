@@ -498,14 +498,10 @@ impl Round5 {
     where
         O: Push<Msg<(SI, HEGProof)>>,
     {
-        let num_of_other_participants = self.s_l.len() - 1;
         let (r_dash_vec, pdl_proof_mat_inc_me): (Vec<_>, Vec<_>) = input
             .into_vec_including_me((RDash(self.R_dash), self.phase5_proofs_vec))
             .into_iter()
-            .map(|(r_dash, pdl_proof)| {
-                assert_eq!(pdl_proof.len(), num_of_other_participants);
-                (r_dash.0, pdl_proof)
-            })
+            .map(|(r_dash, pdl_proof)| (r_dash.0, pdl_proof))
             .unzip();
 
         let l_s: Vec<_> = self
