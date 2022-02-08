@@ -728,37 +728,41 @@ impl LocalSignature {
     ) -> Result<(), ErrorType> {
         let mut bad_actors_vec = Vec::new();
 
-        let proofs_verification = (0..pdl_w_slack_proof_vec.len())
-            .map(|j| {
-                let ind = if j < i { j } else { j + 1 };
-                let pdl_w_slack_statement = PDLwSlackStatement {
-                    ciphertext: k_ciphertext.clone(),
-                    ek: ek.clone(),
-                    Q: R_dash.clone(),
-                    G: R.clone(),
-                    h1: dlog_statement[s[ind]].g.clone(),
-                    h2: dlog_statement[s[ind]].ni.clone(),
-                    N_tilde: dlog_statement[s[ind]].N.clone(),
-                };
-                let ver_res = pdl_w_slack_proof_vec[j].verify(&pdl_w_slack_statement);
-                if ver_res.is_err() {
-                    bad_actors_vec.push(i);
-                    false
-                } else {
-                    true
-                }
-            })
-            .all(|x| x);
+        let num_of_other_participants = s.len() - 1;
+        if pdl_w_slack_proof_vec.len() != num_of_other_participants {
+            bad_actors_vec.push(i);
+        } else {
+            let proofs_verification = (0..pdl_w_slack_proof_vec.len())
+                .map(|j| {
+                    let ind = if j < i { j } else { j + 1 };
+                    let pdl_w_slack_statement = PDLwSlackStatement {
+                        ciphertext: k_ciphertext.clone(),
+                        ek: ek.clone(),
+                        Q: R_dash.clone(),
+                        G: R.clone(),
+                        h1: dlog_statement[s[ind]].g.clone(),
+                        h2: dlog_statement[s[ind]].ni.clone(),
+                        N_tilde: dlog_statement[s[ind]].N.clone(),
+                    };
+                    let ver_res = pdl_w_slack_proof_vec[j].verify(&pdl_w_slack_statement);
+                    if ver_res.is_err() {
+                        bad_actors_vec.push(i);
+                        false
+                    } else {
+                        true
+                    }
+                })
+                .all(|x| x);
+            if proofs_verification {
+                return Ok(());
+            }
+        }
 
         let err_type = ErrorType {
-            error_type: "bad gamma_i decommit".to_string(),
+            error_type: "Bad PDLwSlack proof".to_string(),
             bad_actors: bad_actors_vec,
         };
-        if proofs_verification {
-            Ok(())
-        } else {
-            Err(err_type)
-        }
+        Err(err_type)
     }
 
     pub fn phase5_check_R_dash_sum(R_dash_vec: &[Point<Secp256k1>]) -> Result<(), Error> {
