@@ -41,7 +41,7 @@ use crate::Error::{self, InvalidCom, InvalidKey, InvalidSS, InvalidSig};
 
 const SECURITY: usize = 256;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Parameters {
     pub threshold: u16,   //t
     pub share_count: u16, //n
