@@ -628,7 +628,7 @@ impl SignKeys {
         let l = Scalar::<Secp256k1>::random();
         let h_l = Point::<Secp256k1>::base_point2() * &l;
         let T = g_sigma_i + h_l;
-        let T_zk_proof = PedersenProof::<Secp256k1, Sha256>::prove(&(sigma_i + sigma_i), &l);
+        let T_zk_proof = PedersenProof::<Secp256k1, Sha256>::prove(sigma_i, &l);
 
         (T, l, T_zk_proof)
     }
