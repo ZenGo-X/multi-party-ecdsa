@@ -341,7 +341,7 @@ impl Round3 {
             .unzip3();
 
         for i in 0..t_vec.len() {
-            assert_eq!(t_vec[i],t_proof_vec[i].com);
+            assert_eq!(t_vec[i], t_proof_vec[i].com);
         }
 
         let delta_inv = SignKeys::phase3_reconstruct_delta(&delta_vec);
