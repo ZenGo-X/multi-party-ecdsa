@@ -404,14 +404,14 @@ fn sign(t: u16, n: u16, ttag: u16, s: Vec<u16>) {
 }
 
 fn check_sig(r: &Scalar<Secp256k1>, s: &Scalar<Secp256k1>, msg: &BigInt, pk: &Point<Secp256k1>) {
-    use secp256k1::{verify, Message, PublicKey, PublicKeyFormat, Signature};
+    use secp256k1::{Message, PublicKey, Signature, SECP256K1};
 
     let raw_msg = BigInt::to_bytes(msg);
     let mut msg: Vec<u8> = Vec::new(); // padding
     msg.extend(vec![0u8; 32 - raw_msg.len()]);
     msg.extend(raw_msg.iter());
 
-    let msg = Message::parse_slice(msg.as_slice()).unwrap();
+    let msg = Message::from_slice(msg.as_slice()).unwrap();
     let slice = pk.to_bytes(false);
     let mut raw_pk = Vec::new();
     if slice.len() != 65 {
@@ -425,7 +425,7 @@ fn check_sig(r: &Scalar<Secp256k1>, s: &Scalar<Secp256k1>, msg: &BigInt, pk: &Po
 
     assert_eq!(raw_pk.len(), 65);
 
-    let pk = PublicKey::parse_slice(&raw_pk, Some(PublicKeyFormat::Full)).unwrap();
+    let pk = PublicKey::from_slice(&raw_pk).unwrap();
 
     let mut compact: Vec<u8> = Vec::new();
     let bytes_r = &r.to_bytes()[..];
@@ -436,9 +436,9 @@ fn check_sig(r: &Scalar<Secp256k1>, s: &Scalar<Secp256k1>, msg: &BigInt, pk: &Po
     compact.extend(vec![0u8; 32 - bytes_s.len()]);
     compact.extend(bytes_s.iter());
 
-    let secp_sig = Signature::parse_slice(compact.as_slice()).unwrap();
+    let secp_sig = Signature::from_compact(compact.as_slice()).unwrap();
 
-    let is_correct = verify(&msg, &secp_sig, &pk);
+    let is_correct = SECP256K1.verify(&msg, &secp_sig, &pk).is_ok();
     assert!(is_correct);
 }
 
