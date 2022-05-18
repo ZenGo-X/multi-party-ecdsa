@@ -481,6 +481,7 @@ fn sign(
     }
     // verify T_proof_vec
     for i in 0..ttag {
+        assert_eq!(T_vec[i], T_proof_vec[i].com.clone());
         PedersenProof::verify(&T_proof_vec[i]).expect("error T proof");
     }
     // de-commit to g^gamma_i from phase1, test comm correctness, and that it is the same value used in MtA.
