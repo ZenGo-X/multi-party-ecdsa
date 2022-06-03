@@ -10,9 +10,7 @@ use curv::{
     elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar},
     BigInt,
 };
-use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2018::party_i::{
-    KeyGenBroadcastMessage1, KeyGenDecommitMessage1, Keys, Parameters,
-};
+use multi_party_ecdsa::protocols::multi_party_ecdsa::gg_2018::party_i::{KeyGenBroadcastMessage1, KeyGenDecommitMessage1, Keys, Parameters, SharedKeys};
 use paillier::EncryptionKey;
 use reqwest::Client;
 use sha2::Sha256;
@@ -25,8 +23,12 @@ use common::{
 };
 
 fn main() {
-    if env::args().nth(3).is_some() {
+    if env::args().nth(4).is_some() {
         panic!("too many arguments")
+    }
+    let mut rotate = false;
+    if env::args().nth(3).is_some() {
+        rotate = env::args().nth(3).unwrap() == "rotate";
     }
     if env::args().nth(2).is_none() {
         panic!("too few arguments")
@@ -53,7 +55,29 @@ fn main() {
     };
     println!("number: {:?}, uuid: {:?}", party_num_int, uuid);
 
-    let party_keys = Keys::create(party_num_int);
+    let party_keys = if rotate {
+        // read key file
+        let key_file_path = env::args().nth(2).unwrap();
+        let key_file_data = fs::read_to_string(key_file_path.clone())
+            .expect("Unable to load keys, for key rotation the key file should be generated and readable");
+
+        let (party_keys, _shared_keys_old, _party_id, _vss_scheme_vec_old, _paillier_key_vector_old, _y_sum_old): (
+            Keys,
+            SharedKeys,
+            u16,
+            Vec<VerifiableSS<Secp256k1>>,
+            Vec<EncryptionKey>,
+            Point<Secp256k1>,
+        ) = serde_json::from_str(&key_file_data).unwrap();
+
+        let result = fs::copy(key_file_path.clone(), key_file_path + ".rotation.backup");
+        result.expect("Unable to create backup from key file");
+        party_keys
+    }
+    else {
+        Keys::create(party_num_int)
+    };
+
     let (bc_i, decom_i) = party_keys.phase1_broadcast_phase3_proof_of_correct_key();
 
     // send commitment to ephemeral public keys, get round 1 commitments of other parties

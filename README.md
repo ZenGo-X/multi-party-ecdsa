@@ -97,7 +97,7 @@ The following steps are for setup, key generation with `n` parties and signing w
 
 ### Setup
 
-1.  We use shared state machine architecture (see [white city](https://github.com/KZen-networks/white-city)). The parameters `parties` and `threshold` can be configured by changing the file: `param`. a keygen will run with `parties` parties and signing will run with any subset of `threshold + 1` parties. `param` file should be located in the same path of the client software.
+1.  We use shared state machine architecture (see [white city](https://github.com/KZen-networks/white-city)). The parameters `parties` and `threshold` can be configured by changing the file: `params.json`. A keygen will run with `parties` parties and signing will run with any subset of `threshold + 1` parties. `params.json` file should be located in the same path of the client software.
 
 2.  Install [Rust](https://rustup.rs/). Run `cargo build --release --examples` (it will build into `/target/release/examples/`)
 
@@ -106,6 +106,23 @@ The following steps are for setup, key generation with `n` parties and signing w
 ### KeyGen
 
 run `gg18_keygen_client` as follows: `./gg18_keygen_client http://127.0.0.1:8000 keys.store`. Replace IP and port with the ones configured in setup. Once `n` parties join the application will run till finish. At the end each party will get a local keys file `keys.store` (change filename in command line). This contains secret and public data of the party after keygen. The file therefore should remain private.
+
+#### Example
+
+First edit the file `params.json` and save it with this content:
+`{"parties":"3", "threshold":"2"}
+`
+
+Then run manager:
+
+`./gg18_sm_manager`
+
+Then open 3 other terminal tabs for each party. Run:
+
+1. `./gg18_keygen_client http://127.0.0.1:8000 local-share1.json`
+2. `./gg18_keygen_client http://127.0.0.1:8000 local-share2.json`
+3. `./gg18_keygen_client http://127.0.0.1:8000 local-share3.json`
+
 
 ### Sign
 
@@ -119,10 +136,32 @@ Simply put, the safest way to use the signing binary is to just always hex your 
 
 #### Example
 To sign the message `hello world`, first calculate its hexadecimal representation. This yields the `68656c6c6f20776f726c64`.
-Then, run:
-```bash
-./gg18_sign_client http://127.0.0.1:8000 keys.store "68656c6c6f20776f726c64"
-```
+Then, run the commands below in 3 terminal tabs:
+
+1. `./gg18_sign_client http://127.0.0.1:8000 local-share1.json "68656c6c6f20776f726c64"`
+2. `./gg18_sign_client http://127.0.0.1:8000 local-share2.json "68656c6c6f20776f726c64"`
+3. `./gg18_sign_client http://127.0.0.1:8000 local-share3.json "68656c6c6f20776f726c64"`
+
+### Run Key Rotation
+
+This version supports [Key Rotation](https://academy.binance.com/en/articles/threshold-signatures-explained#header-6) for GG18. It takes previously
+generated local key files and replaces them with new key files (new secret shares) 
+without changing the public key.
+
+Assuming that you have executed gg18_keygen_client example above, here is an example how to
+perform key rotation on its generated key files:
+
+First run manager as you did for keygen. Then open 3 terminal tabs for each party. Run:
+
+1. `./gg18_keygen_client http://127.0.0.1:8000 local-share1.json rotate`
+2. `./gg18_keygen_client http://127.0.0.1:8000 local-share2.json rotate`
+3. `./gg18_keygen_client http://127.0.0.1:8000 local-share3.json rotate`
+
+Each command corresponds to one party. Once key rotation is completed, you'll have 3 new files:
+`local-share1.json`, `local-share2.json`, `local-share3.json` corresponding to rotated local secret
+share of each party. The original shares of each party will be saved in three
+files like `local-share1.json.rotation.backup`, `local-share2.json.rotation.backup`,
+`local-share3.json.rotation.backup` respectively.
 
 ### GG18 demo
 
