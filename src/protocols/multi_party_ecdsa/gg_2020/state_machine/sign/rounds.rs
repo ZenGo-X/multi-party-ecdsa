@@ -340,6 +340,10 @@ impl Round3 {
             .map(|(delta_i, t_i, t_i_proof)| (delta_i.0, t_i.0, t_i_proof.0))
             .unzip3();
 
+        for i in 0..t_vec.len() {
+            assert_eq!(t_vec[i], t_proof_vec[i].com);
+        }
+
         let delta_inv = SignKeys::phase3_reconstruct_delta(&delta_vec);
         let ttag = self.s_l.len();
         for proof in t_proof_vec.iter().take(ttag) {

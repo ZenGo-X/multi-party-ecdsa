@@ -33,7 +33,6 @@ cclst = ["class_group"]
 subtle = { version = "2" }
 serde = { version = "1.0", features = ["derive"] }
 zeroize = "1"
-libsecp256k1 = "0.3.2"
 curv-kzen = { version = "0.9", default-features = false }
 centipede = { version = "0.3", default-features = false }
 zk-paillier = { version = "0.4.3", default-features = false }
@@ -67,6 +66,7 @@ surf = "2"
 async-sse = "5"
 anyhow = "1"
 structopt = "0.3"
+secp256k1 = { version = "0.20", features = ["global-context"]}
 
 thiserror = "1.0.23"
 round-based = { version = "0.1.4", features = ["dev"] }
