@@ -158,7 +158,6 @@ impl Round1 {
                 Error::Round1(ErrorType {
                     error_type: e.to_string(),
                     bad_actors: vec![],
-                    data: vec![],
                 })
             })?;
 
@@ -172,7 +171,6 @@ impl Round1 {
                 Error::Round1(ErrorType {
                     error_type: e.to_string(),
                     bad_actors: vec![],
-                    data: vec![],
                 })
             })?;
 
@@ -269,7 +267,6 @@ impl Round2 {
                     Error::Round3(ErrorType {
                         error_type: e.to_string(),
                         bad_actors: vec![],
-                        data: vec![],
                     })
                 })?;
             let m_b = m_b_w_s[j].clone();
@@ -279,7 +276,6 @@ impl Round2 {
                     Error::Round3(ErrorType {
                         error_type: e.to_string(),
                         bad_actors: vec![],
-                        data: vec![],
                     })
                 })?;
             assert_eq!(m_b.b_proof.pk, g_w_vec[ind]); //TODO: return error
@@ -377,7 +373,6 @@ impl Round3 {
                 Error::Round3(ErrorType {
                     error_type: e.to_string(),
                     bad_actors: vec![],
-                    data: vec![],
                 })
             })?;
         }
@@ -565,7 +560,6 @@ impl Round5 {
             Error::Round5(ErrorType {
                 error_type: e.to_string(),
                 bad_actors: vec![],
-                data: vec![],
             })
         })?;
 
