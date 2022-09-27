@@ -77,9 +77,9 @@ pub struct KeyGenDecommitMessage1 {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct SharedKeys {
-    pub y: Point<Secp256k1>,
-    pub x_i: Scalar<Secp256k1>,
+pub struct SharedKeys<E: Curve = Secp256k1> {
+    pub y: Point<E>,
+    pub x_i: Scalar<E>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

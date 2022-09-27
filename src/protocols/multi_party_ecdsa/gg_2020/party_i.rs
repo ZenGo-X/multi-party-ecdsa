@@ -93,9 +93,9 @@ pub struct KeyGenDecommitMessage1 {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct SharedKeys {
-    pub y: Point<Secp256k1>,
-    pub x_i: Scalar<Secp256k1>,
+pub struct SharedKeys<E: Curve = Secp256k1> {
+    pub y: Point<E>,
+    pub x_i: Scalar<E>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -327,7 +327,7 @@ impl Keys {
         secret_shares_vec: &[Scalar<Secp256k1>],
         vss_scheme_vec: &[VerifiableSS<Secp256k1>],
         index: usize,
-    ) -> Result<(SharedKeys, DLogProof<Secp256k1, Sha256>), ErrorType> {
+    ) -> Result<(SharedKeys<Secp256k1>, DLogProof<Secp256k1, Sha256>), ErrorType> {
         let mut bad_actors_vec = Vec::new();
         assert_eq!(y_vec.len(), usize::from(params.share_count));
         assert_eq!(secret_shares_vec.len(), usize::from(params.share_count));
@@ -442,7 +442,7 @@ impl Keys {
 }
 
 impl PartyPrivate {
-    pub fn set_private(key: Keys, shared_key: SharedKeys) -> Self {
+    pub fn set_private(key: Keys, shared_key: SharedKeys<Secp256k1>) -> Self {
         Self {
             u_i: key.u_i,
             x_i: shared_key.x_i,

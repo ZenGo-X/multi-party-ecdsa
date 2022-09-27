@@ -153,7 +153,7 @@ fn keygen_t_n_parties(
 ) -> Result<
     (
         Vec<Keys>,
-        Vec<SharedKeys>,
+        Vec<SharedKeys<Secp256k1>>,
         Vec<Point<Secp256k1>>,
         Point<Secp256k1>,
         VerifiableSS<Secp256k1>,
