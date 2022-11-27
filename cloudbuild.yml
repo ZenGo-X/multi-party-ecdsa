@@ -1,0 +1,28 @@
+steps:
+ - name: gcr.io/cloud-builders/docker
+   entrypoint: /bin/bash
+   args:
+     - "-c"
+     - | 
+         docker build . --no-cache \
+           --tag $_GCR_ASIA_HOSTNAME/$PROJECT_ID/$_REPOSITORY/$REPO_NAME/$_SERVICE_NAME:latest  \
+           -f Dockerfile
+         docker push $_GCR_ASIA_HOSTNAME/$PROJECT_ID/$_REPOSITORY/$REPO_NAME/$_SERVICE_NAME:latest
+
+ - name: 'gcr.io/cloud-builders/gcloud'
+   entrypoint: /bin/bash
+   args:
+     - '-c'
+     - |
+         gcloud run deploy $_SERVICE_NAME --platform=managed --allow-unauthenticated  \
+           --image=$_GCR_ASIA_HOSTNAME/$PROJECT_ID/$_REPOSITORY/$REPO_NAME/$_SERVICE_NAME:latest \
+           --region=$_REGION_HONGKONG \
+           --set-env-vars=POD_ZONE=$_REGION_HONGKONG \
+           --quiet
+options:
+  substitutionOption: ALLOW_LOOSE
+substitutions:
+  _PLATFORM: managed
+  _SERVICE_NAME: mpc
+  _REGION_HONGKONG: asia-east1
+  _GCR_ASIA_HOSTNAME: asia-docker.pkg.dev
