@@ -1,13 +1,8 @@
 steps:
- - name: gcr.io/cloud-builders/docker
-   entrypoint: /bin/bash
+ - name: 'gcr.io/kaniko-project/executor:latest'
    args:
-     - "-c"
-     - | 
-         docker build . --no-cache \
-           --tag $_GCR_ASIA_HOSTNAME/$PROJECT_ID/$_REPOSITORY/$REPO_NAME/$_SERVICE_NAME:latest  \
-           -f Dockerfile
-         docker push $_GCR_ASIA_HOSTNAME/$PROJECT_ID/$_REPOSITORY/$REPO_NAME/$_SERVICE_NAME:latest
+    - --destination=$_GCR_ASIA_HOSTNAME/$PROJECT_ID/$_REPOSITORY/$REPO_NAME/$_SERVICE_NAME:latest
+    - --cache=true
 
  - name: 'gcr.io/cloud-builders/gcloud'
    entrypoint: /bin/bash
