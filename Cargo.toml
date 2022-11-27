@@ -72,15 +72,6 @@ thiserror = "1.0.23"
 round-based = { version = "0.1.4", features = ["dev"] }
 
 [[example]]
-name = "gg18_sm_manager"
-
-[[example]]
-name = "gg18_sign_client"
-
-[[example]]
-name = "gg18_keygen_client"
-
-[[example]]
 name = "common"
 crate-type = ["lib"]
 
