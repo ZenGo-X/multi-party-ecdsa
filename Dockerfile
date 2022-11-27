@@ -1,25 +1,19 @@
-FROM rust:1 AS chef 
-RUN cargo install cargo-chef 
+FROM rust:1 AS builder
 WORKDIR app
 
-FROM chef AS planner
-COPY . .
-RUN cargo chef prepare  --recipe-path recipe.json
+RUN mkdir src examples; touch src/lib.rs; touch examples/common.rs
+COPY Cargo.toml .
 
-FROM chef AS builder
-
-COPY --from=planner /app/recipe.json recipe.json
-
-RUN cargo chef cook --release --recipe-path recipe.json
+RUN cargo build --release
 
 COPY . .
 
 RUN cargo build --release --examples --no-default-features --features curv-kzen/num-bigint
 
-FROM debian:slim AS runtime
+FROM debian:11-slim AS runtime
 
 WORKDIR app
 
 COPY --from=builder /app/target/release/examples/gg20_sm_manager /app/
 
-ENTRYPOINT ["/app/gg20_sm_manager"]
+CMD ["/app/gg20_sm_manager"]
