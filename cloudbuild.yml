@@ -24,5 +24,6 @@ options:
 substitutions:
   _PLATFORM: managed
   _SERVICE_NAME: mpc
+  _REPOSITORY: hjcore
   _REGION_HONGKONG: asia-east1
   _GCR_ASIA_HOSTNAME: asia-docker.pkg.dev
