@@ -183,7 +183,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let figment = rocket::Config::figment().merge((
         "limits",
         rocket::data::Limits::new().limit("string", 100.megabytes()),
-    ));
+    )).merge(("address", "0.0.0.0")).merge(("port", 8080));
+
     rocket::custom(figment)
         .mount("/", rocket::routes![subscribe, issue_idx, broadcast])
         .manage(Db::empty())
