@@ -55,7 +55,7 @@ In the following steps we will generate 2-of-3 threshold signing key and sign a 
 
 `./gg20_sm_manager`
 
-That will start an HTTP server on `http://127.0.0.1:8000`. Other parties will use that server in order to communicate with
+That will start an HTTP server on `http://127.0.0.1:8080`. Other parties will use that server in order to communicate with
 each other. Note that communication channels are neither encrypted nor authenticated. In production, you must encrypt and
 authenticate parties messages.
 
@@ -89,7 +89,7 @@ While previous steps show how to run keygen & signing on local computer, you act
 run each party on dedicated machine. To do this, you should ensure that parties can reach
 SM Server, and specify its address via command line argument, eg:
 
-`./gg20_keygen --address http://10.0.1.9:8000/ ...`
+`./gg20_keygen --address http://10.0.1.9:8080/ ...`
 
 ## Run GG18 Demo
 
@@ -101,11 +101,11 @@ The following steps are for setup, key generation with `n` parties and signing w
 
 2.  Install [Rust](https://rustup.rs/). Run `cargo build --release --examples` (it will build into `/target/release/examples/`)
 
-3.  Run the shared state machine: `./gg18_sm_manager`. By default, it's configured to be in `127.0.0.1:8000`, this can be changed in `Rocket.toml` file. The `Rocket.toml` file should be in the same folder you run `sm_manager` from.
+3.  Run the shared state machine: `./gg18_sm_manager`. By default, it's configured to be in `127.0.0.1:8080`, this can be changed in `Rocket.toml` file. The `Rocket.toml` file should be in the same folder you run `sm_manager` from.
 
 ### KeyGen
 
-run `gg18_keygen_client` as follows: `./gg18_keygen_client http://127.0.0.1:8000 keys.store`. Replace IP and port with the ones configured in setup. Once `n` parties join the application will run till finish. At the end each party will get a local keys file `keys.store` (change filename in command line). This contains secret and public data of the party after keygen. The file therefore should remain private.
+run `gg18_keygen_client` as follows: `./gg18_keygen_client http://127.0.0.1:8080 keys.store`. Replace IP and port with the ones configured in setup. Once `n` parties join the application will run till finish. At the end each party will get a local keys file `keys.store` (change filename in command line). This contains secret and public data of the party after keygen. The file therefore should remain private.
 
 ### Sign
 
@@ -121,7 +121,7 @@ Simply put, the safest way to use the signing binary is to just always hex your 
 To sign the message `hello world`, first calculate its hexadecimal representation. This yields the `68656c6c6f20776f726c64`.
 Then, run:
 ```bash
-./gg18_sign_client http://127.0.0.1:8000 keys.store "68656c6c6f20776f726c64"
+./gg18_sign_client http://127.0.0.1:8080 keys.store "68656c6c6f20776f726c64"
 ```
 
 ### GG18 demo

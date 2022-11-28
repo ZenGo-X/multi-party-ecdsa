@@ -18,7 +18,7 @@ use gg20_sm_client::join_computation;
 
 #[derive(Debug, StructOpt)]
 struct Cli {
-    #[structopt(short, long, default_value = "http://localhost:8000/")]
+    #[structopt(short, long, default_value = "http://localhost:8080/")]
     address: surf::Url,
     #[structopt(short, long, default_value = "default-signing")]
     room: String,
