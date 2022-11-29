@@ -7,6 +7,8 @@ use std::time::Duration;
 use curv::cryptographic_primitives::proofs::sigma_dlog::DLogProof;
 use curv::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS;
 use curv::elliptic::curves::{secp256_k1::Secp256k1, Scalar};
+use opentelemetry::trace::{TraceContextExt, Tracer};
+use opentelemetry::{global, Key};
 use round_based::containers::{
     push::{Push, PushExt},
     *,
@@ -54,6 +56,8 @@ impl Keygen {
     /// * `t` is not in range `[1; n-1]`, returns [Error::InvalidThreshold]
     /// * `i` is not in range `[1; n]`, returns [Error::InvalidPartyIndex]
     pub fn new(i: u16, t: u16, n: u16) -> Result<Self> {
+        let tracer = global::tracer("keygen new");
+
         if n < 2 {
             return Err(Error::TooFewParties);
         }
@@ -76,6 +80,7 @@ impl Keygen {
             party_i: i,
             party_n: n,
         };
+        tracer.start("keygen proceed round");
 
         state.proceed_round(false)?;
         Ok(state)
@@ -97,6 +102,7 @@ impl Keygen {
         let store4_wants_more = self.msgs4.as_ref().map(|s| s.wants_more()).unwrap_or(false);
 
         let next_state: R;
+
         let try_again: bool = match replace(&mut self.round, R::Gone) {
             R::Round0(round) if !round.is_expensive() || may_block => {
                 next_state = round
@@ -183,6 +189,7 @@ impl Keygen {
         }
     }
 }
+use serde_json;
 
 impl StateMachine for Keygen {
     type MessageBody = ProtocolMessage;
@@ -192,8 +199,23 @@ impl StateMachine for Keygen {
     fn handle_incoming(&mut self, msg: Msg<Self::MessageBody>) -> Result<()> {
         let current_round = self.current_round();
 
+        let round_tracer = global::tracer("incoming msg");
+
         match msg.body {
-            ProtocolMessage(M::Round1(m)) => {
+            ProtocolMessage(M::Round1(ref m)) => {
+                round_tracer.in_span("Round1", |ctx| {
+                    let span = ctx.span();
+                    span.add_event(
+                        "Round1 message",
+                        vec![
+                            Key::new("Round1").i64(1),
+                            Key::new("sender").i64(msg.sender.clone() as i64),
+                            Key::new("receiver").i64(msg.receiver.unwrap_or_default() as i64),
+                            Key::new("msg").string(serde_json::to_string_pretty(&m).unwrap()),
+                        ],
+                    );
+                });
+
                 let store = self
                     .msgs1
                     .as_mut()
@@ -205,12 +227,25 @@ impl StateMachine for Keygen {
                     .push_msg(Msg {
                         sender: msg.sender,
                         receiver: msg.receiver,
-                        body: m,
+                        body: m.to_owned(),
                     })
                     .map_err(Error::HandleMessage)?;
                 self.proceed_round(false)
             }
-            ProtocolMessage(M::Round2(m)) => {
+            ProtocolMessage(M::Round2(ref m)) => {
+                round_tracer.in_span("Round2", |ctx| {
+                    let span = ctx.span();
+                    span.add_event(
+                        "Round2 message",
+                        vec![
+                            Key::new("Round2").i64(1),
+                            Key::new("sender").i64(msg.sender.clone() as i64),
+                            Key::new("receiver").i64(msg.receiver.unwrap_or_default() as i64),
+                            Key::new("msg").string(serde_json::to_string_pretty(&m).unwrap()),
+                        ],
+                    );
+                });
+
                 let store = self
                     .msgs2
                     .as_mut()
@@ -222,12 +257,25 @@ impl StateMachine for Keygen {
                     .push_msg(Msg {
                         sender: msg.sender,
                         receiver: msg.receiver,
-                        body: m,
+                        body: m.to_owned(),
                     })
                     .map_err(Error::HandleMessage)?;
                 self.proceed_round(false)
             }
-            ProtocolMessage(M::Round3(m)) => {
+            ProtocolMessage(M::Round3(ref m)) => {
+                round_tracer.in_span("Round3", |ctx| {
+                    let span = ctx.span();
+                    span.add_event(
+                        "Round3 message",
+                        vec![
+                            Key::new("Round3").i64(1),
+                            Key::new("sender").i64(msg.sender.clone() as i64),
+                            Key::new("receiver").i64(msg.receiver.unwrap_or_default() as i64),
+                            Key::new("msg").string(serde_json::to_string_pretty(&m).unwrap()),
+                        ],
+                    );
+                });
+
                 let store = self
                     .msgs3
                     .as_mut()
@@ -239,12 +287,25 @@ impl StateMachine for Keygen {
                     .push_msg(Msg {
                         sender: msg.sender,
                         receiver: msg.receiver,
-                        body: m,
+                        body: m.to_owned(),
                     })
                     .map_err(Error::HandleMessage)?;
                 self.proceed_round(false)
             }
-            ProtocolMessage(M::Round4(m)) => {
+            ProtocolMessage(M::Round4(ref m)) => {
+                round_tracer.in_span("Round4", |ctx| {
+                    let span = ctx.span();
+                    span.add_event(
+                        "Round4 message",
+                        vec![
+                            Key::new("Round4").i64(1),
+                            Key::new("sender").i64(msg.sender.clone() as i64),
+                            Key::new("receiver").i64(msg.receiver.unwrap_or_default() as i64),
+                            Key::new("msg").string(serde_json::to_string_pretty(&m).unwrap()),
+                        ],
+                    );
+                });
+
                 let store = self
                     .msgs4
                     .as_mut()
@@ -256,7 +317,7 @@ impl StateMachine for Keygen {
                     .push_msg(Msg {
                         sender: msg.sender,
                         receiver: msg.receiver,
-                        body: m,
+                        body: m.to_owned(),
                     })
                     .map_err(Error::HandleMessage)?;
                 self.proceed_round(false)

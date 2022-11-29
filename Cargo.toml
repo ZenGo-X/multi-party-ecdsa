@@ -40,7 +40,12 @@ round-based = { version = "0.1.4", features = [] }
 thiserror = "1.0.23"
 derivative = "2"
 sha2 = "0.9"
-
+opentelemetry = {version = "0.18.0", features = ["rt-tokio", "metrics"]}                # A metrics collection and distributed tracing framework
+opentelemetry-otlp = "0.11.0"           # Exporter for the OpenTelemetry Collector
+opentelemetry-jaeger = {version = "0.17.0", features = ["rt-tokio"]}         # Jaeger exporter for OpenTelemetry
+tokio = { version = "1.0", features = ["full"] }
+serde_derive = "1.0.102"
+serde_json = "1.0"
 [dependencies.paillier]
 version = "0.4.2"
 package = "kzen-paillier"
@@ -55,12 +60,10 @@ optional = true
 criterion = "0.3"
 aes-gcm = "0.9.4"
 hex = "0.4"
-tokio = { version = "1", default-features = false, features = ["macros"] }
 futures = "0.3"
 rocket = { version = "0.5.0-rc.1", default-features = false, features = ["json"] }
 reqwest = { version = "0.9", default-features = false }
 uuid = { version = "0.8", features = ["v4"] }
-serde_json = "1.0"
 rand = "0.8"
 surf = "2"
 async-sse = "5"

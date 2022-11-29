@@ -8,10 +8,18 @@ use round_based::async_runtime::AsyncProtocol;
 
 mod gg20_sm_client;
 use gg20_sm_client::join_computation;
+mod common;
 
+use opentelemetry::global;
+use opentelemetry::sdk::trace as sdktrace;
+use opentelemetry::trace::{FutureExt, TraceError};
+use opentelemetry::{
+    trace::{TraceContextExt, Tracer},
+    Context as o_ctx,
+};
 #[derive(Debug, StructOpt)]
 struct Cli {
-    #[structopt(short, long, default_value = "http://localhost:8080/")]
+    #[structopt(short, long, default_value = "http://localhost:8000/")]
     address: surf::Url,
     #[structopt(short, long, default_value = "default-keygen")]
     room: String,
@@ -26,8 +34,20 @@ struct Cli {
     number_of_parties: u16,
 }
 
+fn init_tracer() -> Result<sdktrace::Tracer, TraceError> {
+    opentelemetry_jaeger::new_agent_pipeline()
+        .with_auto_split_batch(true) // Auto split batches so they fit under packet size
+        .with_service_name("key-generate1")
+        .install_batch(opentelemetry::runtime::Tokio)
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
+    let tracer = init_tracer()?;
+
+    let span = tracer.start("root");
+    let cx = o_ctx::current_with_span(span);
+
     let args: Cli = Cli::from_args();
     let mut output_file = tokio::fs::OpenOptions::new()
         .write(true)
@@ -44,15 +64,24 @@ async fn main() -> Result<()> {
     tokio::pin!(incoming);
     tokio::pin!(outgoing);
 
+    let s_span = cx.span();
+
+    s_span.add_event("keygen staring".to_string(), vec![]);
+
     let keygen = Keygen::new(args.index, args.threshold, args.number_of_parties)?;
+
     let output = AsyncProtocol::new(keygen, incoming, outgoing)
         .run()
+        .with_context(cx.clone())
         .await
         .map_err(|e| anyhow!("protocol execution terminated with error: {}", e))?;
     let output = serde_json::to_vec_pretty(&output).context("serialize output")?;
+
     tokio::io::copy(&mut output.as_slice(), &mut output_file)
+        .with_context(cx)
         .await
         .context("save output to file")?;
 
+    global::shutdown_tracer_provider();
     Ok(())
 }
