@@ -27,7 +27,6 @@ use zk_paillier::zkproofs::DLogStatement;
 use serde::{Deserialize, Serialize};
 use sha2::Sha256;
 
-use crate::protocols::multi_party_ecdsa::gg_2018::party_i::PartyPrivate;
 use crate::utilities::mta::range_proofs::AliceProof;
 use crate::Error::{self, InvalidKey};
 
@@ -173,29 +172,6 @@ impl MessageB {
             && ba_btag == g_alpha
         {
             Ok((alpha, alice_share.0.into_owned()))
-        } else {
-            Err(InvalidKey)
-        }
-    }
-
-    //  another version, supporting PartyPrivate therefore binding mta to gg18.
-    //  with the regular version mta can be used in general
-    pub fn verify_proofs_get_alpha_gg18(
-        &self,
-        private: &PartyPrivate,
-        a: &Scalar<Secp256k1>,
-    ) -> Result<Scalar<Secp256k1>, Error> {
-        let alice_share = private.decrypt(self.c.clone());
-        let g = Point::generator();
-        let alpha = Scalar::<Secp256k1>::from(alice_share.0.as_ref());
-        let g_alpha = g * &alpha;
-        let ba_btag = &self.b_proof.pk * a + &self.beta_tag_proof.pk;
-
-        if DLogProof::verify(&self.b_proof).is_ok()
-            && DLogProof::verify(&self.beta_tag_proof).is_ok()
-            && ba_btag == g_alpha
-        {
-            Ok(alpha)
         } else {
             Err(InvalidKey)
         }

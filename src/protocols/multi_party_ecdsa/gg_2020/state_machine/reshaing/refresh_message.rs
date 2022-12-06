@@ -67,7 +67,7 @@ impl<E: Curve, H: Digest + Clone, const M: usize> RefreshMessage<E, H, M> {
 
         // commit to points on the polynomial
         let points_committed_vec: Vec<_> = (0..secret_shares.len())
-            .map(|i| Point::<E>::generator() * &secret_shares[i].clone().into())
+            .map(|i| Point::<E>::generator() * &secret_shares[i].clone())
             .collect();
 
         // encrypt points on the polynomial using Paillier keys
@@ -259,13 +259,13 @@ impl<E: Curve, H: Digest + Clone, const M: usize> RefreshMessage<E, H, M> {
                 .unwrap()
                 .clone();
             paillier_key_h1_h2_n_tilde_hash_map.insert(
-                old_to_new_map.get(old_party_index).unwrap().clone(),
+                *old_to_new_map.get(old_party_index).unwrap(),
                 (paillier_key, h1_h2_n_tilde),
             );
         }
 
         for new_party_index in paillier_key_h1_h2_n_tilde_hash_map.keys() {
-            if new_party_index.clone() <= current_len {
+            if *new_party_index <= current_len {
                 key.paillier_key_vec[(new_party_index - 1) as usize] =
                     paillier_key_h1_h2_n_tilde_hash_map
                         .get(new_party_index)
@@ -317,7 +317,7 @@ impl<E: Curve, H: Digest + Clone, const M: usize> RefreshMessage<E, H, M> {
         key.i = *old_to_new_map.get(&key.i).unwrap();
         key.n = new_n;
 
-        RefreshMessage::distribute(old_party_index, key, new_n as u16)
+        RefreshMessage::distribute(old_party_index, key, new_n)
     }
 
     pub fn collect(
@@ -330,7 +330,7 @@ impl<E: Curve, H: Digest + Clone, const M: usize> RefreshMessage<E, H, M> {
         RefreshMessage::validate_collect(refresh_messages, local_key.t, new_n as u16)?;
 
         for refresh_message in refresh_messages.iter() {
-            for i in 0..(new_n as usize) {
+            for i in 0..(new_n) {
                 let statement = PDLwSlackStatement {
                     ciphertext: refresh_message.points_encrypted_vec[i].clone(),
                     ek: local_key.paillier_key_vec[i].clone(),
@@ -385,7 +385,7 @@ impl<E: Curve, H: Digest + Clone, const M: usize> RefreshMessage<E, H, M> {
                 });
             }
             let n_length = refresh_message.ek.n.bit_length();
-            if n_length > PAILLIER_KEY_SIZE || n_length < PAILLIER_KEY_SIZE - 1 {
+            if !(PAILLIER_KEY_SIZE - 1..=PAILLIER_KEY_SIZE).contains(&n_length) {
                 return Err(FsDkrError::ModuliTooSmall {
                     party_index: refresh_message.party_index,
                     moduli_size: n_length,
@@ -427,7 +427,7 @@ impl<E: Curve, H: Digest + Clone, const M: usize> RefreshMessage<E, H, M> {
             }
 
             let n_length = join_message.ek.n.bit_length();
-            if n_length > PAILLIER_KEY_SIZE || n_length < PAILLIER_KEY_SIZE - 1 {
+            if !(PAILLIER_KEY_SIZE - 1..=PAILLIER_KEY_SIZE).contains(&n_length) {
                 return Err(FsDkrError::ModuliTooSmall {
                     party_index: join_message.get_party_index()?,
                     moduli_size: n_length,
@@ -454,7 +454,7 @@ impl<E: Curve, H: Digest + Clone, const M: usize> RefreshMessage<E, H, M> {
         local_key.keys_linear.y = Point::<E>::generator() * new_share_fe;
 
         // update local key list of local public keys (X_i = g^x_i is updated by adding all committed points to that party)
-        for i in 0..refresh_messages.len() + join_messages.len() as usize {
+        for i in 0..refresh_messages.len() + join_messages.len() {
             local_key.pk_vec.insert(
                 i,
                 refresh_messages[0].points_committed_vec[i].clone() * li_vec[0].clone(),

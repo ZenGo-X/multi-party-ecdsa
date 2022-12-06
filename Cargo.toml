@@ -98,11 +98,6 @@ harness = false
 
 
 [[bench]]
-name = "gg18"
-path = "benches/multi_party_ecdsa/gg18/keygen.rs"
-harness = false
-
-[[bench]]
 name = "lindel2017_keygen"
 path = "benches/two_party_ecdsa/lindell_2017/keygen.rs"
 harness = false

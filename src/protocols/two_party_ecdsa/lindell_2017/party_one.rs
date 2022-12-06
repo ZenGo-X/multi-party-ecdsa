@@ -257,7 +257,7 @@ impl Party1Private {
     ) {
         let (ek_new, dk_new) = Paillier::keypair().keys();
         let randomness = Randomness::sample(&ek_new);
-        let factor_fe = Scalar::<Secp256k1>::from(&*factor);
+        let factor_fe = Scalar::<Secp256k1>::from(factor);
         let x1_new = &party_one_private.x1 * factor_fe;
         let c_key_new = Paillier::encrypt_with_chosen_randomness(
             &ek_new,
@@ -306,7 +306,7 @@ impl Party1Private {
         Msegmentation::to_encrypted_segments(&self.x1, &segment_size, num_of_segments, pub_ke_y, g)
     }
 
-    // used to transform lindell master key to gg18 master key
+    // used to transform lindell master key  master key
     pub fn to_mta_message_b(
         &self,
         message_b: MessageB,
@@ -555,7 +555,7 @@ impl Signature {
          2. if (s > curve.q / 2) id = id ^ 1
         */
         let is_ry_odd = ry.test_bit(0);
-        let mut recid = if is_ry_odd { 1 } else { 0 };
+        let mut recid = u8::from(is_ry_odd);
         if s_tag_tag_bn > Scalar::<Secp256k1>::group_order() - &s_tag_tag_bn {
             recid ^= 1;
         }
@@ -576,7 +576,7 @@ pub fn verify(
     let e_fe: Scalar<Secp256k1> =
         Scalar::<Secp256k1>::from(&message.mod_floor(Scalar::<Secp256k1>::group_order()));
     let u1 = Point::generator() * e_fe * &s_inv_fe;
-    let u2 = &*pubkey * rx_fe * &s_inv_fe;
+    let u2 = pubkey * rx_fe * &s_inv_fe;
 
     // second condition is against malleability
     let rx_bytes = &BigInt::to_bytes(&signature.r)[..];

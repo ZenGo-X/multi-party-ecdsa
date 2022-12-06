@@ -209,7 +209,7 @@ impl StateMachine for Keygen {
                         "Round1 message",
                         vec![
                             Key::new("Round1").i64(1),
-                            Key::new("sender").i64(msg.sender.clone() as i64),
+                            Key::new("sender").i64(msg.sender as i64),
                             Key::new("receiver").i64(msg.receiver.unwrap_or_default() as i64),
                             Key::new("msg").string(serde_json::to_string_pretty(&m).unwrap()),
                         ],
@@ -239,7 +239,7 @@ impl StateMachine for Keygen {
                         "Round2 message",
                         vec![
                             Key::new("Round2").i64(1),
-                            Key::new("sender").i64(msg.sender.clone() as i64),
+                            Key::new("sender").i64(msg.sender as i64),
                             Key::new("receiver").i64(msg.receiver.unwrap_or_default() as i64),
                             Key::new("msg").string(serde_json::to_string_pretty(&m).unwrap()),
                         ],
@@ -269,7 +269,7 @@ impl StateMachine for Keygen {
                         "Round3 message",
                         vec![
                             Key::new("Round3").i64(1),
-                            Key::new("sender").i64(msg.sender.clone() as i64),
+                            Key::new("sender").i64(msg.sender as i64),
                             Key::new("receiver").i64(msg.receiver.unwrap_or_default() as i64),
                             Key::new("msg").string(serde_json::to_string_pretty(&m).unwrap()),
                         ],
@@ -299,7 +299,7 @@ impl StateMachine for Keygen {
                         "Round4 message",
                         vec![
                             Key::new("Round4").i64(1),
-                            Key::new("sender").i64(msg.sender.clone() as i64),
+                            Key::new("sender").i64(msg.sender as i64),
                             Key::new("receiver").i64(msg.receiver.unwrap_or_default() as i64),
                             Key::new("msg").string(serde_json::to_string_pretty(&m).unwrap()),
                         ],

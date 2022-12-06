@@ -22,10 +22,6 @@ use curv::BigInt;
 use paillier::EncryptionKey;
 use serde::{Deserialize, Serialize};
 
-use crate::protocols::multi_party_ecdsa::gg_2020::state_machine::reshaing::{
-    M_SECURITY, PAILLIER_KEY_SIZE,
-};
-
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct PDLwSlackStatement<E: Curve = Secp256k1> {
     pub ciphertext: BigInt,
@@ -160,7 +156,7 @@ impl<E: Curve, H: Digest + Clone> PDLwSlackProof<E, H> {
             &BigInt::one(),
             &(-&e),
         );
-        if &self.u1 == &u1_test && &self.u2 == &u2_test && &self.u3 == &u3_test {
+        if self.u1 == u1_test && self.u2 == u2_test && self.u3 == u3_test {
             Ok(())
         } else {
             Err(FsDkrError::PDLwSlackProof {
@@ -179,22 +175,23 @@ pub fn commitment_unknown_order(
     x: &BigInt,
     r: &BigInt,
 ) -> BigInt {
-    let h1_x = BigInt::mod_pow(h1, &x, &N_tilde);
+    let h1_x = BigInt::mod_pow(h1, x, N_tilde);
     let h2_r = {
         if r < &BigInt::zero() {
-            let h2_inv = BigInt::mod_inv(h2, &N_tilde).unwrap();
-            BigInt::mod_pow(&h2_inv, &(-r), &N_tilde)
+            let h2_inv = BigInt::mod_inv(h2, N_tilde).unwrap();
+            BigInt::mod_pow(&h2_inv, &(-r), N_tilde)
         } else {
-            BigInt::mod_pow(h2, &r, &N_tilde)
+            BigInt::mod_pow(h2, r, N_tilde)
         }
     };
-    let com = BigInt::mod_mul(&h1_x, &h2_r, &N_tilde);
-    com
+
+    BigInt::mod_mul(&h1_x, &h2_r, N_tilde)
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::protocols::multi_party_ecdsa::gg_2020::state_machine::reshaing::PAILLIER_KEY_SIZE;
     use curv::elliptic::curves::secp256_k1::{Secp256k1Point, Secp256k1Scalar};
     use curv::BigInt;
     use paillier::core::Randomness;
@@ -203,9 +200,6 @@ mod test {
     use paillier::RawPlaintext;
     use sha2::Sha256;
     use zk_paillier::zkproofs::{CompositeDLogProof, DLogStatement};
-
-    type GE = Secp256k1Point;
-    type FE = Secp256k1Scalar;
 
     #[test]
     fn test_zk_pdl_with_slack() {

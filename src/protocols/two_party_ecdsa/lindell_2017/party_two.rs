@@ -86,10 +86,10 @@ pub struct Party2Private {
 pub struct PDLchallenge {
     pub c_tag: BigInt,
     pub c_tag_tag: BigInt,
-    a: BigInt,
-    b: BigInt,
-    blindness: BigInt,
-    q_tag: Point<Secp256k1>,
+    // a: BigInt,
+    // b: BigInt,
+    // blindness: BigInt,
+    // q_tag: Point<Secp256k1>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -256,7 +256,7 @@ impl Party2Private {
         Msegmentation::to_encrypted_segments(&self.x2, &segment_size, num_of_segments, pub_ke_y, g)
     }
 
-    // used to transform lindell master key to gg18 master key
+    // used to transform lindell master key to master key
     pub fn to_mta_message_b(
         &self,
         ek: &EncryptionKey,

@@ -374,7 +374,7 @@ impl Keys {
         let mut global_coefficients = head[0].commitments.clone();
         for vss in tail {
             for (i, coefficient_commitment) in vss.commitments.iter().enumerate() {
-                global_coefficients[i] = &global_coefficients[i] + &*coefficient_commitment;
+                global_coefficients[i] = &global_coefficients[i] + coefficient_commitment;
             }
         }
 
@@ -894,7 +894,7 @@ impl LocalSignature {
          2. if (s > curve.q / 2) id = id ^ 1
         */
         let is_ry_odd = ry.test_bit(0);
-        let mut recid = if is_ry_odd { 1 } else { 0 };
+        let mut recid = u8::from(is_ry_odd);
         let s_tag_bn = Scalar::<Secp256k1>::group_order() - &s_bn;
         if s_bn > s_tag_bn {
             s = Scalar::<Secp256k1>::from(&s_tag_bn);

@@ -25,9 +25,7 @@ use std::marker::PhantomData;
 use crate::protocols::multi_party_ecdsa::gg_2020::state_machine::reshaing::error::{
     FsDkrError, FsDkrResult,
 };
-use crate::protocols::multi_party_ecdsa::gg_2020::state_machine::reshaing::{
-    M_SECURITY, PAILLIER_KEY_SIZE,
-};
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct RingPedersenStatement<E: Curve, H: Digest + Clone> {
     pub S: BigInt,
@@ -37,7 +35,7 @@ pub struct RingPedersenStatement<E: Curve, H: Digest + Clone> {
     pub ek: EncryptionKey,
     phantom: PhantomData<(E, H)>,
 }
-
+#[allow(dead_code)]
 pub struct RingPedersenWitness<E: Curve, H: Digest + Clone> {
     p: BigInt,
     q: BigInt,
@@ -60,7 +58,7 @@ impl<E: Curve, H: Digest + Clone> RingPedersenStatement<E, H> {
                 S: s,
                 T: t,
                 N: ek_tilde.clone().n,
-                phi: phi,
+                phi,
                 ek: ek_tilde,
                 phantom: PhantomData,
             },
@@ -158,15 +156,15 @@ impl<E: Curve, H: Digest + Clone, const M: usize> RingPedersenProof<E, H, M> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::protocols::multi_party_ecdsa::gg_2020::state_machine::reshaing::M_SECURITY;
     use curv::elliptic::curves::secp256_k1::Secp256k1;
     use sha2::Sha256;
-
     #[test]
     fn test_ring_pedersen() {
         let (statement, witness) = RingPedersenStatement::<Secp256k1, Sha256>::generate();
-        let proof = RingPedersenProof::<Secp256k1, Sha256, { 256 }>::prove(&witness, &statement);
+        let proof = RingPedersenProof::<Secp256k1, Sha256, M_SECURITY>::prove(&witness, &statement);
         assert!(
-            RingPedersenProof::<Secp256k1, Sha256, { 256 }>::verify(&proof, &statement).is_ok()
+            RingPedersenProof::<Secp256k1, Sha256, M_SECURITY>::verify(&proof, &statement).is_ok()
         );
     }
 }

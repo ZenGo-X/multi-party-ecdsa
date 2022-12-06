@@ -611,6 +611,7 @@ impl Round6 {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Clone)]
 pub struct CompletedOfflineStage {
     i: u16,

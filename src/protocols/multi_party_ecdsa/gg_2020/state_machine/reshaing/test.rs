@@ -13,7 +13,6 @@ mod tests {
         ShamirSecretSharing, VerifiableSS,
     };
 
-    use curv::elliptic::curves::secp256_k1::Secp256k1Point;
     use curv::elliptic::curves::Secp256k1;
     use curv::BigInt;
 
@@ -24,8 +23,6 @@ mod tests {
     use sha2::Digest;
     use sha2::Sha256;
     use std::collections::HashMap;
-
-    type GE = Secp256k1Point;
 
     #[test]
     fn test1() {
