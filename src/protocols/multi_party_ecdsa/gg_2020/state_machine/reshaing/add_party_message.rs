@@ -99,8 +99,8 @@ impl JoinMessage {
     /// The distribute phase for a new party. This distribute phase has to happen before the existing
     /// parties distribute. Calling this function will generate a JoinMessage and a pair of Pailier
     /// [Keys] that are going to be used when generating the [LocalKey].
-    pub fn distribute() -> (Self, Keys) {
-        let pailier_key_pair = Keys::create(0);
+    pub fn distribute(index: usize) -> (Self, Keys) {
+        let pailier_key_pair = Keys::create(index);
         let (
             dlog_statement_base_h1,
             dlog_statement_base_h2,
@@ -116,7 +116,7 @@ impl JoinMessage {
             dlog_statement_base_h2,
             composite_dlog_proof_base_h1,
             composite_dlog_proof_base_h2,
-            party_index: None,
+            party_index: Some(index),
         };
 
         (join_message, pailier_key_pair)
