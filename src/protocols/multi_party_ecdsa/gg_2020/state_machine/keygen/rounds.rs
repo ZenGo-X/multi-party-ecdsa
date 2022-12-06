@@ -237,7 +237,7 @@ pub struct Round4 {
     keys: gg_2020::party_i::Keys,
     y_vec: Vec<Point<Secp256k1>>,
     bc_vec: Vec<gg_2020::party_i::KeyGenBroadcastMessage1>,
-    shared_keys: gg_2020::party_i::SharedKeys,
+    shared_keys: gg_2020::party_i::SharedKeys<Secp256k1>,
     own_dlog_proof: DLogProof<Secp256k1, Sha256>,
     vss_vec: Vec<VerifiableSS<Secp256k1>>,
 
@@ -311,7 +311,7 @@ impl Round4 {
 pub struct LocalKey<E: Curve> {
     pub paillier_dk: paillier::DecryptionKey,
     pub pk_vec: Vec<Point<E>>,
-    pub keys_linear: gg_2020::party_i::SharedKeys,
+    pub keys_linear: gg_2020::party_i::SharedKeys<E>,
     pub paillier_key_vec: Vec<EncryptionKey>,
     pub y_sum_s: Point<E>,
     pub h1_h2_n_tilde_vec: Vec<DLogStatement>,

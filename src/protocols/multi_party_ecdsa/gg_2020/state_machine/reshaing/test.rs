@@ -4,14 +4,16 @@ mod tests {
     use crate::protocols::multi_party_ecdsa::gg_2020::party_i::Keys;
     use crate::protocols::multi_party_ecdsa::gg_2020::state_machine::keygen::{Keygen, LocalKey};
     use crate::protocols::multi_party_ecdsa::gg_2020::state_machine::reshaing::refresh_message::RefreshMessage;
+    use crate::protocols::multi_party_ecdsa::gg_2020::state_machine::reshaing::M_SECURITY;
     use crate::protocols::multi_party_ecdsa::gg_2020::state_machine::sign::{
         CompletedOfflineStage, OfflineStage, SignManual,
     };
     use curv::arithmetic::Converter;
-    use curv::cryptographic_primitives::hashing::DigestExt;
     use curv::cryptographic_primitives::secret_sharing::feldman_vss::{
         ShamirSecretSharing, VerifiableSS,
     };
+
+    use curv::elliptic::curves::secp256_k1::Secp256k1Point;
     use curv::elliptic::curves::Secp256k1;
     use curv::BigInt;
 
@@ -22,15 +24,18 @@ mod tests {
     use sha2::Digest;
     use sha2::Sha256;
     use std::collections::HashMap;
+
+    type GE = Secp256k1Point;
+
     #[test]
     fn test1() {
         //simulate keygen
         let t = 3;
-        let n = 5;
+        let n = 6;
         let mut keys = simulate_keygen(t, n);
 
         let old_keys = keys.clone();
-        simulate_dkr(&mut keys);
+        simulate_dkr::<{ M_SECURITY }>(&mut keys);
 
         // check that sum of old keys is equal to sum of new keys
         let old_linear_secret_key: Vec<_> = (0..old_keys.len())
@@ -60,10 +65,10 @@ mod tests {
         let mut keys = simulate_keygen(2, 5);
         let offline_sign = simulate_offline_stage(keys.clone(), &[1, 2, 3]);
         simulate_signing(offline_sign, b"ZenGo");
-        simulate_dkr(&mut keys);
+        simulate_dkr::<{ M_SECURITY }>(&mut keys);
         let offline_sign = simulate_offline_stage(keys.clone(), &[2, 3, 4]);
         simulate_signing(offline_sign, b"ZenGo");
-        simulate_dkr(&mut keys);
+        simulate_dkr::<{ M_SECURITY }>(&mut keys);
         let offline_sign = simulate_offline_stage(keys, &[1, 3, 5]);
         simulate_signing(offline_sign, b"ZenGo");
     }
@@ -73,43 +78,51 @@ mod tests {
         let mut keys = simulate_keygen(2, 5);
         let offline_sign = simulate_offline_stage(keys.clone(), &[1, 2, 3]);
         simulate_signing(offline_sign, b"ZenGo");
-        simulate_dkr_removal(&mut keys, [1].to_vec());
+        simulate_dkr_removal::<{ M_SECURITY }>(&mut keys, [1].to_vec());
         let offline_sign = simulate_offline_stage(keys.clone(), &[2, 3, 4]);
         simulate_signing(offline_sign, b"ZenGo");
-        simulate_dkr_removal(&mut keys, [1, 2].to_vec());
+        simulate_dkr_removal::<{ M_SECURITY }>(&mut keys, [1, 2].to_vec());
         let offline_sign = simulate_offline_stage(keys, &[3, 4, 5]);
         simulate_signing(offline_sign, b"ZenGo");
     }
 
     #[test]
-    fn test_add_party() {
-        fn simulate_replace(
+    fn test_add_party_with_permute() {
+        fn simulate_replace<const M: usize>(
             keys: &mut Vec<LocalKey<Secp256k1>>,
-            party_indices: &[usize],
-            t: usize,
-            n: usize,
+            party_indices: &[u16],
+            old_to_new_map: &HashMap<u16, u16>,
+            t: u16,
+            n: u16,
         ) -> FsDkrResult<()> {
-            fn generate_join_messages_and_keys(
+            fn generate_join_messages_and_keys<const M: usize>(
                 number_of_new_parties: usize,
-            ) -> (Vec<JoinMessage>, Vec<Keys>) {
+            ) -> (Vec<JoinMessage<Secp256k1, Sha256, M>>, Vec<Keys>) {
                 // the new party generates it's join message to start joining the computation
                 (0..number_of_new_parties)
-                    .map(|i| JoinMessage::distribute(i))
+                    .map(|_| JoinMessage::distribute())
                     .unzip()
             }
 
-            fn generate_refresh_parties_replace(
+            fn generate_refresh_parties_replace<const M: usize>(
                 keys: &mut [LocalKey<Secp256k1>],
-                join_messages: &[JoinMessage],
-            ) -> (Vec<RefreshMessage>, Vec<DecryptionKey>) {
+                old_to_new_map: &HashMap<u16, u16>,
+                join_messages: &[JoinMessage<Secp256k1, Sha256, M>],
+            ) -> (
+                Vec<RefreshMessage<Secp256k1, Sha256, M>>,
+                Vec<DecryptionKey>,
+            ) {
+                let new_n = (&keys.len() + join_messages.len()) as u16;
                 keys.iter_mut()
-                    .map(|key| RefreshMessage::replace(join_messages, key).unwrap())
+                    .map(|key| {
+                        RefreshMessage::replace(join_messages, key, old_to_new_map, new_n).unwrap()
+                    })
                     .unzip()
             }
 
-            // each party that wants to join generates a join message and a pair of pailier keys.
+            // each party that wants to join generates a join message and a pair of paillier keys.
             let (mut join_messages, new_keys) =
-                generate_join_messages_and_keys(party_indices.len());
+                generate_join_messages_and_keys::<{ M_SECURITY }>(party_indices.len());
 
             // each new party has to be informed through offchannel communication what party index
             // it has been assigned (the information is public).
@@ -119,8 +132,9 @@ mod tests {
 
             // each existing party has to generate it's refresh message aware of the new parties
             let (refresh_messages, dk_keys) =
-                generate_refresh_parties_replace(keys, join_messages.as_slice());
-
+                generate_refresh_parties_replace(keys, &old_to_new_map, join_messages.as_slice());
+            let mut new_keys_vec: Vec<(u16, LocalKey<Secp256k1>)> =
+                Vec::with_capacity(keys.len() + join_messages.len());
             // all existing parties rotate aware of the join_messages
             for i in 0..keys.len() as usize {
                 RefreshMessage::collect(
@@ -130,6 +144,7 @@ mod tests {
                     join_messages.as_slice(),
                 )
                 .expect("");
+                new_keys_vec.push((keys[i].i - 1, keys[i].clone()));
             }
 
             // all new parties generate a local key
@@ -143,9 +158,15 @@ mod tests {
                     n,
                 )?;
 
-                keys.insert(party_index - 1, local_key);
+                new_keys_vec.push((party_index - 1, local_key));
             }
 
+            new_keys_vec.sort_by(|a, b| a.0.cmp(&b.0));
+            let keys_replacements = new_keys_vec
+                .iter()
+                .map(|a| a.1.clone())
+                .collect::<Vec<LocalKey<Secp256k1>>>();
+            *keys = keys_replacements;
             Ok(())
         }
 
@@ -153,10 +174,43 @@ mod tests {
         let n = 7;
 
         let all_keys = simulate_keygen(t, n);
-        let mut keys = all_keys[0..5].to_vec();
+        // Remove the 2nd and 7th party
+        let mut keys = all_keys.clone();
+        keys.remove(6);
+        keys.remove(1);
 
-        simulate_replace(&mut keys, &[2, 7], t as usize, n as usize).unwrap();
-        let offline_sign = simulate_offline_stage(keys, &[1, 2, 3]);
+        let mut old_to_new_map: HashMap<u16, u16> = HashMap::new();
+        old_to_new_map.insert(1, 4);
+        old_to_new_map.insert(3, 1);
+        old_to_new_map.insert(4, 3);
+        old_to_new_map.insert(5, 6);
+        old_to_new_map.insert(6, 5);
+
+        // Simulate the replace
+        simulate_replace::<{ M_SECURITY }>(&mut keys, &[2, 7], &old_to_new_map, t, n).unwrap();
+        // check that sum of old keys is equal to sum of new keys
+        let old_linear_secret_key: Vec<_> = (0..all_keys.len())
+            .map(|i| all_keys[i].keys_linear.x_i.clone())
+            .collect();
+
+        let new_linear_secret_key: Vec<_> = (0..keys.len())
+            .map(|i| keys[i].keys_linear.x_i.clone())
+            .collect();
+        let indices: Vec<_> = (0..(t + 1) as u16).collect();
+        let vss = VerifiableSS::<Secp256k1> {
+            parameters: ShamirSecretSharing {
+                threshold: t,
+                share_count: n,
+            },
+            commitments: Vec::new(),
+        };
+        assert_eq!(
+            vss.reconstruct(&indices[..], &old_linear_secret_key[0..(t + 1) as usize]),
+            vss.reconstruct(&indices[..], &new_linear_secret_key[0..(t + 1) as usize])
+        );
+        assert_ne!(old_linear_secret_key, new_linear_secret_key);
+
+        let offline_sign = simulate_offline_stage(keys, &[1, 2, 7]);
         simulate_signing(offline_sign, b"ZenGo");
     }
 
@@ -172,25 +226,30 @@ mod tests {
         simulation.run().unwrap()
     }
 
-    fn simulate_dkr_removal(keys: &mut Vec<LocalKey<Secp256k1>>, remove_party_indices: Vec<usize>) {
-        let mut broadcast_messages: HashMap<usize, Vec<RefreshMessage>> = HashMap::new();
+    fn simulate_dkr_removal<const M: usize>(
+        keys: &mut Vec<LocalKey<Secp256k1>>,
+        remove_party_indices: Vec<u16>,
+    ) {
+        let mut broadcast_messages: HashMap<usize, Vec<RefreshMessage<Secp256k1, Sha256, M>>> =
+            HashMap::new();
         let mut new_dks: HashMap<usize, DecryptionKey> = HashMap::new();
-        let mut refresh_messages: Vec<RefreshMessage> = Vec::new();
+        let mut refresh_messages: Vec<RefreshMessage<Secp256k1, Sha256, M>> = Vec::new();
         let mut party_key: HashMap<usize, LocalKey<Secp256k1>> = HashMap::new();
-
+        // TODO: Verify this is correct
+        let new_n = keys.len() as u16;
         for key in keys.iter_mut() {
-            let (refresh_message, new_dk) = RefreshMessage::distribute(key);
+            let (refresh_message, new_dk) = RefreshMessage::distribute(key.i, key, new_n).unwrap();
             refresh_messages.push(refresh_message.clone());
-            new_dks.insert(refresh_message.party_index, new_dk);
-            party_key.insert(refresh_message.party_index, key.clone());
+            new_dks.insert(refresh_message.party_index.into(), new_dk);
+            party_key.insert(refresh_message.party_index.into(), key.clone());
         }
 
         for refresh_message in refresh_messages.iter() {
-            broadcast_messages.insert(refresh_message.party_index, Vec::new());
+            broadcast_messages.insert(refresh_message.party_index.into(), Vec::new());
         }
 
         for refresh_message in refresh_messages.iter_mut() {
-            if !remove_party_indices.contains(&refresh_message.party_index) {
+            if !remove_party_indices.contains(&refresh_message.party_index.into()) {
                 refresh_message.remove_party_indices = remove_party_indices.clone();
             } else {
                 let mut new_remove_party_indices = remove_party_indices.clone();
@@ -199,7 +258,10 @@ mod tests {
             }
 
             for (party_index, refresh_bucket) in broadcast_messages.iter_mut() {
-                if refresh_message.remove_party_indices.contains(party_index) {
+                if refresh_message
+                    .remove_party_indices
+                    .contains(&(*party_index as u16))
+                {
                     continue;
                 }
                 refresh_bucket.push(refresh_message.clone());
@@ -207,12 +269,12 @@ mod tests {
         }
 
         for remove_party_index in remove_party_indices.iter() {
-            assert_eq!(broadcast_messages[remove_party_index].len(), 1);
+            assert_eq!(broadcast_messages[&(*remove_party_index as usize)].len(), 1);
         }
 
         // keys will be updated to refreshed values
         for (party, key) in party_key.iter_mut() {
-            if remove_party_indices.contains(party) {
+            if remove_party_indices.contains(&(*party as u16)) {
                 continue;
             }
 
@@ -227,23 +289,27 @@ mod tests {
 
         for remove_party_index in remove_party_indices {
             let result = RefreshMessage::collect(
-                &broadcast_messages[&remove_party_index],
-                &mut keys[remove_party_index],
-                new_dks[&remove_party_index].clone(),
+                &broadcast_messages[&(remove_party_index as usize)],
+                &mut keys[remove_party_index as usize],
+                new_dks[&(remove_party_index as usize)].clone(),
                 &[],
             );
             assert!(result.is_err());
         }
     }
 
-    fn simulate_dkr(
+    fn simulate_dkr<const M: usize>(
         keys: &mut Vec<LocalKey<Secp256k1>>,
-    ) -> (Vec<RefreshMessage>, Vec<DecryptionKey>) {
-        let mut broadcast_vec: Vec<RefreshMessage> = Vec::new();
+    ) -> (
+        Vec<RefreshMessage<Secp256k1, Sha256, M>>,
+        Vec<DecryptionKey>,
+    ) {
+        let mut broadcast_vec: Vec<RefreshMessage<Secp256k1, Sha256, M>> = Vec::new();
         let mut new_dks: Vec<DecryptionKey> = Vec::new();
-
-        for key in keys.iter() {
-            let (refresh_message, new_dk) = RefreshMessage::distribute(key);
+        let keys_len = keys.len();
+        for key in keys.iter_mut() {
+            let (refresh_message, new_dk) =
+                RefreshMessage::distribute(key.i, key, keys_len as u16).unwrap();
             broadcast_vec.push(refresh_message);
             new_dks.push(new_dk);
         }
@@ -279,11 +345,8 @@ mod tests {
     }
 
     fn simulate_signing(offline: Vec<CompletedOfflineStage>, message: &[u8]) {
-        let message = Sha256::new()
-            .chain_bigint(&BigInt::from_bytes(message))
-            .result_bigint();
-
-        let pk = &*offline[0].public_key();
+        let message = create_hash(&[&BigInt::from_bytes(message)]);
+        let pk = &offline[0].public_key();
 
         let parties = offline
             .iter()
@@ -306,5 +369,16 @@ mod tests {
             .enumerate()
             .map(|(i, p)| p.complete(&local_sigs_except(i)).unwrap())
             .all(|signature| verify(&signature, &pk, &message).is_ok()));
+    }
+
+    fn create_hash(big_ints: &[&BigInt]) -> BigInt {
+        let hasher = Sha256::new();
+
+        for value in big_ints {
+            hasher.clone().chain(&BigInt::to_bytes(value));
+        }
+
+        let result_hex = hasher.finalize();
+        BigInt::from_bytes(&result_hex[..])
     }
 }
