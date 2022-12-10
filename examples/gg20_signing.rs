@@ -55,7 +55,7 @@ async fn main() -> Result<()> {
         .await
         .map_err(|e| anyhow!("protocol execution terminated with error: {}", e))?;
 
-    let (_i, incoming, outgoing) = join_computation(args.address, &format!("{}-online", args.room))
+    let (i, incoming, outgoing) = join_computation(args.address, &format!("{}-online", args.room))
         .await
         .context("join online computation")?;
 
