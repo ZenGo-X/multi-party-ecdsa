@@ -62,10 +62,15 @@ async fn main() -> Result<()> {
     tokio::pin!(incoming);
     tokio::pin!(outgoing);
 
-    let (signing, partial_signature) = SignManual::new(
-        BigInt::from_bytes(args.data_to_sign.as_bytes()),
-        completed_offline_stage,
-    )?;
+    let message = match hex::decode(args.data_to_sign.clone()) {
+        Ok(x) => x,
+        Err(_e) => args.data_to_sign.as_bytes().to_vec(),
+    };
+
+    let message = &message[..];
+
+    let (signing, partial_signature) =
+        SignManual::new(BigInt::from_bytes(message), completed_offline_stage)?;
 
     outgoing
         .send(Msg {
