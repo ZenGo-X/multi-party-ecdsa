@@ -1,4 +1,31 @@
-# Multi-party ECDSA
+# Multi-party ECDSA for Ethereum transaction prototype
+
+2 shares: 1 at client, 1 at server
+
+### Client
+
+Input
+
+- share1.json
+- tx.json
+  - to, nonce, data, gas, value, chainId, etc
+
+Usage
+
+```
+./gg20_sendTx -l share1.json -t tx.json
+```
+
+### Server
+
+Action
+
+1. The received signature will the sent to sm_manager
+2. Trigger to sign with the server share and sent to sm_manager
+3. Combine the signature to signed tx
+4. Send the tx to RPC (or return to client)
+
+# Multi-party ECDSA (original README starts here)
 
 [![Build Status](https://travis-ci.com/ZenGo-X/multi-party-ecdsa.svg?branch=master)](https://travis-ci.com/zengo-x/multi-party-ecdsa)
 [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
@@ -7,14 +34,16 @@ This project is a Rust implementation of {t,n}-threshold ECDSA (elliptic curve d
 
 Threshold ECDSA includes two protocols:
 
--   Key Generation for creating secret shares.
--   Signing for using the secret shares to generate a signature.
+- Key Generation for creating secret shares.
+- Signing for using the secret shares to generate a signature.
 
 ECDSA is used extensively for crypto-currencies such as Bitcoin, Ethereum (secp256k1 curve), NEO (NIST P-256 curve) and much more.
 This library can be used to create MultiSig and ThresholdSig crypto wallet. For a full background on threshold signatures please read our Binance academy article [Threshold Signatures Explained](https://www.binance.vision/security/threshold-signatures-explained).
 
 ## Library Introduction
+
 The library was built with four core design principles in mind:
+
 1. Multi-protocol support
 2. Built for cryptography engineers
 3. Foolproof
@@ -24,15 +53,14 @@ To learn about the core principles as well as on the [audit](https://github.com/
 
 ## Use It
 
-
 The library implements four different protocols for threshold ECDSA. The protocols presents different tradeoffs in terms of parameters, security assumptions and efficiency.
 
-|  Protocol                                               | High Level code                                                             |
-| -------------------------------------------- | -------------------------------------------- |
-|  Lindell 17 [1]  |  [Gotham-city](https://github.com/KZen-networks/gotham-city) (accepted to [CIW19](https://ifca.ai/fc19/ciw/program.html)) is a two party bitcoin wallet, including benchmarks. [KMS](https://github.com/KZen-networks/kms-secp256k1) is a Rust wrapper library that implements a general purpose two party key management system. [thresh-sig-js](https://github.com/KZen-networks/thresh-sig-js) is a Javascript SDK |
-| Gennaro, Goldfeder 19 [2] ([video](https://www.youtube.com/watch?v=PdfDZIwuZm0)) | [tss-ecdsa-cli](https://github.com/cryptochill/tss-ecdsa-cli) is a wrapper CLI for full threshold access structure, including network and threshold HD keys ([BIP32](https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki)). See [Demo](https://github.com/KZen-networks/multi-party-ecdsa#run-demo) in this library to get better low level understanding|
-|Castagnos et. al. 19 [3]| Currently enabled as a feature in this library. To Enable, build with `--features=cclst`. to Test, use `cargo test --features=cclst -- --test-threads=1` |
-| Gennaro, Goldfeder 20 [4] | A full threshold protocol that supports identifying malicious parties. If signing fails - a list of malicious parties is returned. The protocol requires only a broadcast channel (all messages are broadcasted)|
+| Protocol                                                                         | High Level code                                                                                                                                                                                                                                                                                                                                                                                                      |
+| -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Lindell 17 [1]                                                                   | [Gotham-city](https://github.com/KZen-networks/gotham-city) (accepted to [CIW19](https://ifca.ai/fc19/ciw/program.html)) is a two party bitcoin wallet, including benchmarks. [KMS](https://github.com/KZen-networks/kms-secp256k1) is a Rust wrapper library that implements a general purpose two party key management system. [thresh-sig-js](https://github.com/KZen-networks/thresh-sig-js) is a Javascript SDK |
+| Gennaro, Goldfeder 19 [2] ([video](https://www.youtube.com/watch?v=PdfDZIwuZm0)) | [tss-ecdsa-cli](https://github.com/cryptochill/tss-ecdsa-cli) is a wrapper CLI for full threshold access structure, including network and threshold HD keys ([BIP32](https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki)). See [Demo](https://github.com/KZen-networks/multi-party-ecdsa#run-demo) in this library to get better low level understanding                                                 |
+| Castagnos et. al. 19 [3]                                                         | Currently enabled as a feature in this library. To Enable, build with `--features=cclst`. to Test, use `cargo test --features=cclst -- --test-threads=1`                                                                                                                                                                                                                                                             |
+| Gennaro, Goldfeder 20 [4]                                                        | A full threshold protocol that supports identifying malicious parties. If signing fails - a list of malicious parties is returned. The protocol requires only a broadcast channel (all messages are broadcasted)                                                                                                                                                                                                     |
 
 ## Run GG20 Demo
 
@@ -42,13 +70,14 @@ In the following steps we will generate 2-of-3 threshold signing key and sign a 
 
 1. You need [Rust](https://rustup.rs/) and [GMP library](https://gmplib.org) (optionally) to be installed on your computer.
 2. - Run `cargo build --release --examples`
-   - Don't have GMP installed? Use this command instead: 
+   - Don't have GMP installed? Use this command instead:
      ```bash
      cargo build --release --examples --no-default-features --features curv-kzen/num-bigint
      ```
      But keep in mind that it will be less efficient.
 
    Either of commands will produce binaries into `./target/release/examples/` folder.
+
 3. `cd ./target/release/examples/`
 
 ### Start an SM server
@@ -79,7 +108,7 @@ Since we use 2-of-3 scheme (`t=1 n=3`), any two parties can sign a message. Run:
 2. `./gg20_signing -p 1,2 -d "hello" -l local-share2.json`
 
 Each party will produce a resulting signature. `-p 1,2` specifies indexes of parties
-who attends in signing (each party has an associated index given at keygen, see argument 
+who attends in signing (each party has an associated index given at keygen, see argument
 `-i`), `-l file.json` sets a path to a file with secret local share, and `-d "hello"`
 is a message being signed.
 
@@ -115,11 +144,13 @@ The `./gg18_sign_client` executable initially tries to unhex its input message (
 
 1. If you want to pass a binary message to be signed - hex it.
 2. If you want to pass a textual message in a non-hex form, make sure it can't be unhexed.
-Simply put, the safest way to use the signing binary is to just always hex your messages before passing them to the `./gg18_sign_client` executable.
+   Simply put, the safest way to use the signing binary is to just always hex your messages before passing them to the `./gg18_sign_client` executable.
 
 #### Example
+
 To sign the message `hello world`, first calculate its hexadecimal representation. This yields the `68656c6c6f20776f726c64`.
 Then, run:
+
 ```bash
 ./gg18_sign_client http://127.0.0.1:8000 keys.store "68656c6c6f20776f726c64"
 ```
@@ -129,6 +160,7 @@ Then, run:
 Run `./run.sh` (located in `/demo` folder) in the main folder. Move `params` file to the same folder as the executables (usually `/target/release/examples`). The script will spawn a shared state machine, clients in the number of parties and signing requests for the `threshold + 1` first parties.
 
 `gg18_sm_manager` rocket server runs in _production_ mode by default. You may modify the `./run.sh` to config it to run in different environments. For example, to run rocket server in _development_:
+
 ```
 ROCKET_ENV=development ./target/release/examples/sm_manager
 ```
