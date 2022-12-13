@@ -1,0 +1,9 @@
+[package]
+name = "server"
+version = "0.0.0"
+workspace = "../"
+edition = "2021"
+publish = false
+
+[dependencies]
+rocket = { workspace = true }
