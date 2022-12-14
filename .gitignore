@@ -15,3 +15,5 @@ Cargo.lock
 keys*.store
 signature
 
+local-share*
+
