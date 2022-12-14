@@ -1,7 +1,8 @@
 #[macro_use]
 extern crate rocket;
-
 use reqwest::header::CONTENT_TYPE;
+mod gg20_signing;
+use std::path::PathBuf;
 
 #[get("/")]
 fn index() -> &'static str {
@@ -21,6 +22,17 @@ async fn send_tx(serialized_tx: &str) -> &'static str {
         .text();
 
     println!("res from server: {:?}", res.unwrap());
+
+    let a = gg20_signing::sign(
+        serialized_tx.to_owned(),
+        PathBuf::from(r"./examples/local-share1.json"),
+        vec![1, 2],
+        surf::Url::parse("http://localhost:8000").unwrap(),
+        "default-signing".to_string()
+    ).await;
+
+    println!("a: {:?}", a);
+
     "Good"
 }
 
