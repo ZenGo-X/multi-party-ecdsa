@@ -1,29 +1,16 @@
 # Multi-party ECDSA for Ethereum transaction prototype
 
-2 shares: 1 at client, 1 at server
-
-### Client
-
-Input
-
-- share1.json
-- tx.json
-  - to, nonce, data, gas, value, chainId, etc
-
-Usage
-
-```
-./gg20_sendTx -l share1.json -t tx.json
-```
-
-### Server
-
-Action
-
-1. The received signature will the sent to sm_manager
-2. Trigger to sign with the server share and sent to sm_manager
-3. Combine the signature to signed tx
-4. Send the tx to RPC (or return to client)
+4 components
+1. Node.js server
+   1. parse the tx data and send it to client Rust server
+   1. get the response and send_rawTransaction
+1. client Rust server
+   1. send the tx data to service Rust server
+   1. talk to state machine manager server to start the signing process
+   1. return the signature value as response to Node.js server
+1. service Rust server
+   1. take the tx data and talk to state machine manager to complete the signature
+1. state machine manager server
 
 # Multi-party ECDSA (original README starts here)
 
