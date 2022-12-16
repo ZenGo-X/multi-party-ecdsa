@@ -2,7 +2,7 @@
 extern crate rocket;
 mod gg20_signing;
 use std::path::PathBuf;
-use std::{thread, time::Duration};
+use futures::executor::block_on;
 
 #[get("/")]
 fn index() -> &'static str {
@@ -10,20 +10,20 @@ fn index() -> &'static str {
 }
 
 #[post("/", format = "plain", data = "<serialized_tx>")]
-async fn sign(serialized_tx: &str) -> &'static str {
+async fn sign(serialized_tx: String) -> &'static str {
     println!("{}", serialized_tx);
-    thread::sleep(Duration::from_millis(2000));
+    // thread::spawn( move || {
+        // println!("thread spawned");
+        let a = gg20_signing::sign(
+            serialized_tx.to_owned(),
+            PathBuf::from(r"./examples/local-share2.json"),
+            vec![1, 2],
+            surf::Url::parse("http://localhost:8000").unwrap(),
+            "default-signing".to_string(),
+        );
+        block_on(a);
 
-    let a = gg20_signing::sign(
-        serialized_tx.to_owned(),
-        PathBuf::from(r"./examples/local-share2.json"),
-        vec![1, 2],
-        surf::Url::parse("http://localhost:8000").unwrap(),
-        "default-signing".to_string(),
-    )
-    .await;
-
-    println!("a: {:?}", a);
+    println!("signed 27!!!!!");
 
     "Server Good"
 }
