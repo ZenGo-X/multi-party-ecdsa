@@ -157,7 +157,7 @@ impl Round1 {
             .map_err(|e| {
                 Error::Round1(ErrorType {
                     error_type: e.to_string(),
-                    bad_actors: vec![],
+                    bad_actors: vec![ind],
                     data: vec![],
                 })
             })?;
@@ -171,7 +171,7 @@ impl Round1 {
             .map_err(|e| {
                 Error::Round1(ErrorType {
                     error_type: e.to_string(),
-                    bad_actors: vec![],
+                    bad_actors: vec![ind],
                     data: vec![],
                 })
             })?;
@@ -268,7 +268,7 @@ impl Round2 {
                 .map_err(|e| {
                     Error::Round3(ErrorType {
                         error_type: e.to_string(),
-                        bad_actors: vec![],
+                        bad_actors: vec![ind],
                         data: vec![],
                     })
                 })?;
@@ -278,7 +278,7 @@ impl Round2 {
                 .map_err(|e| {
                     Error::Round3(ErrorType {
                         error_type: e.to_string(),
-                        bad_actors: vec![],
+                        bad_actors: vec![ind],
                         data: vec![],
                     })
                 })?;
@@ -372,11 +372,11 @@ impl Round3 {
 
         let delta_inv = SignKeys::phase3_reconstruct_delta(&delta_vec);
         let ttag = self.s_l.len();
-        for proof in t_proof_vec.iter().take(ttag) {
+        for (idx, proof) in t_proof_vec.iter().enumerate().take(ttag) {
             PedersenProof::verify(proof).map_err(|e| {
                 Error::Round3(ErrorType {
                     error_type: e.to_string(),
-                    bad_actors: vec![],
+                    bad_actors: vec![idx + 1],
                     data: vec![],
                 })
             })?;
