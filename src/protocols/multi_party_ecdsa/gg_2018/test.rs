@@ -25,10 +25,11 @@ use crate::utilities::mta::{MessageA, MessageB};
 use curv::arithmetic::traits::Converter;
 use curv::cryptographic_primitives::hashing::{Digest, DigestExt};
 use curv::cryptographic_primitives::proofs::sigma_dlog::DLogProof;
-use curv::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS;
 use curv::elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar};
 use paillier::*;
 use sha2::Sha256;
+
+use super::VerifiableSS;
 
 #[test]
 fn test_keygen_t1_n2() {

@@ -5,8 +5,7 @@ use std::mem::replace;
 use std::time::Duration;
 
 use curv::cryptographic_primitives::proofs::sigma_dlog::DLogProof;
-use curv::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS;
-use curv::elliptic::curves::{secp256_k1::Secp256k1, Scalar};
+use curv::elliptic::curves::{secp256_k1::Secp256k1};
 use round_based::containers::{
     push::{Push, PushExt},
     *,
@@ -16,6 +15,7 @@ use serde::{Deserialize, Serialize};
 use sha2::Sha256;
 use thiserror::Error;
 
+use crate::protocols::multi_party_ecdsa::gg_2018::VerifiableSS;
 use crate::protocols::multi_party_ecdsa::gg_2020;
 
 mod rounds;

@@ -1,5 +1,6 @@
 #![allow(non_snake_case)]
 
+use crate::protocols::multi_party_ecdsa::gg_2018::VerifiableSS;
 /*
     Multi-party ECDSA
 
@@ -31,7 +32,6 @@ use crate::utilities::zk_pdl_with_slack::PDLwSlackProof;
 use curv::cryptographic_primitives::hashing::{Digest, DigestExt};
 use curv::cryptographic_primitives::proofs::sigma_dlog::DLogProof;
 use curv::cryptographic_primitives::proofs::sigma_valid_pedersen::PedersenProof;
-use curv::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS;
 use curv::elliptic::curves::{secp256_k1::Secp256k1, Point, Scalar};
 use paillier::*;
 use sha2::Sha256;

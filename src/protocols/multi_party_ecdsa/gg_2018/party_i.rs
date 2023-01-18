@@ -26,7 +26,6 @@ use curv::cryptographic_primitives::commitments::traits::Commitment;
 use curv::cryptographic_primitives::hashing::{Digest, DigestExt};
 use curv::cryptographic_primitives::proofs::sigma_correct_homomorphic_elgamal_enc::*;
 use curv::cryptographic_primitives::proofs::sigma_dlog::DLogProof;
-use curv::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS;
 use curv::elliptic::curves::{Curve, Point, Scalar, Secp256k1};
 use curv::BigInt;
 use paillier::{
@@ -38,6 +37,8 @@ use zk_paillier::zkproofs::NiCorrectKeyProof;
 use serde::{Deserialize, Serialize};
 
 use crate::Error::{self, InvalidCom, InvalidKey, InvalidSS, InvalidSig};
+
+use super::VerifiableSS;
 
 const SECURITY: usize = 256;
 

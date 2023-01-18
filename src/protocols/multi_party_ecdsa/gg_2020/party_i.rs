@@ -25,12 +25,12 @@ use curv::cryptographic_primitives::commitments::hash_commitment::HashCommitment
 use curv::cryptographic_primitives::commitments::traits::Commitment;
 use curv::cryptographic_primitives::proofs::sigma_correct_homomorphic_elgamal_enc::*;
 use curv::cryptographic_primitives::proofs::sigma_dlog::DLogProof;
-use curv::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS;
 use curv::elliptic::curves::{secp256_k1::Secp256k1, Curve, Point, Scalar};
 use curv::BigInt;
 use sha2::Sha256;
 
 use crate::Error::{self, InvalidSig, Phase5BadSum, Phase6Error};
+use crate::protocols::multi_party_ecdsa::gg_2018::VerifiableSS;
 use paillier::{
     Decrypt, DecryptionKey, EncryptionKey, KeyGeneration, Paillier, RawCiphertext, RawPlaintext,
 };
@@ -383,6 +383,7 @@ impl Keys {
         let global_vss = VerifiableSS {
             parameters: vss_scheme_vec[0].parameters.clone(),
             commitments: global_coefficients,
+            proof: vss_scheme_vec[0].proof.clone()
         };
         (1..=len)
             .map(|i| global_vss.get_point_commitment(i.try_into().unwrap()))

@@ -18,3 +18,6 @@ pub mod party_i;
 
 #[cfg(test)]
 mod test;
+
+use curv::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS as VSS;
+pub type VerifiableSS<T> = VSS<T, sha2::Sha256>;

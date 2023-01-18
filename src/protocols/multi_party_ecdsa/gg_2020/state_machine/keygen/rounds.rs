@@ -1,6 +1,5 @@
 use curv::arithmetic::Converter;
 use curv::cryptographic_primitives::proofs::sigma_dlog::DLogProof;
-use curv::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS;
 use curv::elliptic::curves::{secp256_k1::Secp256k1, Curve, Point, Scalar};
 use curv::BigInt;
 use sha2::Sha256;
@@ -16,6 +15,7 @@ use round_based::containers::{self, BroadcastMsgs, MessageStore, P2PMsgs, P2PMsg
 use round_based::Msg;
 use zk_paillier::zkproofs::DLogStatement;
 
+use crate::protocols::multi_party_ecdsa::gg_2018::VerifiableSS;
 use crate::protocols::multi_party_ecdsa::gg_2020::party_i::{
     KeyGenBroadcastMessage1, KeyGenDecommitMessage1, Keys,
 };
