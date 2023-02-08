@@ -612,6 +612,7 @@ impl Round6 {
 }
 
 #[derive(Clone)]
+#[cfg_attr(feature = "backup", derive(Serialize, Deserialize))]
 pub struct CompletedOfflineStage {
     i: u16,
     local_key: LocalKey<Secp256k1>,

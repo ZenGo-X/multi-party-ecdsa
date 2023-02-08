@@ -28,6 +28,7 @@ crate-type = ["lib"]
 [features]
 default = ["curv-kzen/rust-gmp-kzen"]
 cclst = ["class_group"]
+backup = []
 
 [dependencies]
 subtle = { version = "2" }
@@ -112,3 +113,4 @@ harness = false
 name = "lindel2017_sign"
 path = "benches/two_party_ecdsa/lindell_2017/sign.rs"
 harness = false
+
