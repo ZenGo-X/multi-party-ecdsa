@@ -29,8 +29,8 @@ use curv::elliptic::curves::{secp256_k1::Secp256k1, Curve, Point, Scalar};
 use curv::BigInt;
 use sha2::Sha256;
 
-use crate::Error::{self, InvalidSig, Phase5BadSum, Phase6Error};
 use crate::protocols::multi_party_ecdsa::gg_2018::VerifiableSS;
+use crate::Error::{self, InvalidSig, Phase5BadSum, Phase6Error};
 use paillier::{
     Decrypt, DecryptionKey, EncryptionKey, KeyGeneration, Paillier, RawCiphertext, RawPlaintext,
 };
@@ -281,11 +281,11 @@ impl Keys {
                         &decom_vec[i].blind_factor,
                     ) == bc1_vec[i].com;
                 log::info!("MP-ECDSA : Round 2 : test_res_1 {:?}", test_res_1);
-                
+
                 let test_res_2 = bc1_vec[i]
-                            .correct_key_proof
-                            .verify(&bc1_vec[i].e, zk_paillier::zkproofs::SALT_STRING)
-                            .is_ok();
+                    .correct_key_proof
+                    .verify(&bc1_vec[i].e, zk_paillier::zkproofs::SALT_STRING)
+                    .is_ok();
                 log::info!("MP-ECDSA : Round 2 : test_res_2 {:?}", test_res_2);
 
                 let test_res_3 = bc1_vec[i].e.n.bit_length() >= PAILLIER_MIN_BIT_LENGTH;
@@ -294,23 +294,32 @@ impl Keys {
                 let test_res_4 = bc1_vec[i].e.n.bit_length() <= PAILLIER_MAX_BIT_LENGTH;
                 log::info!("MP-ECDSA : Round 2 : test_res_4 {:?}", test_res_4);
 
-                let test_res_5 = bc1_vec[i].dlog_statement.N.bit_length() >= PAILLIER_MIN_BIT_LENGTH;
+                let test_res_5 =
+                    bc1_vec[i].dlog_statement.N.bit_length() >= PAILLIER_MIN_BIT_LENGTH;
                 log::info!("MP-ECDSA : Round 2 : test_res_5 {:?}", test_res_5);
 
-                let test_res_6 = bc1_vec[i].dlog_statement.N.bit_length() <= PAILLIER_MAX_BIT_LENGTH;
+                let test_res_6 =
+                    bc1_vec[i].dlog_statement.N.bit_length() <= PAILLIER_MAX_BIT_LENGTH;
                 log::info!("MP-ECDSA : Round 2 : test_res_6 {:?}", test_res_6);
                 let test_res_7 = bc1_vec[i]
-                            .composite_dlog_proof_base_h1
-                            .verify(&bc1_vec[i].dlog_statement)
-                            .is_ok();
-                            log::info!("MP-ECDSA : Round 2 : test_res_7 {:?}", test_res_7);
+                    .composite_dlog_proof_base_h1
+                    .verify(&bc1_vec[i].dlog_statement)
+                    .is_ok();
+                log::info!("MP-ECDSA : Round 2 : test_res_7 {:?}", test_res_7);
                 let test_res_8 = bc1_vec[i]
-                            .composite_dlog_proof_base_h2
-                            .verify(&dlog_statement_base_h2)
-                            .is_ok();
-                            log::info!("MP-ECDSA : Round 2 : test_res_8 {:?}", test_res_8);
+                    .composite_dlog_proof_base_h2
+                    .verify(&dlog_statement_base_h2)
+                    .is_ok();
+                log::info!("MP-ECDSA : Round 2 : test_res_8 {:?}", test_res_8);
 
-                let test_res = test_res_1 && test_res_2 && test_res_3 && test_res_4 && test_res_5 && test_res_6 && test_res_7 && test_res_8;
+                let test_res = test_res_1
+                    && test_res_2
+                    && test_res_3
+                    && test_res_4
+                    && test_res_5
+                    && test_res_6
+                    && test_res_7
+                    && test_res_8;
 
                 if !test_res {
                     bad_actors_vec.push(i);
@@ -399,7 +408,7 @@ impl Keys {
         let global_vss = VerifiableSS {
             parameters: vss_scheme_vec[0].parameters.clone(),
             commitments: global_coefficients,
-            proof: vss_scheme_vec[0].proof.clone()
+            proof: vss_scheme_vec[0].proof.clone(),
         };
         (1..=len)
             .map(|i| global_vss.get_point_commitment(i.try_into().unwrap()))
