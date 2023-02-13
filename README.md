@@ -1,6 +1,7 @@
 # Implementing BS21
 
-This is an implementation of the BS23 signing protocol proposed in the article Bouez & Signh 2023 (in proceedings of CT-RSA 2023). 
+This is an implementation of the BS23 signing protocol proposed in the article Bouez & Signh 2023 (in proceedings of CT-RSA 2023). This implementation is not maintained and can not be deemed secure. 
+It should not be used as it is and is only made available for research purposes.
 
 ## Organisation of the project
 
