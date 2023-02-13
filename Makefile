@@ -4,19 +4,19 @@ all:
 
 .PHONY: run keygen presign sign compile 
 run: 
-	@ ./demo/run21.sh
+	@ ./demo/run23.sh
 keygen: reset startSM
-	@ ./demo/bs21/keygen.sh
+	@ ./demo/bs23/keygen.sh
 	@ sleep 7
 	@ if pgrep sm_manager; then pkill sm_manager; fi
 presign: startSM
-	@ ./demo/bs21/presign.sh
+	@ ./demo/bs23/presign.sh
 	@ sleep 7
 	@ if pgrep sm_manager; then pkill sm_manager; fi
 sign:
-	@ ./demo/bs21/sign.sh
+	@ ./demo/bs23/sign.sh
 compile: startSM
-	@ ./demo/bs21/compile_sig.sh
+	@ ./demo/bs23/compile_sig.sh
 	@ sleep 10
 	@ if pgrep sm_manager; then pkill sm_manager; fi
 

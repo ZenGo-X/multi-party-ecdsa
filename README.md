@@ -1,4 +1,4 @@
-# Implementing BS21
+# Implementing BS23
 
 This is an implementation of the BS23 signing protocol proposed in the article Bouez & Signh 2023 (in proceedings of CT-RSA 2023). This implementation is not maintained and can not be deemed secure. 
 It should not be used as it is and is only made available for research purposes.
@@ -41,11 +41,11 @@ docker run -it --rm tsig bash
 This project was fitted with a Makefile for easier building, cleaning, launching.<br>
 The list of available make commands is as follows: 
  * 'make': builds the entire project.
- * BS21 (requires a call to 'make' first)
+ * BS23 (requires a call to 'make' first)
     - 'make run'       : runs all the steps in succession.
-    - 'make keygen'    : runs key generation simulation for BS21. Keygen file is saved in bin/bs21.
-    - 'make presign'   : runs presign simulation for BS21. Presignature file is saved in bin/bs21.
-    - 'make sign'      : signs locally for BS21. Message is stored as bin/message, local signature is saved in bin/bs21.
+    - 'make keygen'    : runs key generation simulation for BS23. Keygen file is saved in bin/BS23.
+    - 'make presign'   : runs presign simulation for BS23. Presignature file is saved in bin/BS23.
+    - 'make sign'      : signs locally for BS23. Message is stored as bin/message, local signature is saved in bin/BS23.
     - 'make compile'   : compiles local signatures into a signature & verifies its validity. Signature is saved as bin/signature.
  * GG20 (requires a call to 'make' first)
     - 'make run20'     : runs all the steps in succession.

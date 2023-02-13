@@ -9,8 +9,8 @@ use curv::{
     elliptic::curves::traits::*,
     BigInt,
 };
-use multi_party_ecdsa::protocols::multi_party_ecdsa::bs_2021::orchestrate::*;
-use multi_party_ecdsa::protocols::multi_party_ecdsa::bs_2021::party_i::{
+use multi_party_ecdsa::protocols::multi_party_ecdsa::bs_2023::orchestrate::*;
+use multi_party_ecdsa::protocols::multi_party_ecdsa::bs_2023::party_i::{
     KeyGenBroadcastMessage1, KeyGenDecommitMessage1, Keys, Parameters, SharedKeys,
 };
 use paillier::*;

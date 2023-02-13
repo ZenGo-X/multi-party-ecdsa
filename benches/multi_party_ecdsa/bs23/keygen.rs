@@ -5,7 +5,7 @@ mod bench {
     use curv::cryptographic_primitives::secret_sharing::feldman_vss::VerifiableSS;
     use curv::elliptic::curves::secp256_k1::{FE, GE};
     use curv::elliptic::curves::traits::*;
-    use multi_party_ecdsa::protocols::multi_party_ecdsa::bs_2021::party_i::*;
+    use multi_party_ecdsa::protocols::multi_party_ecdsa::bs_2023::party_i::*;
     pub fn bench_full_keygen_party_one_two(c: &mut Criterion) {
         c.bench_function("keygen t=1 n=2", move |b| {
             b.iter(|| {

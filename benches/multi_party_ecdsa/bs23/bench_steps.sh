@@ -1,18 +1,16 @@
 #!/usr/bin/env bash 
 
-# To do: Give full reference for [BS21]. 
-
-SCRIPT_DIR="./demo/bs21"
-PROTOCOL="BS21"
+SCRIPT_DIR="./demo/bs23"
+PROTOCOL="BS23"
 DIR="./benches/multi_party_ecdsa"
-BENCH_DIR="./benches/multi_party_ecdsa/bs21/hyperfine"
+BENCH_DIR="./benches/multi_party_ecdsa/bs23/hyperfine"
 
 MAIL="monjipour@gmail.com"
 EXT="csv"
 REPS="50"
 
 # After warmup, to avoid outliers, this program benchmarks one by one shell scripts in SCRIPT_DIR.
-# Each of them corresponds to one of the steps in the protocol, without rool-call, of threshold signature algorithm in [BS21].
+# Each of them corresponds to one of the steps in the protocol, without rool-call, of threshold signature algorithm in [BS23].
 # Benchmark results are stored in markdown files in BENCH_DIR.
 
 # The script employs the following dependencies:
@@ -53,7 +51,7 @@ echo -e "command,mean,stddev,median,user,system,min,max,n,t,r" > ${BENCH_DIR}/${
 echo -e "command,mean,stddev,median,user,system,min,max,n,t,r" > ${BENCH_DIR}/${PROTOCOL}_sign.${EXT}
 echo -e "command,mean,stddev,median,user,system,min,max,n,t,r" > ${BENCH_DIR}/${PROTOCOL}_compile.${EXT}
 
-killall sm_manager bs21_keygen_client bs21_presign_client bs21_sign_client bs21_compile_sig 2> /dev/null
+killall sm_manager bs23_keygen_client bs23_presign_client bs23_sign_client bs23_compile_sig 2> /dev/null
 # Start sm_manager
 ./target/release/examples/sm_manager &
 sleep 2

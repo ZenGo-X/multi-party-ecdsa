@@ -37,14 +37,14 @@
 //! Another Note: If you set the WRITE_FILE env variable.. the tests in this file will write
 //!               jsons keygen.txt and sign.txt which will contain keygen and sign json
 //!               input/output pairs for all the stages.
-use crate::protocols::multi_party_ecdsa::bs_2021::party_i::{
+use crate::protocols::multi_party_ecdsa::bs_2023::party_i::{
     KeyGenBroadcastMessage1, KeyGenDecommitMessage1, Keys, LocalSignature, Parameters,
     PartyPrivate, SharedKeys, SignBroadcastPhase1, SignDecommitPhase1, SignKeys, SignatureRecid,
 };
 use curv::arithmetic::traits::Converter;
 use curv::elliptic::curves::traits::*;
 
-use crate::protocols::multi_party_ecdsa::bs_2021::ErrorType;
+use crate::protocols::multi_party_ecdsa::bs_2023::ErrorType;
 use crate::utilities::mta::{MessageA, MessageB};
 use crate::Error;
 use curv::cryptographic_primitives::proofs::sigma_dlog::DLogProof;
@@ -1106,7 +1106,7 @@ mod tests {
             );
 
             let res = sign_stage6(&input)?;
-            // TODO BS21: adapt test
+            // TODO BS23: adapt test
             // let res = SignStage7LocalSig {
             //     local_sig: Ok(LocalSignature::phase7_local_sig(
             //         &res.k_i,

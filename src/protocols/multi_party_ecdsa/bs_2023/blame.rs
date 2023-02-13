@@ -14,7 +14,7 @@
 
     @license GPL-3.0+ <https://github.com/KZen-networks/multi-party-ecdsa/blob/master/LICENSE>
 */
-use crate::protocols::multi_party_ecdsa::bs_2021::ErrorType;
+use crate::protocols::multi_party_ecdsa::bs_2023::ErrorType;
 use crate::utilities::mta::{MessageA, MessageB};
 use curv::cryptographic_primitives::proofs::sigma_ec_ddh::ECDDHProof;
 use curv::cryptographic_primitives::proofs::sigma_ec_ddh::ECDDHStatement;

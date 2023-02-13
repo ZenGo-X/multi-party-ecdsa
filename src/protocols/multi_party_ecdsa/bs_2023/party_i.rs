@@ -36,7 +36,7 @@ use serde::{Deserialize, Serialize};
 use zk_paillier::zkproofs::NICorrectKeyProof;
 use zk_paillier::zkproofs::{CompositeDLogProof, DLogStatement};
 
-use crate::protocols::multi_party_ecdsa::bs_2021::ErrorType;
+use crate::protocols::multi_party_ecdsa::bs_2023::ErrorType;
 use crate::utilities::zk_pdl_with_slack::{PDLwSlackProof, PDLwSlackStatement, PDLwSlackWitness};
 
 const SECURITY: usize = 256;

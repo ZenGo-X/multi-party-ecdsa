@@ -7,7 +7,7 @@ use curv::cryptographic_primitives::hashing::{
     hash_sha256::HSha256,
     traits::Hash,
 };
-use multi_party_ecdsa::protocols::multi_party_ecdsa::bs_2021::{
+use multi_party_ecdsa::protocols::multi_party_ecdsa::bs_2023::{
     orchestrate::*,
     party_i::LocalSignature,
 };
@@ -15,7 +15,7 @@ use paillier::*;
 use std::{env, fs};
 
 mod common;
-use common::bs21::Presignature;
+use common::bs23::Presignature;
 
 #[allow(clippy::cognitive_complexity)]
 fn main() {

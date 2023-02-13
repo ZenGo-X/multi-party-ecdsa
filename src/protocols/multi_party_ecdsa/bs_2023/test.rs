@@ -37,7 +37,7 @@ use curv::elliptic::curves::traits::*;
 use paillier::*;
 use zk_paillier::zkproofs::DLogStatement;
 
-// TODO BS21: make it compatible with bs_2021
+// TODO BS23: make it compatible with bs_2023
 
 #[test]
 fn test_keygen_t1_n2() {
@@ -287,7 +287,7 @@ fn sign(
         .map(|i| PartyPrivate::set_private(party_keys_vec[i].clone(), shared_keys_vec[i].clone()))
         .collect::<Vec<PartyPrivate>>();
 
-    // TODO BS21: uncomment to make compatible
+    // TODO BS23: uncomment to make compatible
     // // full sig_secret emulation
     // let (secret_party_keys_vec, secret_shared_keys_vec, secret_pk_vec, _secret_y, 
     //     secret_vss_scheme, _secret_ek_vec, _secret_dlog_statement_vec) = keygen_t_n_parties(t, n).unwrap();
@@ -313,7 +313,7 @@ fn sign(
         .map(|i| SignKeys::create(&private_vec[s[i]], &vss_scheme, s[i], &s))
         .collect::<Vec<SignKeys>>();
 
-    // TODO BS21: replace
+    // TODO BS23: replace
     // let sign_keys_vec = (0..ttag)
     //     .map(|i| SignKeys::create(&private_vec[s[i]], &secret_private_vec[s[i]], &vss_scheme, s[i], &s))
     //     .collect::<Vec<SignKeys>>();

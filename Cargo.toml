@@ -109,13 +109,13 @@ path = "benches/multi_party_ecdsa/gg18/keygen.rs"
 harness = false
 
 [[bench]]
-name = "bs21_keygen"
-path = "benches/multi_party_ecdsa/bs21/keygen.rs"
+name = "bs23_keygen"
+path = "benches/multi_party_ecdsa/bs23/keygen.rs"
 harness = false
 
 [[bench]]
-name = "bs21_presign"
-path = "benches/multi_party_ecdsa/bs21/presign.rs"
+name = "bs23_presign"
+path = "benches/multi_party_ecdsa/bs23/presign.rs"
 harness = false
 
 [[bench]]

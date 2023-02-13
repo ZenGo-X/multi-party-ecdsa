@@ -1,6 +1,6 @@
 #![allow(non_snake_case)]
 
-pub mod bs21;
+pub mod bs23;
 
 use std::{
     env, iter::repeat, thread, time, time::Duration,

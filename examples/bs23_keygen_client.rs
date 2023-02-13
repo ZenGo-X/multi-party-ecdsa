@@ -1,6 +1,6 @@
 #![allow(non_snake_case)]
 
-use multi_party_ecdsa::protocols::multi_party_ecdsa::bs_2021::party_i::{
+use multi_party_ecdsa::protocols::multi_party_ecdsa::bs_2023::party_i::{
     Parameters,
 };
 use reqwest::Client;
@@ -8,7 +8,7 @@ use std::{env, fs};
 
 mod common;
 use common::{Params, PartySignup, signup};
-use common::bs21::VSS;
+use common::bs23::VSS;
 
 impl From<Params> for Parameters {
     fn from(item: Params) -> Self {

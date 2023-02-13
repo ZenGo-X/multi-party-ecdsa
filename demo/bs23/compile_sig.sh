@@ -8,6 +8,6 @@ echo -e "\n#######################\n# Compiling Signature #\n###################
 for i in $(seq 1 $((t+1)));
 do
     echo "Compiling signature $i out of $((t+1))"
-    ./target/release/examples/bs21_compile_sig http://127.0.0.1:8001 bin/bs21/localsig$i.store bin/signature &
+    ./target/release/examples/bs23_compile_sig http://127.0.0.1:8001 bin/bs23/localsig$i.store bin/signature &
     sleep 1
 done

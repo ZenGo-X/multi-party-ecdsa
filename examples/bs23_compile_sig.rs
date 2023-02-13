@@ -2,8 +2,8 @@
 
 use curv::elliptic::curves::secp256_k1::{FE};
 use curv::elliptic::curves::traits::*;
-use multi_party_ecdsa::protocols::multi_party_ecdsa::bs_2021::orchestrate::*;
-use multi_party_ecdsa::protocols::multi_party_ecdsa::bs_2021::party_i::{
+use multi_party_ecdsa::protocols::multi_party_ecdsa::bs_2023::orchestrate::*;
+use multi_party_ecdsa::protocols::multi_party_ecdsa::bs_2023::party_i::{
     LocalSignature, Parameters, Signature,
 };
 use reqwest::Client;

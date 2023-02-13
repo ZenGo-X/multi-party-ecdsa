@@ -9,8 +9,8 @@ use curv::cryptographic_primitives::hashing::{
     hash_sha256::HSha256,
     traits::Hash,
 };
-use multi_party_ecdsa::protocols::multi_party_ecdsa::bs_2021::orchestrate::*;
-use multi_party_ecdsa::protocols::multi_party_ecdsa::bs_2021::party_i::{
+use multi_party_ecdsa::protocols::multi_party_ecdsa::bs_2023::orchestrate::*;
+use multi_party_ecdsa::protocols::multi_party_ecdsa::bs_2023::party_i::{
     Parameters, SignBroadcastPhase1, SignDecommitPhase1, SignKeys, PartyPrivate,
     SignatureRecid, verify,
 };
@@ -21,7 +21,7 @@ use serde::{Deserialize, Serialize};
 
 mod common;
 use common::{broadcast, poll_for_broadcasts, poll_for_p2p, sendp2p, signup, Params, PartySignup};
-use common::bs21::{Presignature, LocalSecret, localSS, PartyKeyPair, VSS};
+use common::bs23::{Presignature, LocalSecret, localSS, PartyKeyPair, VSS};
 
 static DELAY: std::time::Duration = time::Duration::from_millis(25);
 

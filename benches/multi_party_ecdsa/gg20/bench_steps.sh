@@ -1,7 +1,5 @@
 #!/usr/bin/env bash 
 
-# To do: Give full reference for [BS21]. 
-
 SCRIPT_DIR="./demo/gg20"
 PROTOCOL="GG20"
 DIR="./benches/multi_party_ecdsa"
@@ -12,7 +10,6 @@ EXT="csv"
 REPS="50"
 
 # After warmup, to avoid outliers, this program benchmarks one by one shell scripts in SCRIPT_DIR.
-# Each of them corresponds to one of the steps in the protocol, without rool-call, of threshold signature algorithm in [BS21].
 # Benchmark results are stored in markdown files in BENCH_DIR.
 
 # The script employs the following dependencies:
