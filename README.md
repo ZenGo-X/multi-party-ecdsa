@@ -1,6 +1,6 @@
 # Implementing BS21
 
-For more information on the article, see the general [README](../../README.md).
+This is an implementation of the BS23 signing protocol proposed in the article Bouez & Signh 2023 (in proceedings of CT-RSA 2023). 
 
 ## Organisation of the project
 
@@ -52,6 +52,10 @@ The list of available make commands is as follows:
     - 'make presign20' : runs presign simulation for GG20. Presignature file is saved in bin/gg20.
     - 'make sign20'    : signs locally for GG20. Message is stored as bin/message, local signature is saved in bin/gg20.
     - 'make compile20' : compiles local signatures into a signature & verifies its validity. Signature is saved as bin/signature.
+
+ ## Acknowledgements
+
+ This research work has been carried out under a R&D partnership on Blockchain between the Institute for Technological Research SystemX and the Group Caisse des Dépôts. Part of the research was also funded by Radboud University. 
 
  ## Contributors
 
