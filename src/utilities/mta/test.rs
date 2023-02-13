@@ -1,15 +1,15 @@
-use crate::utilities::mta::range_proofs::tests::generate_init;
-use crate::utilities::mta::{MessageA, MessageB};
+use crate::utilities::mta::*;
 use curv::elliptic::curves::secp256_k1::FE;
 use curv::elliptic::curves::traits::ECScalar;
+use paillier::traits::KeyGeneration;
 
 #[test]
 fn test_mta() {
     let alice_input: FE = ECScalar::new_random();
-    let (dlog_statement, ek_alice, dk_alice) = generate_init();
+    let (ek_alice, dk_alice) = Paillier::keypair().keys();
     let bob_input: FE = ECScalar::new_random();
-    let (m_a, _) = MessageA::a(&alice_input, &ek_alice, &[dlog_statement.clone()]);
-    let (m_b, beta, _, _) = MessageB::b(&bob_input, &ek_alice, m_a, &[dlog_statement]).unwrap();
+    let (m_a, _r) = MessageA::a(&alice_input, &ek_alice);
+    let (m_b, beta, _, _) = MessageB::b(&bob_input, &ek_alice, m_a);
     let alpha = m_b
         .verify_proofs_get_alpha(&dk_alice, &alice_input)
         .expect("wrong dlog or m_b");

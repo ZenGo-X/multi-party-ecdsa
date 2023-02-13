@@ -1,5 +1,10 @@
-use std::{env, iter::repeat, thread, time, time::Duration};
+#![allow(non_snake_case)]
 
+pub mod bs21;
+
+use std::{
+    env, iter::repeat, thread, time, time::Duration,
+};
 use crypto::{
     aead::{AeadDecryptor, AeadEncryptor},
     aes::KeySize::KeySize256,
@@ -15,8 +20,6 @@ use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
 pub type Key = String;
-
-#[allow(dead_code)]
 pub const AES_KEY_BYTES_LEN: usize = 32;
 
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
@@ -95,6 +98,7 @@ where
     None
 }
 
+#[allow(dead_code)]
 pub fn broadcast(
     client: &Client,
     party_num: u16,
@@ -112,6 +116,7 @@ pub fn broadcast(
     serde_json::from_str(&res_body).unwrap()
 }
 
+#[allow(dead_code)]
 pub fn sendp2p(
     client: &Client,
     party_from: u16,
@@ -131,6 +136,7 @@ pub fn sendp2p(
     serde_json::from_str(&res_body).unwrap()
 }
 
+#[allow(dead_code)]
 pub fn poll_for_broadcasts(
     client: &Client,
     party_num: u16,
@@ -151,7 +157,7 @@ pub fn poll_for_broadcasts(
                 let answer: Result<Entry, ()> = serde_json::from_str(&res_body).unwrap();
                 if let Ok(answer) = answer {
                     ans_vec.push(answer.value);
-                    println!("[{:?}] party {:?} => party {:?}", round, i, party_num);
+                    //println!("[{:?}] party {:?} => party {:?}", round, i, party_num);
                     break;
                 }
             }
@@ -160,6 +166,7 @@ pub fn poll_for_broadcasts(
     ans_vec
 }
 
+#[allow(dead_code)]
 pub fn poll_for_p2p(
     client: &Client,
     party_num: u16,
@@ -180,7 +187,7 @@ pub fn poll_for_p2p(
                 let answer: Result<Entry, ()> = serde_json::from_str(&res_body).unwrap();
                 if let Ok(answer) = answer {
                     ans_vec.push(answer.value);
-                    println!("[{:?}] party {:?} => party {:?}", round, i, party_num);
+                    //println!("[{:?}] party {:?} => party {:?}", round, i, party_num);
                     break;
                 }
             }
@@ -218,4 +225,12 @@ pub fn check_sig(r: &FE, s: &FE, msg: &BigInt, pk: &GE) {
 
     let is_correct = verify(&msg, &secp_sig, &pk);
     assert!(is_correct);
+}
+
+#[allow(dead_code)]
+pub fn signup(client: &Client) -> Result<PartySignup, ()> {
+    let key = "signup-keygen".to_string();
+
+    let res_body = postb(&client, "signupkeygen", key).unwrap();
+    serde_json::from_str(&res_body).unwrap()
 }

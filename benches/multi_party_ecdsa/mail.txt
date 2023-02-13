@@ -1,0 +1,4 @@
+To: monjipour@gmail.com
+From: monjipour@gmail.com
+Subject: Benchmarking Notification
+Benchmarking step of threshold signature finished.

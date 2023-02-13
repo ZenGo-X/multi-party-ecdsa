@@ -14,6 +14,14 @@
     @license GPL-3.0+ <https://github.com/KZen-networks/multi-party-ecdsa/blob/master/LICENSE>
 */
 
-pub mod gg_2018;
-pub mod gg_2020;
-pub mod bs_2021;
+pub mod blame;
+pub mod orchestrate;
+pub mod party_i;
+#[cfg(test)]
+mod test;
+
+#[derive(Clone, Debug)]
+pub struct ErrorType {
+    error_type: String,
+    bad_actors: Vec<usize>,
+}

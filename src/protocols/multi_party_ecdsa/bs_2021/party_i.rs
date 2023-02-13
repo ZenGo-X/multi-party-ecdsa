@@ -36,7 +36,7 @@ use serde::{Deserialize, Serialize};
 use zk_paillier::zkproofs::NICorrectKeyProof;
 use zk_paillier::zkproofs::{CompositeDLogProof, DLogStatement};
 
-use crate::protocols::multi_party_ecdsa::gg_2020::ErrorType;
+use crate::protocols::multi_party_ecdsa::bs_2021::ErrorType;
 use crate::utilities::zk_pdl_with_slack::{PDLwSlackProof, PDLwSlackStatement, PDLwSlackWitness};
 
 const SECURITY: usize = 256;
@@ -113,8 +113,11 @@ pub struct LocalSignature {
     pub r: FE,
     pub R: GE,
     pub s_i: FE,
+    pub a_ii: FE,
     pub m: BigInt,
     pub y: GE,
+    pub vss_scheme: Vec<VerifiableSS<GE>>,
+    pub party_num_int: u16,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -484,6 +487,7 @@ impl SignKeys {
 
     pub fn create(
         private: &PartyPrivate,
+        private_secret: &PartyPrivate,
         vss_scheme: &VerifiableSS<GE>,
         index: usize,
         s: &[usize],
@@ -494,7 +498,7 @@ impl SignKeys {
         let g_w_i = g * w_i;
         let gamma_i: FE = ECScalar::new_random();
         let g_gamma_i = g * gamma_i;
-        let k_i: FE = ECScalar::new_random();
+        let k_i: FE = li * private_secret.x_i;
         Self {
             w_i,
             g_w_i,
@@ -756,32 +760,63 @@ impl LocalSignature {
         }
     }
 
-    pub fn phase7_local_sig(k_i: &FE, message: &BigInt, R: &GE, sigma_i: &FE, pubkey: &GE) -> Self {
+    pub fn phase7_local_sig(k_i: &FE, message: &BigInt, R: &GE, u_i: &FE, v_i:&FE, a_ii: FE, 
+            pubkey: &GE, party_num_int: u16, vss_scheme: Vec<VerifiableSS<GE>>) -> Self {
         let m_fe: FE = ECScalar::from(message);
         let r: FE = ECScalar::from(&R.x_coor().unwrap().mod_floor(&FE::q()));
-        let s_i = m_fe * k_i + r * sigma_i;
+        let s_i = m_fe * k_i + r * u_i + r * v_i;
         Self {
-            r,
+            r: r,
             R: *R,
-            s_i,
+            s_i: s_i,
+            a_ii: a_ii,
             m: message.clone(),
             y: *pubkey,
+            vss_scheme: vss_scheme,
+            party_num_int: party_num_int,
         }
     }
 
-    pub fn output_signature(&self, s_vec: &[FE]) -> Result<SignatureRecid, Error> {
-        let mut s = s_vec.iter().fold(self.s_i, |acc, x| acc + x);
-        let s_bn = s.to_big_int();
+    pub fn output_signature(&self, sig_vec: Vec<LocalSignature>, a_ij_vec: Vec<Vec<FE>>) -> Result<SignatureRecid, Error> {
+        // signers vec
+        let mut signers_vec: Vec<usize> = vec![];
+        for sig in sig_vec.clone() {
+            signers_vec.push((sig.party_num_int - 1) as usize);
+        }
 
+        // compute signature
+        let mut s = FE::zero(); // s = 0
+        let vss_scheme = sig_vec[0].vss_scheme[0].clone(); 
+        
         let r: FE = ECScalar::from(&self.R.x_coor().unwrap().mod_floor(&FE::q()));
-        let ry: BigInt = self.R.y_coor().unwrap().mod_floor(&FE::q());
+        for sig in sig_vec.clone() {
+            let party_num_int = (sig.party_num_int.clone() - 1) as usize;
 
+            let mut sum_j = FE::zero(); // si = 0
+            for num in signers_vec.clone() {
+                let lj = VerifiableSS::<GE>::map_share_to_new_params(&vss_scheme.parameters, num, &signers_vec);
+                
+                let a_ij: FE;
+                if party_num_int == num {
+                    a_ij = sig.a_ii;
+                } else {
+                    a_ij = a_ij_vec[party_num_int][num];
+                }
+                sum_j = sum_j + lj * a_ij; 
+            }
+            let li = VerifiableSS::<GE>::map_share_to_new_params(&vss_scheme.parameters, party_num_int, &signers_vec);
+            s = s + li * (sum_j * r + sig.s_i); // s = li*si + s
+        }
+    
         /*
          Calculate recovery id - it is not possible to compute the public key out of the signature
          itself. Recovery id is used to enable extracting the public key uniquely.
          1. id = R.y & 1
          2. if (s > curve.q / 2) id = id ^ 1
         */
+        let s_bn = s.to_big_int();
+        let ry: BigInt = self.R.y_coor().unwrap().mod_floor(&FE::q());
+
         let is_ry_odd = ry.test_bit(0);
         let mut recid = if is_ry_odd { 1 } else { 0 };
         let s_tag_bn = FE::q() - &s_bn;
@@ -789,6 +824,7 @@ impl LocalSignature {
             s = ECScalar::from(&s_tag_bn);
             recid = recid ^ 1;
         }
+
         let sig = SignatureRecid { r, s, recid };
         let ver = verify(&sig, &self.y, &self.m).is_ok();
         if ver {

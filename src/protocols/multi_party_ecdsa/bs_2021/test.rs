@@ -37,6 +37,8 @@ use curv::elliptic::curves::traits::*;
 use paillier::*;
 use zk_paillier::zkproofs::DLogStatement;
 
+// TODO BS21: make it compatible with bs_2021
+
 #[test]
 fn test_keygen_t1_n2() {
     assert!(keygen_t_n_parties(1, 2).is_ok());
@@ -284,6 +286,19 @@ fn sign(
     let private_vec = (0..shared_keys_vec.len())
         .map(|i| PartyPrivate::set_private(party_keys_vec[i].clone(), shared_keys_vec[i].clone()))
         .collect::<Vec<PartyPrivate>>();
+
+    // TODO BS21: uncomment to make compatible
+    // // full sig_secret emulation
+    // let (secret_party_keys_vec, secret_shared_keys_vec, secret_pk_vec, _secret_y, 
+    //     secret_vss_scheme, _secret_ek_vec, _secret_dlog_statement_vec) = keygen_t_n_parties(t, n).unwrap();
+
+    // // transform the t,n share to t,t+1 share. Get the public keys for the same.
+    // let _secret_g_w_vec = SignKeys::g_w_vec(&secret_pk_vec, &s[..], &secret_vss_scheme);
+
+    // let secret_private_vec = (0..secret_shared_keys_vec.len())
+    //     .map(|i| PartyPrivate::set_private(secret_party_keys_vec[i].clone(), secret_shared_keys_vec[i].clone()))
+    //     .collect::<Vec<PartyPrivate>>();
+
     // make sure that we have t<t'<n and the group s contains id's for t' parties
     // TODO: make sure s has unique id's and they are all in range 0..n
     // TODO: make sure this code can run when id's are not in ascending order
@@ -297,6 +312,11 @@ fn sign(
     let sign_keys_vec = (0..ttag)
         .map(|i| SignKeys::create(&private_vec[s[i]], &vss_scheme, s[i], &s))
         .collect::<Vec<SignKeys>>();
+
+    // TODO BS21: replace
+    // let sign_keys_vec = (0..ttag)
+    //     .map(|i| SignKeys::create(&private_vec[s[i]], &secret_private_vec[s[i]], &vss_scheme, s[i], &s))
+    //     .collect::<Vec<SignKeys>>();
 
     // each party computes [Ci,Di] = com(g^gamma_i) and broadcast the commitments
     let (bc1_vec, decommit_vec1): (Vec<_>, Vec<_>) =

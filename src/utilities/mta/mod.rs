@@ -14,7 +14,7 @@
     @license GPL-3.0+ <https://github.com/KZen-networks/multi-party-ecdsa/blob/master/LICENSE>
 */
 
-/// MtA is described in https://eprint.iacr.org/2019/114.pdf section 3
+/// MtA is descrbied in https://eprint.iacr.org/2019/114.pdf section 3
 use curv::arithmetic::traits::Samplable;
 use curv::cryptographic_primitives::proofs::sigma_dlog::DLogProof;
 use curv::elliptic::curves::secp256_k1::{FE, GE};
@@ -23,18 +23,14 @@ use curv::BigInt;
 use paillier::traits::EncryptWithChosenRandomness;
 use paillier::{Add, Decrypt, Mul};
 use paillier::{DecryptionKey, EncryptionKey, Paillier, Randomness, RawCiphertext, RawPlaintext};
-use zk_paillier::zkproofs::DLogStatement;
-
 use serde::{Deserialize, Serialize};
 
 use crate::protocols::multi_party_ecdsa::gg_2018::party_i::PartyPrivate;
-use crate::utilities::mta::range_proofs::AliceProof;
 use crate::Error::{self, InvalidKey};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct MessageA {
-    pub c: BigInt,                     // paillier encryption
-    pub range_proofs: Vec<AliceProof>, // proofs (using other parties' h1,h2,N_tilde) that the plaintext is small
+    pub c: BigInt, // paillier encryption
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -45,90 +41,117 @@ pub struct MessageB {
 }
 
 impl MessageA {
-    /// Creates a new `messageA` using Alice's Paillier encryption key and `dlog_statements`
-    /// - other parties' `h1,h2,N_tilde`s for range proofs.
-    /// If range proofs are not needed (one example is identification of aborts where we
-    /// only want to reconstruct a ciphertext), `dlog_statements` can be an empty slice.
-    pub fn a(
-        a: &FE,
-        alice_ek: &EncryptionKey,
-        dlog_statements: &[DLogStatement],
-    ) -> (Self, BigInt) {
+    pub fn a(a: &FE, alice_ek: &EncryptionKey) -> (Self, BigInt) {
         let randomness = BigInt::sample_below(&alice_ek.n);
-        let m_a = MessageA::a_with_predefined_randomness(a, alice_ek, &randomness, dlog_statements);
-        (m_a, randomness)
+        let c_a = Paillier::encrypt_with_chosen_randomness(
+            alice_ek,
+            RawPlaintext::from(a.to_big_int()),
+            &Randomness::from(randomness.clone()),
+        );
+        (
+            Self {
+                c: c_a.0.clone().into_owned(),
+            },
+            randomness,
+        )
     }
 
     pub fn a_with_predefined_randomness(
         a: &FE,
         alice_ek: &EncryptionKey,
         randomness: &BigInt,
-        dlog_statements: &[DLogStatement],
     ) -> Self {
         let c_a = Paillier::encrypt_with_chosen_randomness(
             alice_ek,
             RawPlaintext::from(a.to_big_int()),
             &Randomness::from(randomness.clone()),
-        )
-        .0
-        .clone()
-        .into_owned();
-        let alice_range_proofs = dlog_statements
-            .into_iter()
-            .map(|dlog_statement| {
-                AliceProof::generate(&a.to_big_int(), &c_a, alice_ek, dlog_statement, &randomness)
-            })
-            .collect::<Vec<AliceProof>>();
+        );
 
         Self {
-            c: c_a,
-            range_proofs: alice_range_proofs,
+            c: c_a.0.clone().into_owned(),
         }
     }
 }
 
 impl MessageB {
-    pub fn b(
-        b: &FE,
-        alice_ek: &EncryptionKey,
-        m_a: MessageA,
-        dlog_statements: &[DLogStatement],
-    ) -> Result<(Self, FE, BigInt, BigInt), Error> {
+    pub fn b(b: &FE, alice_ek: &EncryptionKey, c_a: MessageA) -> (Self, FE, BigInt, BigInt) {
         let beta_tag = BigInt::sample_below(&alice_ek.n);
+        let beta_tag_fe: FE = ECScalar::from(&beta_tag);
         let randomness = BigInt::sample_below(&alice_ek.n);
-        let (m_b, beta) = MessageB::b_with_predefined_randomness(
-            b,
+        let c_beta_tag = Paillier::encrypt_with_chosen_randomness(
             alice_ek,
-            m_a,
-            &randomness,
-            &beta_tag,
-            dlog_statements,
-        )?;
+            RawPlaintext::from(beta_tag.clone()),
+            &Randomness::from(randomness.clone()),
+        );
 
-        Ok((m_b, beta, randomness, beta_tag))
+        let b_bn = b.to_big_int();
+        let b_c_a = Paillier::mul(
+            alice_ek,
+            RawCiphertext::from(c_a.c),
+            RawPlaintext::from(b_bn),
+        );
+        let c_b = Paillier::add(alice_ek, b_c_a, c_beta_tag);
+        let beta = FE::zero().sub(&beta_tag_fe.get_element());
+        let dlog_proof_b = DLogProof::prove(b);
+        let dlog_proof_beta_tag = DLogProof::prove(&beta_tag_fe);
+
+        (
+            Self {
+                c: c_b.0.clone().into_owned(),
+                b_proof: dlog_proof_b,
+                beta_tag_proof: dlog_proof_beta_tag,
+            },
+            beta,
+            randomness,
+            beta_tag,
+        )
+    }
+
+    pub fn b_with_predefined_beta(
+        b: &FE, 
+        alice_ek: &EncryptionKey, 
+        c_a: MessageA, 
+        beta: &FE, //beta_fe
+    ) -> (Self, BigInt, BigInt) {
+        let beta_tag_fe = FE::zero().sub(&beta.get_element());
+        let beta_tag : BigInt = beta_tag_fe.to_big_int();
+        assert!(beta_tag <= alice_ek.n);
+
+        let randomness = BigInt::sample_below(&alice_ek.n);
+        let c_beta_tag = Paillier::encrypt_with_chosen_randomness(
+            alice_ek,
+            RawPlaintext::from(beta_tag.clone()),
+            &Randomness::from(randomness.clone()),
+        );
+
+        let b_bn = b.to_big_int();
+        let b_c_a = Paillier::mul(
+            alice_ek,
+            RawCiphertext::from(c_a.c),
+            RawPlaintext::from(b_bn),
+        );
+        let c_b = Paillier::add(alice_ek, b_c_a, c_beta_tag);
+        let dlog_proof_b = DLogProof::prove(b);
+        let dlog_proof_beta_tag = DLogProof::prove(&beta_tag_fe);
+
+        (
+            Self {
+                c: c_b.0.clone().into_owned(),
+                b_proof: dlog_proof_b,
+                beta_tag_proof: dlog_proof_beta_tag,
+            },
+            randomness,
+            beta_tag,
+        )
     }
 
     pub fn b_with_predefined_randomness(
         b: &FE,
         alice_ek: &EncryptionKey,
-        m_a: MessageA,
+        c_a: MessageA,
         randomness: &BigInt,
         beta_tag: &BigInt,
-        dlog_statements: &[DLogStatement],
-    ) -> Result<(Self, FE), Error> {
-        if m_a.range_proofs.len() != dlog_statements.len() {
-            return Err(InvalidKey);
-        }
-        // verify proofs
-        if !m_a
-            .range_proofs
-            .iter()
-            .zip(dlog_statements)
-            .map(|(proof, dlog_statement)| proof.verify(&m_a.c, alice_ek, dlog_statement))
-            .all(|x| x)
-        {
-            return Err(InvalidKey);
-        };
+    ) -> (Self, FE) {
         let beta_tag_fe: FE = ECScalar::from(beta_tag);
         let c_beta_tag = Paillier::encrypt_with_chosen_randomness(
             alice_ek,
@@ -139,7 +162,7 @@ impl MessageB {
         let b_bn = b.to_big_int();
         let b_c_a = Paillier::mul(
             alice_ek,
-            RawCiphertext::from(m_a.c),
+            RawCiphertext::from(c_a.c),
             RawPlaintext::from(b_bn),
         );
         let c_b = Paillier::add(alice_ek, b_c_a, c_beta_tag);
@@ -147,14 +170,14 @@ impl MessageB {
         let dlog_proof_b = DLogProof::prove(b);
         let dlog_proof_beta_tag = DLogProof::prove(&beta_tag_fe);
 
-        Ok((
+        (
             Self {
                 c: c_b.0.clone().into_owned(),
                 b_proof: dlog_proof_b,
                 beta_tag_proof: dlog_proof_beta_tag,
             },
             beta,
-        ))
+        )
     }
 
     pub fn verify_proofs_get_alpha(
@@ -163,10 +186,12 @@ impl MessageB {
         a: &FE,
     ) -> Result<(FE, BigInt), Error> {
         let alice_share = Paillier::decrypt(dk, &RawCiphertext::from(self.c.clone()));
-        let g: GE = ECPoint::generator();
         let alpha: FE = ECScalar::from(&alice_share.0);
+        let g: GE = ECPoint::generator();
         let g_alpha = g * alpha;
+
         let ba_btag = self.b_proof.pk * a + self.beta_tag_proof.pk;
+        
         if DLogProof::verify(&self.b_proof).is_ok()
             && DLogProof::verify(&self.beta_tag_proof).is_ok()
             // we prove the correctness of the ciphertext using this check and the proof of knowledge of dlog of beta_tag
@@ -206,6 +231,5 @@ impl MessageB {
     }
 }
 
-pub mod range_proofs;
 #[cfg(test)]
 mod test;

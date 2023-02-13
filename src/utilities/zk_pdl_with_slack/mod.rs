@@ -19,7 +19,7 @@
 //! This proof ws taken from the proof 6.3 (left side ) in https://www.cs.unc.edu/~reiter/papers/2004/IJIS.pdf
 //!
 //! Statement: (c, pk, Q, G)
-//! witness (x, r) such that Q = xG, c = Enc(pk, x, r)
+//! witness (x, r, sk) such that Q = xG, c = Enc(pk, x, r) and Dec(sk, c) = x.
 //! note that because of the range proof, the proof has a slack in the range: x in [-q^3, q^3]
 
 use curv::arithmetic::traits::*;
@@ -29,7 +29,7 @@ use curv::elliptic::curves::secp256_k1::{FE, GE};
 use curv::elliptic::curves::traits::ECPoint;
 use curv::elliptic::curves::traits::ECScalar;
 use curv::BigInt;
-use paillier::EncryptionKey;
+use paillier::{DecryptionKey, EncryptionKey};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -46,6 +46,7 @@ pub struct PDLwSlackStatement {
 pub struct PDLwSlackWitness {
     pub x: FE,
     pub r: BigInt,
+    pub dk: DecryptionKey,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
