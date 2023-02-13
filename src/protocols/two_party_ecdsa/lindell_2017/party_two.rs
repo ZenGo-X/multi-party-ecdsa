@@ -78,6 +78,7 @@ pub struct Party2Private {
     x2: FE,
 }
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct PDLchallenge {
     pub c_tag: BigInt,
     pub c_tag_tag: BigInt,

@@ -21,6 +21,7 @@ pub mod party_i;
 mod test;
 
 #[derive(Clone, Debug)]
+#[allow(dead_code)]
 pub struct ErrorType {
     error_type: String,
     bad_actors: Vec<usize>,
