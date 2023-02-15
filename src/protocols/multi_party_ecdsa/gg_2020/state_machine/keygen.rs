@@ -5,7 +5,7 @@ use std::mem::replace;
 use std::time::Duration;
 
 use curv::cryptographic_primitives::proofs::sigma_dlog::DLogProof;
-use curv::elliptic::curves::{secp256_k1::Secp256k1};
+use curv::elliptic::curves::secp256_k1::Secp256k1;
 use round_based::containers::{
     push::{Push, PushExt},
     *,
