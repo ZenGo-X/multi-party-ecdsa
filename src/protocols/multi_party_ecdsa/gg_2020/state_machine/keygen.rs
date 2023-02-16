@@ -467,7 +467,21 @@ pub enum Error {
 
 impl IsCritical for Error {
     fn is_critical(&self) -> bool {
-        true
+        match self {
+            Error::ProceedRound(e) => e.is_critical(),
+            // These errors are not critical, because they are handled by the protocol
+            // and don't indicate a bug in the library.
+            Error::HandleMessage(e) => !matches!(
+                e,
+                StoreErr::MsgOverwrite | StoreErr::NotForMe | StoreErr::WantsMoreMessages
+            ),
+            Error::ReceivedOutOfOrderMessage { .. } => false,
+            Error::DoublePickOutput
+            | Error::TooFewParties
+            | Error::InvalidThreshold
+            | Error::InvalidPartyIndex
+            | Error::InternalError(_) => true,
+        }
     }
 }
 

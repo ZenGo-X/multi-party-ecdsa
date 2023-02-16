@@ -12,7 +12,7 @@ use paillier::{Decrypt, Encrypt};
 use paillier::{EncryptionKey, RawCiphertext, RawPlaintext};
 use round_based::containers::push::Push;
 use round_based::containers::{self, BroadcastMsgs, MessageStore, P2PMsgs, P2PMsgsStore, Store};
-use round_based::Msg;
+use round_based::{IsCritical, Msg};
 use zk_paillier::zkproofs::DLogStatement;
 
 use crate::protocols::multi_party_ecdsa::gg_2018::VerifiableSS;
@@ -364,4 +364,10 @@ pub enum ProceedError {
     Round3VerifyVssConstruct(ErrorType),
     #[error("round 4: verify dlog proof: {0:?}")]
     Round4VerifyDLogProof(ErrorType),
+}
+
+impl IsCritical for ProceedError {
+    fn is_critical(&self) -> bool {
+        true
+    }
 }
