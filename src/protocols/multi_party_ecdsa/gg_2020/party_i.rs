@@ -296,6 +296,28 @@ impl Keys {
                     ) == bc1_vec[i].com;
                 log::info!("MP-ECDSA : Round 2 : test_res_1 {:?}", test_res_1);
 
+                if !test_res_1 {
+                    // Do a dumb test to search if the right decommit exists
+                    for j in 0..bc1_vec.len() {
+                        if i != j {
+                            let test_res_1_1 =
+                                HashCommitment::<Sha256>::create_commitment_with_user_defined_randomness(
+                                    &BigInt::from_bytes(&decom_vec[j].y_i.to_bytes(true)),
+                                    &decom_vec[j].blind_factor,
+                                ) == bc1_vec[i].com;
+                            if test_res_1_1 {
+                                log::info!("MP-ECDSA : Round 2 : test_res_1_1 {:?}", test_res_1_1);
+                                log::info!("MP-ECDSA : Round 2 : i {:?}", i);
+                                log::info!("MP-ECDSA : Round 2 : j {:?}", j);
+                                log::info!("MP-ECDSA : Round 2 : decom_vec[i] {:?}", decom_vec[i]);
+                                log::info!("MP-ECDSA : Round 2 : decom_vec[j] {:?}", decom_vec[j]);
+                                log::info!("MP-ECDSA : Round 2 : bc1_vec[i] {:?}", bc1_vec[i]);
+                                log::info!("MP-ECDSA : Round 2 : bc1_vec[j] {:?}", bc1_vec[j]);
+                            }
+                        }
+                    }
+                }
+
                 let test_res_2 = bc1_vec[i]
                     .correct_key_proof
                     .verify(&bc1_vec[i].e, zk_paillier::zkproofs::SALT_STRING)
