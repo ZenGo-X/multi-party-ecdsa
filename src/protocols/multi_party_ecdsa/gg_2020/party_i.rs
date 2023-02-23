@@ -306,13 +306,13 @@ impl Keys {
                                     &decom_vec[j].blind_factor,
                                 ) == bc1_vec[i].com;
                             if test_res_1_1 {
-                                log::info!("MP-ECDSA : Round 2 : test_res_1_1 {:?}", test_res_1_1);
-                                log::info!("MP-ECDSA : Round 2 : i {:?}", i);
-                                log::info!("MP-ECDSA : Round 2 : j {:?}", j);
-                                log::info!("MP-ECDSA : Round 2 : decom_vec[i] {:?}", decom_vec[i]);
-                                log::info!("MP-ECDSA : Round 2 : decom_vec[j] {:?}", decom_vec[j]);
-                                log::info!("MP-ECDSA : Round 2 : bc1_vec[i] {:?}", bc1_vec[i]);
-                                log::info!("MP-ECDSA : Round 2 : bc1_vec[j] {:?}", bc1_vec[j]);
+                                log::info!("MP-ECDSA : Round 2 RETEST : test_res_1_1 {:?}", test_res_1_1);
+                                log::info!("MP-ECDSA : Round 2 RETEST : i {:?}", i);
+                                log::info!("MP-ECDSA : Round 2 RETEST : j {:?}", j);
+                                log::info!("MP-ECDSA : Round 2 RETEST : decom_vec[i] {:?}", decom_vec[i]);
+                                log::info!("MP-ECDSA : Round 2 RETEST : decom_vec[j] {:?}", decom_vec[j]);
+                                log::info!("MP-ECDSA : Round 2 RETEST : bc1_vec[i] {:?}", bc1_vec[i]);
+                                log::info!("MP-ECDSA : Round 2 RETEST : bc1_vec[j] {:?}", bc1_vec[j]);
                             }
                         }
                     }
