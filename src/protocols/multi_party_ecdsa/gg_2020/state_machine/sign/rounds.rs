@@ -147,20 +147,32 @@ impl Round1 {
         let i = usize::from(self.i - 1);
         for j in 0..ttag - 1 {
             let ind = if j < i { j } else { j + 1 };
+
             let (m_b_gamma, beta_gamma, _beta_randomness, _beta_tag) = MessageB::b(
                 &self.sign_keys.gamma_i,
                 &self.local_key.paillier_key_vec[l_s[ind]],
                 m_a_vec[ind].clone(),
                 &self.local_key.h1_h2_n_tilde_vec,
             )
-            .expect("Incorrect Alice's range proof in MtA");
+            .map_err(|e| {
+                Error::Round1(ErrorType {
+                    error_type: e.to_string(),
+                    bad_actors: vec![],
+                })
+            })?;
+
             let (m_b_w, beta_wi, _, _) = MessageB::b(
                 &self.sign_keys.w_i,
                 &self.local_key.paillier_key_vec[l_s[ind]],
                 m_a_vec[ind].clone(),
                 &self.local_key.h1_h2_n_tilde_vec,
             )
-            .expect("Incorrect Alice's range proof in MtA");
+            .map_err(|e| {
+                Error::Round1(ErrorType {
+                    error_type: e.to_string(),
+                    bad_actors: vec![],
+                })
+            })?;
 
             m_b_gamma_vec.push(m_b_gamma);
             beta_vec.push(beta_gamma);
@@ -251,11 +263,21 @@ impl Round2 {
 
             let alpha_ij_gamma = m_b
                 .verify_proofs_get_alpha(&self.local_key.paillier_dk, &self.sign_keys.k_i)
-                .expect("wrong dlog or m_b");
+                .map_err(|e| {
+                    Error::Round3(ErrorType {
+                        error_type: e.to_string(),
+                        bad_actors: vec![],
+                    })
+                })?;
             let m_b = m_b_w_s[j].clone();
             let alpha_ij_wi = m_b
                 .verify_proofs_get_alpha(&self.local_key.paillier_dk, &self.sign_keys.k_i)
-                .expect("wrong dlog or m_b");
+                .map_err(|e| {
+                    Error::Round3(ErrorType {
+                        error_type: e.to_string(),
+                        bad_actors: vec![],
+                    })
+                })?;
             assert_eq!(m_b.b_proof.pk, g_w_vec[ind]); //TODO: return error
 
             alpha_vec.push(alpha_ij_gamma.0);
@@ -347,7 +369,12 @@ impl Round3 {
         let delta_inv = SignKeys::phase3_reconstruct_delta(&delta_vec);
         let ttag = self.s_l.len();
         for proof in t_proof_vec.iter().take(ttag) {
-            PedersenProof::verify(proof).expect("error T proof");
+            PedersenProof::verify(proof).map_err(|e| {
+                Error::Round3(ErrorType {
+                    error_type: e.to_string(),
+                    bad_actors: vec![],
+                })
+            })?;
         }
 
         output.push(Msg {
@@ -420,7 +447,8 @@ impl Round4 {
             &self.bc_vec,
             usize::from(self.i - 1),
         )
-        .expect(""); //TODO: propagate the error
+        .map_err(|e| Error::Round5(e))?;
+
         let R_dash = &R * &self.sign_keys.k_i;
 
         // each party sends first message to all other parties
@@ -526,9 +554,14 @@ impl Round5 {
                 &l_s,
                 i,
             )
-            .expect("phase5 verify pdl error");
+            .map_err(|e| Error::Round5(e))?;
         }
-        LocalSignature::phase5_check_R_dash_sum(&r_dash_vec).expect("R_dash error");
+        LocalSignature::phase5_check_R_dash_sum(&r_dash_vec).map_err(|e| {
+            Error::Round5(ErrorType {
+                error_type: e.to_string(),
+                bad_actors: vec![],
+            })
+        })?;
 
         let (S_i, homo_elgamal_proof) = LocalSignature::phase6_compute_S_i_and_proof_of_consistency(
             &self.R,

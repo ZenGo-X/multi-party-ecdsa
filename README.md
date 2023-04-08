@@ -11,7 +11,7 @@ Threshold ECDSA includes two protocols:
 -   Signing for using the secret shares to generate a signature.
 
 ECDSA is used extensively for crypto-currencies such as Bitcoin, Ethereum (secp256k1 curve), NEO (NIST P-256 curve) and much more.
-This library can be used to create MultiSig and ThresholdSig crypto wallet. For a full background on threshold signatures please read our Binance academy article [Threshold Signatures Explained](https://www.binance.vision/security/threshold-signatures-explained).
+This library can be used to create MultiSig and ThresholdSig crypto wallet. For a full background on threshold signatures please read our Binance academy article [Threshold Signatures Explained](https://academy.binance.com/en/articles/threshold-signatures-explained).
 
 ## Library Introduction
 The library was built with four core design principles in mind:
