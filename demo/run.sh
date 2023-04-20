@@ -21,7 +21,7 @@ echo "keygen part"
 for i in $(seq 1 $n)
 do
     echo "key gen for client $i out of $n"
-    ./target/release/examples/gg18_keygen_client http://127.0.0.1:8001 keys$i.store &
+    ./target/release/examples/gg18_keygen_client http://127.0.0.1:8000 keys$i.store &
     sleep 3
 done
 
@@ -33,7 +33,7 @@ echo "sign"
 for i in $(seq 1 $((t+1)));
 do
     echo "signing for client $i out of $((t+1))"
-    ./target/release/examples/gg18_sign_client http://127.0.0.1:8001 keys$i.store "KZen Networks" &
+    ./target/release/examples/gg18_sign_client http://127.0.0.1:8000 keys$i.store "KZen Networks" &
     sleep 3
 done
 
