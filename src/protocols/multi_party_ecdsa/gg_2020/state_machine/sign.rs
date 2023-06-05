@@ -478,6 +478,19 @@ enum OfflineR {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct OfflineProtocolMessage(OfflineM);
 
+impl crate::MessageRoundID for OfflineProtocolMessage {
+    fn round_id(&self) -> u16 {
+        match &self.0 {
+            OfflineM::M1(_) => 1,
+            OfflineM::M2(_) => 2,
+            OfflineM::M3(_) => 3,
+            OfflineM::M4(_) => 4,
+            OfflineM::M5(_) => 5,
+            OfflineM::M6(_) => 6,
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[allow(clippy::large_enum_variant)]
 enum OfflineM {

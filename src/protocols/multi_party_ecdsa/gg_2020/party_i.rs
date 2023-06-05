@@ -263,22 +263,8 @@ impl Keys {
         decom_vec: &[KeyGenDecommitMessage1],
         bc1_vec: &[KeyGenBroadcastMessage1],
     ) -> Result<(VerifiableSS<Secp256k1>, Vec<Scalar<Secp256k1>>, usize), ErrorType> {
-        log::info!("MP-ECDSA : Round 2 : params {:?}", params);
-        log::info!("MP-ECDSA : Round 2 : decom_vec {:?}", decom_vec);
-        log::info!("MP-ECDSA : Round 2 : bc1_vec {:?}", bc1_vec);
-        
         let mut bad_actors_vec = Vec::new();
         // test length:
-        log::info!(
-            "MP-ECDSA : Round 2 : decom_vec length ({:?}, ({:?}))",
-            decom_vec.len(),
-            usize::from(params.share_count)
-        );
-        log::info!(
-            "MP-ECDSA : Round 2 : bc1_vec length ({:?}, ({:?}))",
-            bc1_vec.len(),
-            usize::from(params.share_count)
-        );
         assert_eq!(decom_vec.len(), usize::from(params.share_count));
         assert_eq!(bc1_vec.len(), usize::from(params.share_count));
         // test paillier correct key, h1,h2 correct generation and test decommitments

@@ -121,10 +121,6 @@ impl Round2 {
         };
         let received_decom = input.into_vec_including_me(self.decom);
 
-        log::info!("MP-ECDSA : Round 2 : threshold {:?}", params.threshold);
-        log::info!("MP-ECDSA : Round 2 : share_count {:?}", params.share_count);
-        log::info!("MP-ECDSA : Round 2 : received_decom {:?}", received_decom);
-
         let vss_result = self
             .keys
             .phase1_verify_com_phase3_verify_correct_key_verify_dlog_phase2_distribute(

@@ -117,11 +117,6 @@ impl MessageB {
         dlog_statements: &[DLogStatement],
     ) -> Result<(Self, Scalar<Secp256k1>), Error> {
         if m_a.range_proofs.len() != dlog_statements.len() {
-            log::info!(
-                "MP-ECDSA : Range proof length mismatch: range_proof_len : {} dlog_statements : {}",
-                m_a.range_proofs.len(),
-                dlog_statements.len()
-            );
             return Err(InvalidKey);
         }
         // verify proofs
@@ -180,10 +175,6 @@ impl MessageB {
         {
             Ok((alpha, alice_share.0.into_owned()))
         } else {
-            log::info!(
-                "MP-ECDSA : verify_proofs_get_alpha failed, decryption key : {:?}",
-                dk
-            );
             Err(InvalidKey)
         }
     }
@@ -207,10 +198,6 @@ impl MessageB {
         {
             Ok(alpha)
         } else {
-            log::info!(
-                "MP-ECDSA : verify_proofs_get_alpha_gg18 failed, private key : {:?}",
-                private
-            );
             Err(InvalidKey)
         }
     }
