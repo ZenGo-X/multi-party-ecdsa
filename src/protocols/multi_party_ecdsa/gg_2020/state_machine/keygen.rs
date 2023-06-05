@@ -72,7 +72,6 @@ impl Keygen {
             msgs4: Some(Round4::expects_messages(i, n)),
 
             msgs_queue: vec![],
-
             party_i: i,
             party_n: n,
         };
@@ -423,6 +422,17 @@ enum M {
     Round2(gg_2020::party_i::KeyGenDecommitMessage1),
     Round3((VerifiableSS<Secp256k1>, Vec<u8>)),
     Round4(DLogProof<Secp256k1, Sha256>),
+}
+
+impl crate::MessageRoundID for ProtocolMessage {
+    fn round_id(&self) -> u16 {
+        match self.0 {
+            M::Round1(_) => 1,
+            M::Round2(_) => 2,
+            M::Round3(_) => 3,
+            M::Round4(_) => 4,
+        }
+    }
 }
 
 // Error
