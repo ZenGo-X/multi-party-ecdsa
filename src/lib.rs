@@ -20,8 +20,9 @@
 
 pub mod protocols;
 pub mod utilities;
-pub use protocols::multi_party_ecdsa::gg_2020::state_machine::traits::MessageRoundID;
 use std::fmt;
+
+pub use protocols::multi_party_ecdsa::gg_2020::state_machine::traits::MessageRoundID;
 
 #[derive(Copy, PartialEq, Eq, Clone, Debug)]
 pub enum Error {

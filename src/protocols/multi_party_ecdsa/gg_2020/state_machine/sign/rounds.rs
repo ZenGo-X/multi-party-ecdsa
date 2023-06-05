@@ -651,6 +651,7 @@ impl Round6 {
 }
 
 #[derive(Clone)]
+#[allow(dead_code)]
 pub struct CompletedOfflineStage {
     i: u16,
     local_key: LocalKey<Secp256k1>,
