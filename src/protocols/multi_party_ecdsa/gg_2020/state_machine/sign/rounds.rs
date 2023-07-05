@@ -447,7 +447,7 @@ impl Round4 {
             &self.bc_vec,
             usize::from(self.i - 1),
         )
-        .map_err(|e| Error::Round5(e))?;
+        .map_err(Error::Round5)?;
 
         let R_dash = &R * &self.sign_keys.k_i;
 
@@ -554,7 +554,7 @@ impl Round5 {
                 &l_s,
                 i,
             )
-            .map_err(|e| Error::Round5(e))?;
+            .map_err(Error::Round5)?;
         }
         LocalSignature::phase5_check_R_dash_sum(&r_dash_vec).map_err(|e| {
             Error::Round5(ErrorType {

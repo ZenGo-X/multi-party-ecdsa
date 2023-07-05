@@ -669,7 +669,7 @@ pub(crate) mod tests {
 
                 let (bob_proof, _) = BobProof::generate(
                     &encrypted_a,
-                    &mta_out.0.clone().into_owned(),
+                    &mta_out.0.clone(),
                     &b,
                     &beta_prim,
                     alice_public_key,
@@ -679,7 +679,7 @@ pub(crate) mod tests {
                 );
                 assert!(bob_proof.verify(
                     &encrypted_a,
-                    &mta_out.0.clone().into_owned(),
+                    &mta_out.0.clone(),
                     alice_public_key,
                     &dlog_statement,
                     None
@@ -690,7 +690,7 @@ pub(crate) mod tests {
                 let X = ec_gen * &b;
                 let bob_proof = generate(
                     &encrypted_a,
-                    &mta_out.0.clone().into_owned(),
+                    &mta_out.0.clone(),
                     &b,
                     &beta_prim,
                     alice_public_key,
@@ -699,7 +699,7 @@ pub(crate) mod tests {
                 );
                 assert!(bob_proof.verify(
                     &encrypted_a,
-                    &mta_out.0.clone().into_owned(),
+                    &mta_out.0.clone(),
                     alice_public_key,
                     &dlog_statement,
                     &X
