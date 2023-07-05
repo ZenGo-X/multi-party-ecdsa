@@ -257,7 +257,7 @@ impl Party1Private {
     ) {
         let (ek_new, dk_new) = Paillier::keypair().keys();
         let randomness = Randomness::sample(&ek_new);
-        let factor_fe = Scalar::<Secp256k1>::from(&*factor);
+        let factor_fe = Scalar::<Secp256k1>::from(factor);
         let x1_new = &party_one_private.x1 * factor_fe;
         let c_key_new = Paillier::encrypt_with_chosen_randomness(
             &ek_new,
@@ -576,7 +576,7 @@ pub fn verify(
     let e_fe: Scalar<Secp256k1> =
         Scalar::<Secp256k1>::from(&message.mod_floor(Scalar::<Secp256k1>::group_order()));
     let u1 = Point::generator() * e_fe * &s_inv_fe;
-    let u2 = &*pubkey * rx_fe * &s_inv_fe;
+    let u2 = pubkey * rx_fe * &s_inv_fe;
 
     // second condition is against malleability
     let rx_bytes = &BigInt::to_bytes(&signature.r)[..];
