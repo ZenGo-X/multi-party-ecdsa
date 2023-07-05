@@ -65,7 +65,7 @@ mod bench {
                 .expect("invalid key");
             vss_scheme_vec.push(vss_scheme);
             secret_shares_vec.push(secret_shares);
-            index_vec.push(index as u16);
+            index_vec.push(index);
         }
         let vss_scheme_for_test = vss_scheme_vec.clone();
 
@@ -89,7 +89,7 @@ mod bench {
                     &y_vec,
                     &party_shares[i],
                     &vss_scheme_vec,
-                    (&index_vec[i] + 1).into(),
+                    (&index_vec[i] + 1),
                 )
                 .expect("invalid vss");
             shared_keys_vec.push(shared_keys);

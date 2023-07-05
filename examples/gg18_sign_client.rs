@@ -33,7 +33,7 @@ fn main() {
     if env::args().nth(3).is_none() {
         panic!("too few arguments")
     }
-    let message_str = env::args().nth(3).unwrap_or_else(|| "".to_string());
+    let message_str = env::args().nth(3).unwrap_or_default();
     let message = match hex::decode(message_str.clone()) {
         Ok(x) => x,
         Err(_e) => message_str.as_bytes().to_vec(),
@@ -502,7 +502,7 @@ fn main() {
     // check sig against secp256k1
     check_sig(&sig.r, &sig.s, &message_bn, &y_sum);
 
-    fs::write("signature".to_string(), sign_json).expect("Unable to save !");
+    fs::write("signature", sign_json).expect("Unable to save !");
 }
 
 fn format_vec_from_reads<'a, T: serde::Deserialize<'a> + Clone>(

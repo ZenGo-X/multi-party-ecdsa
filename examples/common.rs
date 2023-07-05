@@ -63,7 +63,7 @@ pub fn aes_encrypt(key: &[u8], plaintext: &[u8]) -> AEAD {
         .expect("encryption failure!");
 
     AEAD {
-        ciphertext: ciphertext,
+        ciphertext,
         tag: nonce.to_vec(),
     }
 }
