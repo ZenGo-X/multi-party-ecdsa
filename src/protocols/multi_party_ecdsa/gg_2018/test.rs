@@ -62,7 +62,7 @@ fn keygen_t_n_parties(
     Vec<SharedKeys>,
     Vec<Point<Secp256k1>>,
     Point<Secp256k1>,
-    VerifiableSS<Secp256k1>,
+    VerifiableSS<Secp256k1, Sha256>,
 ) {
     let parames = Parameters {
         threshold: t,

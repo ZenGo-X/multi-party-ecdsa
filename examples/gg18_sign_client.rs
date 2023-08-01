@@ -49,7 +49,7 @@ fn main() {
         Keys,
         SharedKeys,
         u16,
-        Vec<VerifiableSS<Secp256k1>>,
+        Vec<VerifiableSS<Secp256k1, Sha256>>,
         Vec<EncryptionKey>,
         Point<Secp256k1>,
     ) = serde_json::from_str(&data).unwrap();
