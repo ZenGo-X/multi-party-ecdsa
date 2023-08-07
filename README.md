@@ -6,7 +6,7 @@
 ## IMPORTANT NOTE
 This repository is no longer maintained. Most specifically, Zengo will not provide any security updates or hotfixes (should an issue arise).
 This library was originally created to enable users to experiment with MPC and TSS functionality using different protocols, including such that are not used in production by Zengo wallet.
-Zengo wallet’s production MPC code can be found in https://github.com/ZenGo-X/gotham-city/pull/64
+Zengo wallet’s production MPC code can be found in [https://github.com/ZenGo-X/gotham-city/master](https://github.com/ZenGo-X/gotham-city/tree/master/)
 
 ## Introduction
 This project is a Rust implementation of {t,n}-threshold ECDSA (elliptic curve digital signature algorithm).
