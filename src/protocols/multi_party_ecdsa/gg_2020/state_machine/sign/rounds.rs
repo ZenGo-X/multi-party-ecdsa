@@ -61,7 +61,7 @@ pub struct Round0 {
     pub s_l: Vec<u16>,
 
     /// Party local secret share
-    pub local_key: LocalKey<Secp256k1>,
+    pub local_key: LocalKey<Secp256k1, Sha256>,
 }
 
 impl Round0 {
@@ -111,7 +111,7 @@ impl Round0 {
 pub struct Round1 {
     i: u16,
     s_l: Vec<u16>,
-    local_key: LocalKey<Secp256k1>,
+    local_key: LocalKey<Secp256k1, Sha256>,
     m_a: (MessageA, BigInt),
     sign_keys: SignKeys,
     phase1_com: SignBroadcastPhase1,
@@ -220,7 +220,7 @@ impl Round1 {
 pub struct Round2 {
     i: u16,
     s_l: Vec<u16>,
-    local_key: LocalKey<Secp256k1>,
+    local_key: LocalKey<Secp256k1, Sha256>,
     sign_keys: SignKeys,
     m_a: (MessageA, BigInt),
     beta_vec: Vec<Scalar<Secp256k1>>,
@@ -328,7 +328,7 @@ impl Round2 {
 pub struct Round3 {
     i: u16,
     s_l: Vec<u16>,
-    local_key: LocalKey<Secp256k1>,
+    local_key: LocalKey<Secp256k1, Sha256>,
     sign_keys: SignKeys,
     m_a: (MessageA, BigInt),
     mb_gamma_s: Vec<MessageB>,
@@ -413,7 +413,7 @@ impl Round3 {
 pub struct Round4 {
     i: u16,
     s_l: Vec<u16>,
-    local_key: LocalKey<Secp256k1>,
+    local_key: LocalKey<Secp256k1, Sha256>,
     sign_keys: SignKeys,
     m_a: (MessageA, BigInt),
     mb_gamma_s: Vec<MessageB>,
@@ -509,7 +509,7 @@ impl Round4 {
 pub struct Round5 {
     i: u16,
     s_l: Vec<u16>,
-    local_key: LocalKey<Secp256k1>,
+    local_key: LocalKey<Secp256k1, Sha256>,
     sign_keys: SignKeys,
     t_vec: Vec<Point<Secp256k1>>,
     m_a_vec: Vec<MessageA>,
@@ -647,7 +647,7 @@ impl Round6 {
 #[derive(Clone)]
 pub struct CompletedOfflineStage {
     i: u16,
-    local_key: LocalKey<Secp256k1>,
+    local_key: LocalKey<Secp256k1, Sha256>,
     sign_keys: SignKeys,
     t_vec: Vec<Point<Secp256k1>>,
     R: Point<Secp256k1>,

@@ -214,7 +214,7 @@ impl Keys {
         params: &Parameters,
         decom_vec: &[KeyGenDecommitMessage1],
         bc1_vec: &[KeyGenBroadcastMessage1],
-    ) -> Result<(VerifiableSS<Secp256k1>, Vec<Scalar<Secp256k1>>, u16), Error> {
+    ) -> Result<(VerifiableSS<Secp256k1, Sha256>, Vec<Scalar<Secp256k1>>, u16), Error> {
         // test length:
         assert_eq!(decom_vec.len(), usize::from(params.share_count));
         assert_eq!(bc1_vec.len(), usize::from(params.share_count));
@@ -244,7 +244,7 @@ impl Keys {
         params: &Parameters,
         y_vec: &[Point<Secp256k1>],
         secret_shares_vec: &[Scalar<Secp256k1>],
-        vss_scheme_vec: &[VerifiableSS<Secp256k1>],
+        vss_scheme_vec: &[VerifiableSS<Secp256k1, Sha256>],
         index: u16,
     ) -> Result<(SharedKeys, DLogProof<Secp256k1, Sha256>), Error> {
         assert_eq!(y_vec.len(), usize::from(params.share_count));
@@ -269,7 +269,7 @@ impl Keys {
     }
 
     pub fn get_commitments_to_xi(
-        vss_scheme_vec: &[VerifiableSS<Secp256k1>],
+        vss_scheme_vec: &[VerifiableSS<Secp256k1, Sha256>],
     ) -> Vec<Point<Secp256k1>> {
         let len = vss_scheme_vec.len();
         (1..=u16::try_from(len).unwrap())
@@ -283,12 +283,12 @@ impl Keys {
 
     pub fn update_commitments_to_xi(
         comm: &Point<Secp256k1>,
-        vss_scheme: &VerifiableSS<Secp256k1>,
+        vss_scheme: &VerifiableSS<Secp256k1, Sha256>,
         index: u16,
         s: &[u16],
     ) -> Point<Secp256k1> {
         let li =
-            VerifiableSS::<Secp256k1>::map_share_to_new_params(&vss_scheme.parameters, index, s);
+            VerifiableSS::<Secp256k1, Sha256>::map_share_to_new_params(&vss_scheme.parameters, index, s);
         comm * &li
     }
 
@@ -384,12 +384,12 @@ impl PartyPrivate {
 impl SignKeys {
     pub fn create(
         private: &PartyPrivate,
-        vss_scheme: &VerifiableSS<Secp256k1>,
+        vss_scheme: &VerifiableSS<Secp256k1, Sha256>,
         index: u16,
         s: &[u16],
     ) -> Self {
         let li =
-            VerifiableSS::<Secp256k1>::map_share_to_new_params(&vss_scheme.parameters, index, s);
+            VerifiableSS::<Secp256k1, Sha256>::map_share_to_new_params(&vss_scheme.parameters, index, s);
         let w_i = li * &private.x_i;
         let g = Point::generator();
         let g_w_i = g * &w_i;

@@ -198,12 +198,12 @@ fn main() {
     );
 
     let mut j = 0;
-    let mut vss_scheme_vec: Vec<VerifiableSS<Secp256k1>> = Vec::new();
+    let mut vss_scheme_vec: Vec<VerifiableSS<Secp256k1, Sha256>> = Vec::new();
     for i in 1..=PARTIES {
         if i == party_num_int {
             vss_scheme_vec.push(vss_scheme.clone());
         } else {
-            let vss_scheme_j: VerifiableSS<Secp256k1> =
+            let vss_scheme_j: VerifiableSS<Secp256k1, Sha256> =
                 serde_json::from_str(&round4_ans_vec[j]).unwrap();
             vss_scheme_vec.push(vss_scheme_j);
             j += 1;

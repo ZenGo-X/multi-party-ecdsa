@@ -33,7 +33,7 @@ pub struct Keygen {
 
     msgs1: Option<Store<BroadcastMsgs<gg_2020::party_i::KeyGenBroadcastMessage1>>>,
     msgs2: Option<Store<BroadcastMsgs<gg_2020::party_i::KeyGenDecommitMessage1>>>,
-    msgs3: Option<Store<P2PMsgs<(VerifiableSS<Secp256k1>, Scalar<Secp256k1>)>>>,
+    msgs3: Option<Store<P2PMsgs<(VerifiableSS<Secp256k1, Sha256>, Scalar<Secp256k1>)>>>,
     msgs4: Option<Store<BroadcastMsgs<DLogProof<Secp256k1, Sha256>>>>,
 
     msgs_queue: Vec<Msg<ProtocolMessage>>,
@@ -187,7 +187,7 @@ impl Keygen {
 impl StateMachine for Keygen {
     type MessageBody = ProtocolMessage;
     type Err = Error;
-    type Output = LocalKey<Secp256k1>;
+    type Output = LocalKey<Secp256k1, Sha256>;
 
     fn handle_incoming(&mut self, msg: Msg<Self::MessageBody>) -> Result<()> {
         let current_round = self.current_round();
@@ -405,7 +405,7 @@ enum R {
     Round2(Round2),
     Round3(Round3),
     Round4(Round4),
-    Final(LocalKey<Secp256k1>),
+    Final(LocalKey<Secp256k1, Sha256>),
     Gone,
 }
 
@@ -421,7 +421,7 @@ pub struct ProtocolMessage(M);
 enum M {
     Round1(gg_2020::party_i::KeyGenBroadcastMessage1),
     Round2(gg_2020::party_i::KeyGenDecommitMessage1),
-    Round3((VerifiableSS<Secp256k1>, Scalar<Secp256k1>)),
+    Round3((VerifiableSS<Secp256k1, Sha256>, Scalar<Secp256k1>)),
     Round4(DLogProof<Secp256k1, Sha256>),
 }
 
@@ -495,7 +495,7 @@ pub mod test {
 
     use super::*;
 
-    pub fn simulate_keygen(t: u16, n: u16) -> Vec<LocalKey<Secp256k1>> {
+    pub fn simulate_keygen(t: u16, n: u16) -> Vec<LocalKey<Secp256k1, Sha256>> {
         let mut simulation = Simulation::new();
         simulation.enable_benchmarks(true);
 

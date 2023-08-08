@@ -262,7 +262,7 @@ impl Keys {
         params: &Parameters,
         decom_vec: &[KeyGenDecommitMessage1],
         bc1_vec: &[KeyGenBroadcastMessage1],
-    ) -> Result<(VerifiableSS<Secp256k1>, Vec<Scalar<Secp256k1>>, usize), ErrorType> {
+    ) -> Result<(VerifiableSS<Secp256k1, Sha256>, Vec<Scalar<Secp256k1>>, usize), ErrorType> {
         let mut bad_actors_vec = Vec::new();
         // test length:
         assert_eq!(decom_vec.len(), usize::from(params.share_count));
@@ -324,7 +324,7 @@ impl Keys {
         params: &Parameters,
         y_vec: &[Point<Secp256k1>],
         secret_shares_vec: &[Scalar<Secp256k1>],
-        vss_scheme_vec: &[VerifiableSS<Secp256k1>],
+        vss_scheme_vec: &[VerifiableSS<Secp256k1, Sha256>],
         index: usize,
     ) -> Result<(SharedKeys, DLogProof<Secp256k1, Sha256>), ErrorType> {
         let mut bad_actors_vec = Vec::new();
@@ -367,7 +367,7 @@ impl Keys {
     }
 
     pub fn get_commitments_to_xi(
-        vss_scheme_vec: &[VerifiableSS<Secp256k1>],
+        vss_scheme_vec: &[VerifiableSS<Secp256k1, Sha256>],
     ) -> Vec<Point<Secp256k1>> {
         let len = vss_scheme_vec.len();
         let (head, tail) = vss_scheme_vec.split_at(1);
@@ -378,9 +378,13 @@ impl Keys {
             }
         }
 
+        let witness = Scalar::random();
+        let proof = DLogProof::<Secp256k1, Sha256>::prove(&witness);
+
         let global_vss = VerifiableSS {
             parameters: vss_scheme_vec[0].parameters.clone(),
             commitments: global_coefficients,
+            proof
         };
         (1..=len)
             .map(|i| global_vss.get_point_commitment(i.try_into().unwrap()))
@@ -389,12 +393,12 @@ impl Keys {
 
     pub fn update_commitments_to_xi(
         comm: &Point<Secp256k1>,
-        vss_scheme: &VerifiableSS<Secp256k1>,
+        vss_scheme: &VerifiableSS<Secp256k1, Sha256>,
         index: usize,
         s: &[usize],
     ) -> Point<Secp256k1> {
         let s: Vec<u16> = s.iter().map(|&i| i.try_into().unwrap()).collect();
-        let li = VerifiableSS::<Secp256k1>::map_share_to_new_params(
+        let li = VerifiableSS::<Secp256k1, Sha256>::map_share_to_new_params(
             &vss_scheme.parameters,
             index.try_into().unwrap(),
             s.as_slice(),
@@ -406,7 +410,7 @@ impl Keys {
         params: &Parameters,
         dlog_proofs_vec: &[DLogProof<Secp256k1, Sha256>],
         y_vec: &[Point<Secp256k1>],
-        vss_vec: &[VerifiableSS<Secp256k1>],
+        vss_vec: &[VerifiableSS<Secp256k1, Sha256>],
     ) -> Result<(), ErrorType> {
         let mut bad_actors_vec = Vec::new();
         assert_eq!(y_vec.len(), usize::from(params.share_count));
@@ -527,13 +531,13 @@ impl SignKeys {
     pub fn g_w_vec(
         pk_vec: &[Point<Secp256k1>],
         s: &[usize],
-        vss_scheme: &VerifiableSS<Secp256k1>,
+        vss_scheme: &VerifiableSS<Secp256k1, Sha256>,
     ) -> Vec<Point<Secp256k1>> {
         let s: Vec<u16> = s.iter().map(|&i| i.try_into().unwrap()).collect();
         // TODO: check bounds
         (0..s.len())
             .map(|i| {
-                let li = VerifiableSS::<Secp256k1>::map_share_to_new_params(
+                let li = VerifiableSS::<Secp256k1, Sha256>::map_share_to_new_params(
                     &vss_scheme.parameters,
                     s[i],
                     s.as_slice(),
@@ -545,12 +549,12 @@ impl SignKeys {
 
     pub fn create(
         private_x_i: &Scalar<Secp256k1>,
-        vss_scheme: &VerifiableSS<Secp256k1>,
+        vss_scheme: &VerifiableSS<Secp256k1, Sha256>,
         index: usize,
         s: &[usize],
     ) -> Self {
         let s: Vec<u16> = s.iter().map(|&i| i.try_into().unwrap()).collect();
-        let li = VerifiableSS::<Secp256k1>::map_share_to_new_params(
+        let li = VerifiableSS::<Secp256k1, Sha256>::map_share_to_new_params(
             &vss_scheme.parameters,
             index.try_into().unwrap(),
             s.as_slice(),
