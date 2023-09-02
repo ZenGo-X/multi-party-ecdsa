@@ -1,0 +1,12 @@
+version: '3'
+
+services:
+  multi-party-ecdsa:
+    image: multi-party-ecdsa
+    container_name: multi-party-ecdsa
+    command: bash -c "cp /multi-party-ecdsa/temp/Rocket.toml . &&
+                      cp /multi-party-ecdsa/temp/params . &&
+                      cp /multi-party-ecdsa/temp/run_in_docker.sh . &&
+                      ./run_in_docker.sh"
+    volumes:
+      - ~/KZen-networks/multi-party-ecdsa/temp/:/multi-party-ecdsa/temp/
