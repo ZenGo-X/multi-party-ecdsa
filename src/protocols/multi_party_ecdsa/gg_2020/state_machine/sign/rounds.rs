@@ -157,8 +157,7 @@ impl Round1 {
             .map_err(|e| {
                 Error::Round1(ErrorType {
                     error_type: e.to_string(),
-                    bad_actors: vec![ind],
-                    data: vec![],
+                    bad_actors: vec![],
                 })
             })?;
 
@@ -171,8 +170,7 @@ impl Round1 {
             .map_err(|e| {
                 Error::Round1(ErrorType {
                     error_type: e.to_string(),
-                    bad_actors: vec![ind],
-                    data: vec![],
+                    bad_actors: vec![],
                 })
             })?;
 
@@ -268,8 +266,7 @@ impl Round2 {
                 .map_err(|e| {
                     Error::Round3(ErrorType {
                         error_type: e.to_string(),
-                        bad_actors: vec![ind],
-                        data: vec![],
+                        bad_actors: vec![],
                     })
                 })?;
             let m_b = m_b_w_s[j].clone();
@@ -278,8 +275,7 @@ impl Round2 {
                 .map_err(|e| {
                     Error::Round3(ErrorType {
                         error_type: e.to_string(),
-                        bad_actors: vec![ind],
-                        data: vec![],
+                        bad_actors: vec![],
                     })
                 })?;
             assert_eq!(m_b.b_proof.pk, g_w_vec[ind]); //TODO: return error
@@ -372,12 +368,11 @@ impl Round3 {
 
         let delta_inv = SignKeys::phase3_reconstruct_delta(&delta_vec);
         let ttag = self.s_l.len();
-        for (idx, proof) in t_proof_vec.iter().enumerate().take(ttag) {
+        for proof in t_proof_vec.iter().take(ttag) {
             PedersenProof::verify(proof).map_err(|e| {
                 Error::Round3(ErrorType {
                     error_type: e.to_string(),
-                    bad_actors: vec![idx + 1],
-                    data: vec![],
+                    bad_actors: vec![],
                 })
             })?;
         }
@@ -452,7 +447,7 @@ impl Round4 {
             &self.bc_vec,
             usize::from(self.i - 1),
         )
-        .map_err(|e| Error::Round5(e))?;
+        .map_err(Error::Round5)?;
 
         let R_dash = &R * &self.sign_keys.k_i;
 
@@ -559,13 +554,12 @@ impl Round5 {
                 &l_s,
                 i,
             )
-            .map_err(|e| Error::Round5(e))?;
+            .map_err(Error::Round5)?;
         }
         LocalSignature::phase5_check_R_dash_sum(&r_dash_vec).map_err(|e| {
             Error::Round5(ErrorType {
                 error_type: e.to_string(),
                 bad_actors: vec![],
-                data: vec![],
             })
         })?;
 

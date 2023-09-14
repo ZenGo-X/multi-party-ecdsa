@@ -423,7 +423,7 @@ impl Keys {
         let mut global_coefficients = head[0].commitments.clone();
         for vss in tail {
             for (i, coefficient_commitment) in vss.commitments.iter().enumerate() {
-                global_coefficients[i] = &global_coefficients[i] + &*coefficient_commitment;
+                global_coefficients[i] = &global_coefficients[i] + coefficient_commitment;
             }
         }
 

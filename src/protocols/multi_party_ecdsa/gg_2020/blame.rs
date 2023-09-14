@@ -379,7 +379,7 @@ impl GlobalStatePhase6 {
                 .map(|i| {
                     let g_wi_ki = &self.g_w_vec[i] * &self.k_vec[i];
                     let sum = self.miu_vec[i].iter().fold(g_wi_ki, |acc, x| {
-                        acc + (Point::generator() * &Scalar::<Secp256k1>::from(&*x))
+                        acc + (Point::generator() * &Scalar::<Secp256k1>::from(x))
                     });
                     sum
                 })
